@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.1
+
+- Added an **All players** reward target for XP, currency, and Item rewards.
+- The all-player target resolves to player-owned character Actors and grants the configured reward to every matching character.
+- XP grants the full configured XP amount to every player character.
+- Currency and Item rewards explicitly do **not** split their configured amount when targeting all players; every player character receives the full bundle or quantity.
+- Added an inline warning in the reward editor plus a confirmation warning before mass currency/Item payout.
+- Added PF2e **Team inventory** targets for currency and Item rewards by exposing available Party Actors in the target selector.
+- Party Actors remain unavailable for XP rewards.
+- Reward previews now include their destination, making all-player and team-inventory payouts immediately visible before confirmation.
+- Added validation for missing player characters and unsupported Item targets.
+- Added German and English localization for all new reward-target UI and warnings.
+- Regression suite expanded from 46 to 50 tests, including full-per-player payout and Party inventory coverage.
+
 ## 0.6.0
 
 - Added optional conditions to transition rules while keeping the existing simple `from status -> to status` trigger model.

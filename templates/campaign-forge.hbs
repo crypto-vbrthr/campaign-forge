@@ -790,6 +790,9 @@
                                 {{#each actorTargets}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
                               </select>
                             </label>
+                            {{#if showFullPerPlayerWarning}}
+                              <p class="cf-reward-warning"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "CAMPAIGN_FORGE.Rewards.AllPlayersFullWarning"}}</p>
+                            {{/if}}
                             {{#if isXp}}
                               <label><span>{{localize "CAMPAIGN_FORGE.Rewards.XPAmount"}}</span><input type="number" min="1" step="1" value="{{amount}}" data-cf-reward-amount="{{index}}"></label>
                             {{/if}}

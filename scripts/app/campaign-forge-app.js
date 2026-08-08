@@ -7,6 +7,7 @@ import {
   MODULE_ID,
   NUMERIC_CONDITION_OPERATORS,
   REWARD_STATES,
+  REWARD_TARGET_ALL_PLAYERS,
   REWARD_TYPES,
   SETTINGS,
   SESSION_CHANGE_KINDS,
@@ -19,6 +20,7 @@ import {
 import { CampaignEngineError } from "../engine/campaign-engine.js";
 import { getGroupProgress } from "../data/state.js";
 import { campaignEntryEmbedSyntax, EMBED_MIME } from "../integrations/journal-entries.js";
+import { getPlayerCharacterActors } from "../integrations/reward-provider.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 
@@ -169,31 +171,51 @@ function rewardStateLabel(state) {
   return localize(REWARD_STATES[state]?.label ?? state);
 }
 
-function rewardPreviewLabel(reward) {
-  if (reward.type === "xp") {
-    return format("CAMPAIGN_FORGE.Rewards.PreviewXP", { amount: reward.amount ?? 0 });
+function foundryActors() {
+  return [...(game.actors?.contents ?? game.actors ?? [])];
+}
+
+function rewardTargetLabel(actorUuid) {
+  if (actorUuid === REWARD_TARGET_ALL_PLAYERS) return localize("CAMPAIGN_FORGE.Rewards.AllPlayers");
+  const actor = foundryActors().find(candidate => candidate?.uuid === actorUuid);
+  if (!actor) return actorUuid ? format("CAMPAIGN_FORGE.Rewards.MissingActor", { uuid: actorUuid }) : "";
+  if (actor.type === "party") {
+    return actor.name
+      ? format("CAMPAIGN_FORGE.Rewards.TeamInventoryNamed", { name: actor.name })
+      : localize("CAMPAIGN_FORGE.Rewards.TeamInventory");
   }
-  if (reward.type === "currency") {
+  return actor.name ?? actorUuid;
+}
+
+function rewardNeedsFullPerPlayerWarning(reward) {
+  return reward?.actorUuid === REWARD_TARGET_ALL_PLAYERS && ["currency", "item"].includes(reward?.type);
+}
+
+function rewardPreviewLabel(reward) {
+  let label = reward.type ?? "";
+  if (reward.type === "xp") {
+    label = format("CAMPAIGN_FORGE.Rewards.PreviewXP", { amount: reward.amount ?? 0 });
+  } else if (reward.type === "currency") {
     const coins = reward.coins ?? {};
     const parts = ["pp", "gp", "sp", "cp"]
       .filter(denom => Number(coins[denom] ?? 0) > 0)
       .map(denom => `${Number(coins[denom])} ${denom.toUpperCase()}`);
-    return format("CAMPAIGN_FORGE.Rewards.PreviewCurrency", { amount: parts.join(", ") });
-  }
-  if (reward.type === "item") {
-    return format("CAMPAIGN_FORGE.Rewards.PreviewItem", {
+    label = format("CAMPAIGN_FORGE.Rewards.PreviewCurrency", { amount: parts.join(", ") });
+  } else if (reward.type === "item") {
+    label = format("CAMPAIGN_FORGE.Rewards.PreviewItem", {
       quantity: reward.quantity ?? 1,
       item: reward.itemName || reward.itemUuid || localize("CAMPAIGN_FORGE.Rewards.UnknownItem")
     });
-  }
-  if (reward.type === "tracker") {
+  } else if (reward.type === "tracker") {
     const delta = Number(reward.delta ?? 0);
     return format("CAMPAIGN_FORGE.Rewards.PreviewTracker", {
       title: reward.targetTitle ?? reward.trackerId ?? "",
       delta: delta >= 0 ? `+${delta}` : String(delta)
     });
   }
-  return reward.type ?? "";
+
+  const target = rewardTargetLabel(reward.actorUuid);
+  return target ? format("CAMPAIGN_FORGE.Rewards.PreviewWithTarget", { reward: label, target }) : label;
 }
 
 function booleanOptions(selected) {
@@ -1013,9 +1035,14 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           };
         }
         const draft = this._rewardEditor.draft;
-        const actors = [...(game.actors?.contents ?? game.actors ?? [])]
+        const allActors = foundryActors();
+        const actors = allActors
           .filter(actor => actor?.documentName === "Actor" && actor.type === "character")
           .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        const partyActors = allActors
+          .filter(actor => actor?.documentName === "Actor" && actor.type === "party")
+          .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        const playerCharacterCount = getPlayerCharacterActors().length;
         const trackers = [...state.trackers].sort((a, b) => String(a.title).localeCompare(String(b.title)));
 
         rewardEditor = {
@@ -1026,11 +1053,27 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           toStatuses: statusOptions(source.type, draft.toStatus),
           rewards: await Promise.all((draft.rewards ?? []).map(async (reward, index) => {
             const liveItem = await resolveItem(reward.itemUuid);
-            const actorTargets = actors.map(actor => ({
+            const actorTargets = [{
+              id: REWARD_TARGET_ALL_PLAYERS,
+              label: playerCharacterCount
+                ? format("CAMPAIGN_FORGE.Rewards.AllPlayersCount", { count: playerCharacterCount })
+                : localize("CAMPAIGN_FORGE.Rewards.AllPlayers"),
+              selected: reward.actorUuid === REWARD_TARGET_ALL_PLAYERS
+            }];
+            if (["currency", "item"].includes(reward.type)) {
+              actorTargets.push(...partyActors.map(actor => ({
+                id: actor.uuid,
+                label: actor.name
+                  ? format("CAMPAIGN_FORGE.Rewards.TeamInventoryNamed", { name: actor.name })
+                  : localize("CAMPAIGN_FORGE.Rewards.TeamInventory"),
+                selected: actor.uuid === reward.actorUuid
+              })));
+            }
+            actorTargets.push(...actors.map(actor => ({
               id: actor.uuid,
               label: actor.name,
               selected: actor.uuid === reward.actorUuid
-            }));
+            })));
             if (reward.actorUuid && !actorTargets.some(option => option.id === reward.actorUuid)) {
               actorTargets.unshift({
                 id: reward.actorUuid,
@@ -1064,7 +1107,9 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
               quantity: reward.quantity ?? 1,
               delta: reward.delta ?? 1,
               state: reward.state ?? "locked",
-              stateLabel: rewardStateLabel(reward.state ?? "locked")
+              stateLabel: rewardStateLabel(reward.state ?? "locked"),
+              isAllPlayers: reward.actorUuid === REWARD_TARGET_ALL_PLAYERS,
+              showFullPerPlayerWarning: rewardNeedsFullPerPlayerWarning(reward)
             };
           }))
         };
@@ -1392,9 +1437,14 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         if (!reward) return;
         reward.type = event.currentTarget.value;
         const state = await this.engine.getState();
-        const actors = [...(game.actors?.contents ?? game.actors ?? [])].filter(actor => actor?.type === "character");
-        if (["xp", "currency", "item"].includes(reward.type)) reward.actorUuid ||= actors[0]?.uuid ?? "";
-        if (reward.type === "xp") reward.amount = Number(reward.amount || 100);
+        const allActors = foundryActors();
+        const actors = allActors.filter(actor => actor?.type === "character");
+        if (["xp", "currency", "item"].includes(reward.type)) reward.actorUuid ||= actors[0]?.uuid ?? REWARD_TARGET_ALL_PLAYERS;
+        if (reward.type === "xp") {
+          const selectedActor = allActors.find(actor => actor?.uuid === reward.actorUuid);
+          if (selectedActor?.type === "party") reward.actorUuid = REWARD_TARGET_ALL_PLAYERS;
+          reward.amount = Number(reward.amount || 100);
+        }
         if (reward.type === "currency") reward.coins ??= { pp: 0, gp: 0, sp: 0, cp: 0 };
         if (reward.type === "item") reward.quantity = Math.max(1, Number(reward.quantity || 1));
         if (reward.type === "tracker") {
@@ -1406,10 +1456,12 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     });
 
     root.querySelectorAll("[data-cf-reward-actor]").forEach(select => {
-      select.addEventListener("change", event => {
+      select.addEventListener("change", async event => {
         const index = Number(event.currentTarget.dataset.cfRewardActor);
         const reward = this._rewardEditor?.draft?.rewards?.[index];
-        if (reward) reward.actorUuid = event.currentTarget.value;
+        if (!reward) return;
+        reward.actorUuid = event.currentTarget.value;
+        await this.render();
       });
     });
     root.querySelectorAll("[data-cf-reward-amount]").forEach(input => {
@@ -1842,9 +1894,13 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
     let rewardMode = "defer";
     if (plan.rewardOffers?.length) {
+      const hasFullPerPlayerReward = plan.rewardOffers.some(rewardNeedsFullPerPlayerWarning);
+      const warning = hasFullPerPlayerReward
+        ? `<p class="cf-reward-warning"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHTML(localize("CAMPAIGN_FORGE.Rewards.AllPlayersFullWarning"))}</p>`
+        : "";
       const grantNow = await DialogV2.confirm({
         window: { title: localize("CAMPAIGN_FORGE.Rewards.GrantConfirmTitle") },
-        content: `<p>${escapeHTML(localize("CAMPAIGN_FORGE.Rewards.GrantConfirmText"))}</p>`,
+        content: `<p>${escapeHTML(localize("CAMPAIGN_FORGE.Rewards.GrantConfirmText"))}</p>${warning}`,
         modal: true,
         rejectClose: false
       });
@@ -1990,6 +2046,19 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   static async _actionGrantReward(event, target) {
     try {
+      const state = await this.engine.getState();
+      const entry = state.entries.find(candidate => candidate.id === target.dataset.entryId);
+      const rule = entry?.rewardRules?.find(candidate => candidate.id === target.dataset.ruleId);
+      const reward = rule?.rewards?.find(candidate => candidate.id === target.dataset.rewardId);
+      if (rewardNeedsFullPerPlayerWarning(reward)) {
+        const confirmed = await DialogV2.confirm({
+          window: { title: localize("CAMPAIGN_FORGE.Rewards.AllPlayersWarningTitle") },
+          content: `<p class="cf-reward-warning"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHTML(localize("CAMPAIGN_FORGE.Rewards.AllPlayersFullWarning"))}</p>`,
+          modal: true,
+          rejectClose: false
+        });
+        if (!confirmed) return;
+      }
       await this.engine.grantReward(target.dataset.entryId, target.dataset.ruleId, target.dataset.rewardId);
       await this.render();
     } catch (error) {

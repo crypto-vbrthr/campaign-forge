@@ -123,6 +123,8 @@ export const TRANSITION_ACTION_TYPES = Object.freeze({
 export const MAX_TRANSITION_DEPTH = 24;
 export const MAX_TRANSITION_ACTIONS = 100;
 
+export const REWARD_TARGET_ALL_PLAYERS = "__campaign_forge_all_players__";
+
 export const REWARD_TYPES = Object.freeze({
   xp: { label: "CAMPAIGN_FORGE.Rewards.Types.xp", icon: "fa-solid fa-star" },
   currency: { label: "CAMPAIGN_FORGE.Rewards.Types.currency", icon: "fa-solid fa-coins" },

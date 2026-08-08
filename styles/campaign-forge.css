@@ -1579,3 +1579,21 @@ button.icon,
     grid-template-columns: 1fr;
   }
 }
+
+.cf-reward-warning {
+  margin: .15rem 0 0;
+  padding: .45rem .55rem;
+  display: flex;
+  align-items: flex-start;
+  gap: .4rem;
+  border: 1px solid var(--cf-border-strong);
+  border-radius: .4rem;
+  background: var(--cf-panel-soft);
+  font-size: .86em;
+  line-height: 1.35;
+}
+
+.cf-reward-warning > i {
+  margin-top: .12rem;
+  flex: 0 0 auto;
+}

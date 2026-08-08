@@ -286,7 +286,9 @@
       "INVALID_TRANSITION_CONDITION_VALUE": "The condition comparison value is invalid.",
       "INVALID_TRANSITION_CONDITION_STATUS": "The comparison status is invalid for the selected entry.",
       "INVALID_TRANSITION_CONDITION_MODE": "The condition combination mode is invalid.",
-      "INVALID_TRANSITION_GROUP_METRIC": "The selected group progress metric is invalid."
+      "INVALID_TRANSITION_GROUP_METRIC": "The selected group progress metric is invalid.",
+      "REWARD_NO_PLAYER_CHARACTERS": "No player characters were found that can receive this reward.",
+      "REWARD_ITEM_TARGET_UNSUPPORTED": "The selected target does not support automatic Item rewards."
     },
     "SessionChangeKinds": {
       "note": "Note",
@@ -453,7 +455,14 @@
         "granted": "Granted",
         "skipped": "Skipped",
         "failed": "Failed"
-      }
+      },
+      "AllPlayers": "All players",
+      "AllPlayersCount": "All players ({count} characters)",
+      "TeamInventory": "Team inventory",
+      "TeamInventoryNamed": "Team inventory · {name}",
+      "PreviewWithTarget": "{reward} → {target}",
+      "AllPlayersWarningTitle": "Reward all players",
+      "AllPlayersFullWarning": "When “All players” is selected, this currency or Item reward is not split. Every player character receives the full configured amount."
     },
     "TransitionConditionModes": {
       "all": "All conditions must be met",

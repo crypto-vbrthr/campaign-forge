@@ -286,7 +286,9 @@
       "INVALID_TRANSITION_CONDITION_VALUE": "Der Vergleichswert der Bedingung ist ungültig.",
       "INVALID_TRANSITION_CONDITION_STATUS": "Der Vergleichsstatus ist für den gewählten Eintrag ungültig.",
       "INVALID_TRANSITION_CONDITION_MODE": "Die Verknüpfung der Bedingungen ist ungültig.",
-      "INVALID_TRANSITION_GROUP_METRIC": "Die gewählte Art des Gruppenfortschritts ist ungültig."
+      "INVALID_TRANSITION_GROUP_METRIC": "Die gewählte Art des Gruppenfortschritts ist ungültig.",
+      "REWARD_NO_PLAYER_CHARACTERS": "Es wurden keine Spielercharaktere gefunden, denen diese Belohnung zugewiesen werden kann.",
+      "REWARD_ITEM_TARGET_UNSUPPORTED": "Das gewählte Ziel unterstützt die automatische Gegenstandsvergabe nicht."
     },
     "SessionChangeKinds": {
       "note": "Notiz",
@@ -453,7 +455,14 @@
         "granted": "Vergeben",
         "skipped": "Übersprungen",
         "failed": "Fehlgeschlagen"
-      }
+      },
+      "AllPlayers": "Alle Spieler",
+      "AllPlayersCount": "Alle Spieler ({count} Charaktere)",
+      "TeamInventory": "Teaminventar",
+      "TeamInventoryNamed": "Teaminventar · {name}",
+      "PreviewWithTarget": "{reward} → {target}",
+      "AllPlayersWarningTitle": "Belohnung an alle Spieler",
+      "AllPlayersFullWarning": "Bei „Alle Spieler“ wird diese Geld- oder Gegenstandsbelohnung nicht aufgeteilt. Jeder Spielercharakter erhält die vollständige angegebene Menge."
     },
     "TransitionConditionModes": {
       "all": "Alle Bedingungen müssen erfüllt sein",

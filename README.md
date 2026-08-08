@@ -1,6 +1,13 @@
-# Campaign Forge v0.6.0
+# Campaign Forge v0.6.1
 
 Campaign Forge is a GM-facing Foundry VTT module for tracking campaign structure, knowledge, quests, events, sessions, long-term campaign values, important NPCs, and rule-driven campaign state changes.
+
+## v0.6.1 Reward target polish
+
+- XP, currency, and Item rewards can target **All players**. This resolves to all player-owned character Actors.
+- Currency and Item rewards can additionally target a PF2e **Team inventory** through available Party Actors.
+- All-player currency and Item rewards are never divided: every player character receives the complete configured amount or Item quantity, with an explicit warning before payout.
+- Reward previews show the selected destination.
 
 ## v0.6.0 Conditional transition rules
 
@@ -36,7 +43,7 @@ Campaign Forge is a GM-facing Foundry VTT module for tracking campaign structure
 - German and English localization for all application text.
 - New **Reward Rules** attach one or more rewards to an explicit entry status transition.
 - Supported built-in rewards: PF2e character XP, currency, existing Foundry Items, and Campaign Forge reputation/campaign values.
-- XP, currency, and Item rewards select a target character Actor; Items can be referenced from the world or a compendium by drag & drop.
+- XP, currency, and Item rewards can target an individual character or all player characters; currency and Items can also target a PF2e Party Actor as team inventory. Items can be referenced from the world or a compendium by drag & drop.
 - Reward previews are shown together with transition consequences before the status change is applied.
 - The GM can grant due rewards immediately or defer them while still applying the status transition.
 - Reward lifecycle states distinguish not-yet-due, pending, granted, skipped, and failed rewards.
