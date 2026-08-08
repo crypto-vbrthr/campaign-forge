@@ -78,6 +78,41 @@ export const KEY_PLAYER_STATES = Object.freeze({
 });
 
 
+
+export const TRANSITION_CONDITION_MODES = Object.freeze({
+  all: { label: "CAMPAIGN_FORGE.TransitionConditionModes.all" },
+  any: { label: "CAMPAIGN_FORGE.TransitionConditionModes.any" }
+});
+
+export const TRANSITION_CONDITION_TYPES = Object.freeze({
+  entryStatus: { label: "CAMPAIGN_FORGE.TransitionConditions.entryStatus", icon: "fa-solid fa-arrow-right-arrow-left" },
+  entryActive: { label: "CAMPAIGN_FORGE.TransitionConditions.entryActive", icon: "fa-solid fa-power-off" },
+  entryVisible: { label: "CAMPAIGN_FORGE.TransitionConditions.entryVisible", icon: "fa-solid fa-eye" },
+  trackerValue: { label: "CAMPAIGN_FORGE.TransitionConditions.trackerValue", icon: "fa-solid fa-chart-line" },
+  groupProgress: { label: "CAMPAIGN_FORGE.TransitionConditions.groupProgress", icon: "fa-solid fa-bars-progress" }
+});
+
+export const STATUS_CONDITION_OPERATORS = Object.freeze({
+  eq: { label: "CAMPAIGN_FORGE.TransitionOperators.eq" },
+  ne: { label: "CAMPAIGN_FORGE.TransitionOperators.ne" },
+  atLeast: { label: "CAMPAIGN_FORGE.TransitionOperators.atLeast" },
+  atMost: { label: "CAMPAIGN_FORGE.TransitionOperators.atMost" }
+});
+
+export const NUMERIC_CONDITION_OPERATORS = Object.freeze({
+  eq: { label: "CAMPAIGN_FORGE.TransitionOperators.eq" },
+  ne: { label: "CAMPAIGN_FORGE.TransitionOperators.ne" },
+  gt: { label: "CAMPAIGN_FORGE.TransitionOperators.gt" },
+  gte: { label: "CAMPAIGN_FORGE.TransitionOperators.gte" },
+  lt: { label: "CAMPAIGN_FORGE.TransitionOperators.lt" },
+  lte: { label: "CAMPAIGN_FORGE.TransitionOperators.lte" }
+});
+
+export const GROUP_PROGRESS_METRICS = Object.freeze({
+  reached: { label: "CAMPAIGN_FORGE.TransitionGroupMetrics.reached" },
+  percent: { label: "CAMPAIGN_FORGE.TransitionGroupMetrics.percent" }
+});
+
 export const TRANSITION_ACTION_TYPES = Object.freeze({
   setEntryStatus: { label: "CAMPAIGN_FORGE.TransitionActions.setEntryStatus", icon: "fa-solid fa-arrow-right-arrow-left" },
   setEntryActive: { label: "CAMPAIGN_FORGE.TransitionActions.setEntryActive", icon: "fa-solid fa-power-off" },

@@ -279,7 +279,14 @@
       "REWARD_ACTOR_NOT_FOUND": "Der Ziel-Actor der Belohnung wurde nicht gefunden.",
       "REWARD_XP_CHARACTER_ONLY": "EP können nur an Charakter-Actors vergeben werden.",
       "REWARD_CURRENCY_UNSUPPORTED": "Der Ziel-Actor unterstützt die automatische Geldvergabe nicht.",
-      "REWARD_ITEM_NOT_FOUND": "Der verknüpfte Gegenstand wurde nicht gefunden."
+      "REWARD_ITEM_NOT_FOUND": "Der verknüpfte Gegenstand wurde nicht gefunden.",
+      "INVALID_TRANSITION_CONDITION": "Dieser Bedingungstyp ist ungültig.",
+      "TRANSITION_CONDITION_TARGET_REQUIRED": "Für die Bedingung muss ein Ziel ausgewählt werden.",
+      "INVALID_TRANSITION_CONDITION_OPERATOR": "Der Vergleichsoperator der Bedingung ist ungültig.",
+      "INVALID_TRANSITION_CONDITION_VALUE": "Der Vergleichswert der Bedingung ist ungültig.",
+      "INVALID_TRANSITION_CONDITION_STATUS": "Der Vergleichsstatus ist für den gewählten Eintrag ungültig.",
+      "INVALID_TRANSITION_CONDITION_MODE": "Die Verknüpfung der Bedingungen ist ungültig.",
+      "INVALID_TRANSITION_GROUP_METRIC": "Die gewählte Art des Gruppenfortschritts ist ungültig."
     },
     "SessionChangeKinds": {
       "note": "Notiz",
@@ -348,7 +355,27 @@
       "PreviewStatus": "„{title}“: {from} → {to}",
       "PreviewActive": "„{title}“: Aktiv = {value}",
       "PreviewVisible": "„{title}“: Sichtbar = {value}",
-      "PreviewTracker": "„{title}“: {delta} (neuer Wert: {value})"
+      "PreviewTracker": "„{title}“: {delta} (neuer Wert: {value})",
+      "Conditions": "Zusätzliche Bedingungen",
+      "ConditionsHint": "Optional. Ohne Bedingungen wird die Regel bei jedem passenden Statusübergang ausgeführt.",
+      "AddCondition": "Bedingung hinzufügen",
+      "ConditionsCount": "Bedingungen",
+      "ConditionMode": "Bedingungen verknüpfen",
+      "ConditionType": "Bedingungstyp",
+      "NoConditions": "Keine zusätzlichen Bedingungen. Nur der Statusauslöser entscheidet über diese Regel.",
+      "Operator": "Vergleich",
+      "ConditionValue": "Vergleichswert",
+      "TargetGroup": "Gruppe oder Kapitel",
+      "GroupMetric": "Fortschrittswert",
+      "CurrentGroupProgress": "Aktueller Gruppenfortschritt",
+      "ConditionEvaluation": "Prüfung der Bedingungen",
+      "ConditionsPassed": "Regel wird ausgeführt",
+      "ConditionsBlocked": "Regel wird nicht ausgeführt",
+      "ConditionRuleLabel": "„{title}“: {from} → {to}",
+      "ConditionPreviewStatus": "„{title}“: aktuell {actual}; Bedingung {operator} {expected}",
+      "ConditionPreviewBoolean": "„{title}“: {field} ist {actual}; benötigt {expected}",
+      "ConditionPreviewNumeric": "„{title}“: aktuell {actual}; Bedingung {operator} {expected}",
+      "ConditionPreviewGroup": "„{title}“: aktuell {actual} ({reached}/{total}); Bedingung {operator} {expected}"
     },
     "TransitionActions": {
       "setEntryStatus": "Status eines Eintrags setzen",
@@ -427,6 +454,31 @@
         "skipped": "Übersprungen",
         "failed": "Fehlgeschlagen"
       }
+    },
+    "TransitionConditionModes": {
+      "all": "Alle Bedingungen müssen erfüllt sein",
+      "any": "Mindestens eine Bedingung muss erfüllt sein"
+    },
+    "TransitionConditions": {
+      "entryStatus": "Status eines Eintrags",
+      "entryActive": "Aktiv-Zustand eines Eintrags",
+      "entryVisible": "Sichtbarkeit eines Eintrags",
+      "trackerValue": "Ruf- oder Kampagnenwert",
+      "groupProgress": "Fortschritt einer Gruppe"
+    },
+    "TransitionOperators": {
+      "eq": "ist gleich",
+      "ne": "ist nicht gleich",
+      "atLeast": "ist mindestens",
+      "atMost": "ist höchstens",
+      "gt": "ist größer als",
+      "gte": "ist mindestens",
+      "lt": "ist kleiner als",
+      "lte": "ist höchstens"
+    },
+    "TransitionGroupMetrics": {
+      "reached": "Erreichte Einträge",
+      "percent": "Fortschritt in Prozent"
     }
   }
 }

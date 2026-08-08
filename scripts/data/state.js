@@ -1,4 +1,4 @@
-import { ENTRY_TYPES, JOURNAL_LINK_ROLES, KEY_PLAYER_ROLES, KEY_PLAYER_STATES, OVERVIEW_REACHED_STATUSES, REWARD_STATES, REWARD_TYPES, SORT_STEP, TRANSITION_ACTION_TYPES } from "../core/constants.js";
+import { ENTRY_TYPES, GROUP_PROGRESS_METRICS, JOURNAL_LINK_ROLES, KEY_PLAYER_ROLES, KEY_PLAYER_STATES, NUMERIC_CONDITION_OPERATORS, OVERVIEW_REACHED_STATUSES, REWARD_STATES, REWARD_TYPES, SORT_STEP, STATUS_CONDITION_OPERATORS, TRANSITION_ACTION_TYPES, TRANSITION_CONDITION_MODES, TRANSITION_CONDITION_TYPES } from "../core/constants.js";
 
 function nowIso() {
   return new Date().toISOString();
@@ -100,6 +100,30 @@ export function normalizeState(raw) {
         enabled: rule.enabled !== false,
         fromStatus: String(rule.fromStatus ?? entry.status),
         toStatus: String(rule.toStatus ?? entry.status),
+        conditionMode: TRANSITION_CONDITION_MODES[rule.conditionMode] ? rule.conditionMode : "all",
+        conditions: (Array.isArray(rule.conditions) ? rule.conditions : [])
+          .filter(condition => condition && TRANSITION_CONDITION_TYPES[condition.type])
+          .map((condition, conditionIndex) => {
+            const normalized = {
+              id: String(condition.id ?? `condition-${entry.id}-${ruleIndex + 1}-${conditionIndex + 1}`),
+              type: String(condition.type),
+              targetId: String(condition.targetId ?? "")
+            };
+            if (condition.type === "entryStatus") {
+              normalized.operator = STATUS_CONDITION_OPERATORS[condition.operator] ? condition.operator : "eq";
+              normalized.status = String(condition.status ?? "");
+            } else if (condition.type === "entryActive" || condition.type === "entryVisible") {
+              normalized.value = Boolean(condition.value);
+            } else if (condition.type === "trackerValue") {
+              normalized.operator = NUMERIC_CONDITION_OPERATORS[condition.operator] ? condition.operator : "gte";
+              normalized.value = Number(condition.value ?? 0);
+            } else if (condition.type === "groupProgress") {
+              normalized.operator = NUMERIC_CONDITION_OPERATORS[condition.operator] ? condition.operator : "gte";
+              normalized.metric = GROUP_PROGRESS_METRICS[condition.metric] ? condition.metric : "reached";
+              normalized.value = Number(condition.value ?? 0);
+            }
+            return normalized;
+          }),
         actions: (Array.isArray(rule.actions) ? rule.actions : [])
           .filter(action => action && TRANSITION_ACTION_TYPES[action.type])
           .map((action, actionIndex) => ({

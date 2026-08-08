@@ -32,7 +32,7 @@ function exposeApi() {
   if (!module) return;
 
   module.api = {
-    version: "0.5.1",
+    version: "0.6.0",
     open: openCampaignForge,
     getState: () => engine.getState(),
     getJournalEmbedSyntax: (entryId, mode = "card") => campaignEntryEmbedSyntax(entryId, mode),

@@ -3,15 +3,20 @@ import {
   JOURNAL_LINK_ROLES,
   KEY_PLAYER_ROLES,
   KEY_PLAYER_STATES,
+  GROUP_PROGRESS_METRICS,
   MAX_TRANSITION_ACTIONS,
   MAX_TRANSITION_DEPTH,
+  NUMERIC_CONDITION_OPERATORS,
   REWARD_STATES,
   REWARD_TYPES,
   SESSION_CHANGE_KINDS,
   SORT_STEP,
-  TRANSITION_ACTION_TYPES
+  STATUS_CONDITION_OPERATORS,
+  TRANSITION_ACTION_TYPES,
+  TRANSITION_CONDITION_MODES,
+  TRANSITION_CONDITION_TYPES
 } from "../core/constants.js";
-import { cloneData, getChildren, nextSort, normalizeState } from "../data/state.js";
+import { cloneData, getChildren, getGroupProgress, nextSort, normalizeState } from "../data/state.js";
 
 export class CampaignEngineError extends Error {
   constructor(code, details = {}) {
@@ -138,6 +143,177 @@ export class CampaignEngine {
 
 
 
+  _normalizeTransitionConditions(state, conditions = []) {
+    if (conditions === null || conditions === undefined) return [];
+    if (!Array.isArray(conditions)) {
+      throw new CampaignEngineError("INVALID_TRANSITION_CONDITION");
+    }
+
+    return conditions.map(raw => {
+      const type = String(raw?.type ?? "");
+      if (!TRANSITION_CONDITION_TYPES[type]) {
+        throw new CampaignEngineError("INVALID_TRANSITION_CONDITION", { type });
+      }
+
+      const targetId = String(raw?.targetId ?? "").trim();
+      if (!targetId) throw new CampaignEngineError("TRANSITION_CONDITION_TARGET_REQUIRED", { type });
+      const id = String(raw?.id ?? this._newId());
+
+      if (type === "entryStatus") {
+        const target = this._findEntry(state, targetId);
+        const operator = String(raw?.operator ?? "eq");
+        if (!STATUS_CONDITION_OPERATORS[operator]) {
+          throw new CampaignEngineError("INVALID_TRANSITION_CONDITION_OPERATOR", { type, operator });
+        }
+        const status = String(raw?.status ?? "");
+        if (!ENTRY_TYPES[target.type].statuses.includes(status)) {
+          throw new CampaignEngineError("INVALID_TRANSITION_CONDITION_STATUS", { targetId, status, entryType: target.type });
+        }
+        return { id, type, targetId, operator, status };
+      }
+
+      if (type === "entryActive" || type === "entryVisible") {
+        this._findEntry(state, targetId);
+        return {
+          id,
+          type,
+          targetId,
+          value: raw?.value === true || raw?.value === "true" || raw?.value === 1 || raw?.value === "1"
+        };
+      }
+
+      if (type === "trackerValue") {
+        this._findTracker(state, targetId);
+        const operator = String(raw?.operator ?? "gte");
+        if (!NUMERIC_CONDITION_OPERATORS[operator]) {
+          throw new CampaignEngineError("INVALID_TRANSITION_CONDITION_OPERATOR", { type, operator });
+        }
+        const value = Number(raw?.value);
+        if (!Number.isFinite(value)) throw new CampaignEngineError("INVALID_TRANSITION_CONDITION_VALUE", { value: raw?.value });
+        return { id, type, targetId, operator, value };
+      }
+
+      const group = this._findGroup(state, targetId);
+      const operator = String(raw?.operator ?? "gte");
+      if (!NUMERIC_CONDITION_OPERATORS[operator]) {
+        throw new CampaignEngineError("INVALID_TRANSITION_CONDITION_OPERATOR", { type, operator });
+      }
+      const metric = String(raw?.metric ?? "reached");
+      if (!GROUP_PROGRESS_METRICS[metric]) {
+        throw new CampaignEngineError("INVALID_TRANSITION_GROUP_METRIC", { metric });
+      }
+      let value = Number(raw?.value);
+      if (!Number.isFinite(value) || value < 0) {
+        throw new CampaignEngineError("INVALID_TRANSITION_CONDITION_VALUE", { value: raw?.value });
+      }
+      if (metric === "reached") value = Math.trunc(value);
+      if (metric === "percent" && value > 100) {
+        throw new CampaignEngineError("INVALID_TRANSITION_CONDITION_VALUE", { value: raw?.value });
+      }
+      return { id, type, targetId: group.id, operator, metric, value };
+    });
+  }
+
+  _compareNumeric(actual, operator, expected) {
+    if (operator === "eq") return actual === expected;
+    if (operator === "ne") return actual !== expected;
+    if (operator === "gt") return actual > expected;
+    if (operator === "gte") return actual >= expected;
+    if (operator === "lt") return actual < expected;
+    if (operator === "lte") return actual <= expected;
+    return false;
+  }
+
+  _evaluateTransitionCondition(state, condition) {
+    if (condition.type === "entryStatus") {
+      const target = this._findEntry(state, condition.targetId);
+      const statuses = ENTRY_TYPES[target.type].statuses;
+      const actualIndex = statuses.indexOf(target.status);
+      const expectedIndex = statuses.indexOf(condition.status);
+      let passed = false;
+      if (condition.operator === "eq") passed = target.status === condition.status;
+      else if (condition.operator === "ne") passed = target.status !== condition.status;
+      else if (condition.operator === "atLeast") passed = actualIndex >= expectedIndex;
+      else if (condition.operator === "atMost") passed = actualIndex <= expectedIndex;
+      return {
+        ...cloneData(condition),
+        passed,
+        targetTitle: target.title,
+        targetEntryType: target.type,
+        actualStatus: target.status,
+        expectedStatus: condition.status
+      };
+    }
+
+    if (condition.type === "entryActive" || condition.type === "entryVisible") {
+      const target = this._findEntry(state, condition.targetId);
+      const field = condition.type === "entryActive" ? "active" : "visible";
+      const actual = Boolean(target[field]);
+      return {
+        ...cloneData(condition),
+        passed: actual === Boolean(condition.value),
+        targetTitle: target.title,
+        actualValue: actual,
+        expectedValue: Boolean(condition.value)
+      };
+    }
+
+    if (condition.type === "trackerValue") {
+      const target = this._findTracker(state, condition.targetId);
+      const actual = Number(target.value ?? 0);
+      return {
+        ...cloneData(condition),
+        passed: this._compareNumeric(actual, condition.operator, Number(condition.value)),
+        targetTitle: target.title,
+        actualValue: actual,
+        expectedValue: Number(condition.value)
+      };
+    }
+
+    const target = this._findGroup(state, condition.targetId);
+    const progress = getGroupProgress(state, target.id);
+    const actual = condition.metric === "percent" ? progress.percent : progress.reached;
+    return {
+      ...cloneData(condition),
+      passed: this._compareNumeric(actual, condition.operator, Number(condition.value)),
+      targetTitle: target.title,
+      actualValue: actual,
+      expectedValue: Number(condition.value),
+      progress
+    };
+  }
+
+  _evaluateTransitionRuleConditions(state, entry, rule) {
+    const conditions = (rule.conditions ?? []).map(condition => this._evaluateTransitionCondition(state, condition));
+    const mode = TRANSITION_CONDITION_MODES[rule.conditionMode] ? rule.conditionMode : "all";
+    const passed = !conditions.length || (mode === "any"
+      ? conditions.some(condition => condition.passed)
+      : conditions.every(condition => condition.passed));
+    return {
+      entryId: entry.id,
+      entryTitle: entry.title,
+      ruleId: rule.id,
+      fromStatus: rule.fromStatus,
+      toStatus: rule.toStatus,
+      conditionMode: mode,
+      passed,
+      conditions
+    };
+  }
+
+  _disableRulesWithRemovedConditions(state, predicate) {
+    for (const entry of state.entries) {
+      for (const rule of entry.transitionRules ?? []) {
+        const before = rule.conditions ?? [];
+        const remaining = before.filter(condition => !predicate(condition));
+        if (remaining.length !== before.length) {
+          rule.conditions = remaining;
+          rule.enabled = false;
+        }
+      }
+    }
+  }
+
   _normalizeTransitionActions(state, actions = []) {
     if (!Array.isArray(actions) || !actions.length) {
       throw new CampaignEngineError("TRANSITION_ACTION_REQUIRED");
@@ -198,12 +374,19 @@ export class CampaignEngine {
       throw new CampaignEngineError("TRANSITION_TRIGGER_SAME_STATUS", { status: fromStatus });
     }
 
+    const conditionMode = String(data.conditionMode ?? existingRule?.conditionMode ?? "all");
+    if (!TRANSITION_CONDITION_MODES[conditionMode]) {
+      throw new CampaignEngineError("INVALID_TRANSITION_CONDITION_MODE", { conditionMode });
+    }
+    const conditions = this._normalizeTransitionConditions(state, data.conditions ?? existingRule?.conditions ?? []);
     const actions = this._normalizeTransitionActions(state, data.actions ?? existingRule?.actions ?? []);
     return {
       id: String(existingRule?.id ?? data.id ?? this._newId()),
       enabled: data.enabled !== undefined ? Boolean(data.enabled) : (existingRule?.enabled !== false),
       fromStatus,
       toStatus,
+      conditionMode,
+      conditions,
       actions
     };
   }
@@ -415,6 +598,7 @@ export class CampaignEngine {
     const actions = [];
     const rewardOffers = [];
     const warnings = [];
+    const conditionEvaluations = [];
     const transitionStack = [];
     const executedRules = new Set();
     let actionCount = 0;
@@ -464,11 +648,21 @@ export class CampaignEngine {
       const matchingRules = (target.transitionRules ?? []).filter(rule =>
         rule.enabled !== false && rule.fromStatus === previousStatus && rule.toStatus === nextStatus
       );
+      const evaluatedRules = matchingRules.map(rule => ({
+        rule,
+        evaluation: this._evaluateTransitionRuleConditions(scratch, target, rule)
+      }));
+      for (const { evaluation } of evaluatedRules) {
+        if (evaluation.conditions.length) {
+          conditionEvaluations.push({ ...evaluation, depth });
+        }
+      }
 
-      for (const rule of matchingRules) {
+      for (const { rule, evaluation } of evaluatedRules) {
         const executionKey = `${targetId}:${rule.id}:${previousStatus}->${nextStatus}`;
         if (executedRules.has(executionKey)) continue;
         executedRules.add(executionKey);
+        if (!evaluation.passed) continue;
 
         for (const ruleAction of rule.actions ?? []) {
           if (ruleAction.type === "setEntryStatus") {
@@ -558,6 +752,7 @@ export class CampaignEngine {
       actions,
       consequences: actions.filter(action => !action.root),
       rewardOffers,
+      conditionEvaluations,
       warnings,
       blocked: warnings.some(warning => warning.code === "TRANSITION_CYCLE")
     };
@@ -714,6 +909,7 @@ export class CampaignEngine {
       const hasChildren = state.groups.some(g => g.parentId === id) || state.entries.some(e => e.parentId === id);
       if (hasChildren) throw new CampaignEngineError("GROUP_NOT_EMPTY", { id });
       const before = cloneData(group);
+      this._disableRulesWithRemovedConditions(state, condition => condition.type === "groupProgress" && condition.targetId === id);
       state.groups = state.groups.filter(g => g.id !== id);
       state.overviewPins = state.overviewPins.filter(pin => !(pin.targetType === "group" && pin.targetId === id));
       this._recordChange(state, {
@@ -1185,6 +1381,9 @@ export class CampaignEngine {
     return this._mutate(state => {
       const entry = this._findEntry(state, id);
       const before = cloneData(entry);
+      this._disableRulesWithRemovedConditions(state, condition =>
+        ["entryStatus", "entryActive", "entryVisible"].includes(condition.type) && condition.targetId === id
+      );
       state.entries = state.entries.filter(e => e.id !== id);
       state.overviewPins = state.overviewPins.filter(pin => !(pin.targetType === "entry" && pin.targetId === id));
       for (const remainingEntry of state.entries) {
@@ -1485,6 +1684,7 @@ export class CampaignEngine {
     return this._mutate(state => {
       const tracker = this._findTracker(state, id);
       const before = cloneData(tracker);
+      this._disableRulesWithRemovedConditions(state, condition => condition.type === "trackerValue" && condition.targetId === id);
       state.trackers = state.trackers.filter(t => t.id !== id);
       state.overviewPins = state.overviewPins.filter(pin => !(pin.targetType === "tracker" && pin.targetId === id));
       for (const entry of state.entries) {

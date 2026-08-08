@@ -849,3 +849,198 @@ test("a locked reward cannot be skipped before its trigger becomes due", async (
     error => error instanceof CampaignEngineError && error.code === "REWARD_NOT_PENDING"
   );
 });
+
+test("transition rules with ALL conditions only execute when every condition is met", async () => {
+  const { engine } = engineWithRepo();
+  const source = await engine.createEntry({ title: "Council audience", type: "quest", status: "active" });
+  const clue = await engine.createEntry({ title: "Ritual name", type: "knowledge", status: "discovered" });
+  const followup = await engine.createEntry({ title: "Secret chamber", type: "quest", status: "available", active: false });
+  const reputation = await engine.createTracker({ title: "Ostwall", value: 5, min: -10, max: 10 });
+
+  await engine.createTransitionRule(source.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    conditionMode: "all",
+    conditions: [
+      { type: "entryStatus", targetId: clue.id, operator: "atLeast", status: "discovered" },
+      { type: "trackerValue", targetId: reputation.id, operator: "gte", value: 5 }
+    ],
+    actions: [{ type: "setEntryActive", targetId: followup.id, value: true }]
+  });
+
+  const preview = await engine.previewEntryStatusTransition(source.id, "completed");
+  assert.equal(preview.conditionEvaluations.length, 1);
+  assert.equal(preview.conditionEvaluations[0].passed, true);
+  assert.deepEqual(preview.conditionEvaluations[0].conditions.map(condition => condition.passed), [true, true]);
+  assert.equal(preview.consequences.length, 1);
+
+  await engine.setEntryStatus(source.id, "completed");
+  const state = await engine.getState();
+  assert.equal(state.entries.find(entry => entry.id === followup.id).active, true);
+});
+
+test("a failed ALL condition blocks only the rule consequences, not the requested root status change", async () => {
+  const { engine } = engineWithRepo();
+  const source = await engine.createEntry({ title: "Mine", type: "quest", status: "active" });
+  const clue = await engine.createEntry({ title: "Formula", type: "knowledge", status: "hinted" });
+  const followup = await engine.createEntry({ title: "Ritual", type: "quest", status: "available", active: false });
+
+  await engine.createTransitionRule(source.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    conditionMode: "all",
+    conditions: [{ type: "entryStatus", targetId: clue.id, operator: "atLeast", status: "discovered" }],
+    actions: [{ type: "setEntryActive", targetId: followup.id, value: true }]
+  });
+
+  const preview = await engine.previewEntryStatusTransition(source.id, "completed");
+  assert.equal(preview.conditionEvaluations[0].passed, false);
+  assert.equal(preview.consequences.length, 0);
+
+  await engine.setEntryStatus(source.id, "completed");
+  const state = await engine.getState();
+  assert.equal(state.entries.find(entry => entry.id === source.id).status, "completed");
+  assert.equal(state.entries.find(entry => entry.id === followup.id).active, false);
+});
+
+test("ANY condition mode executes when at least one condition is satisfied", async () => {
+  const { engine } = engineWithRepo();
+  const source = await engine.createEntry({ title: "Alternative access", type: "quest", status: "active" });
+  const clue = await engine.createEntry({ title: "Password", type: "knowledge", status: "unknown" });
+  const target = await engine.createEntry({ title: "Door opens", type: "event", status: "pending" });
+  const reputation = await engine.createTracker({ title: "Guard reputation", value: 8 });
+
+  await engine.createTransitionRule(source.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    conditionMode: "any",
+    conditions: [
+      { type: "entryStatus", targetId: clue.id, operator: "eq", status: "confirmed" },
+      { type: "trackerValue", targetId: reputation.id, operator: "gte", value: 8 }
+    ],
+    actions: [{ type: "setEntryStatus", targetId: target.id, status: "occurred" }]
+  });
+
+  const preview = await engine.previewEntryStatusTransition(source.id, "completed");
+  assert.equal(preview.conditionEvaluations[0].passed, true);
+  assert.deepEqual(preview.conditionEvaluations[0].conditions.map(condition => condition.passed), [false, true]);
+  assert.equal(preview.consequences.length, 1);
+});
+
+test("entry status conditions support equality, inequality, and ordered comparisons", async () => {
+  const { engine } = engineWithRepo();
+  const source = await engine.createEntry({ title: "Source", type: "quest", status: "active" });
+  const knowledge = await engine.createEntry({ title: "Knowledge", type: "knowledge", status: "understood" });
+  const target = await engine.createEntry({ title: "Target", type: "note", status: "active" });
+
+  const rule = await engine.createTransitionRule(source.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    conditions: [
+      { type: "entryStatus", targetId: knowledge.id, operator: "ne", status: "unknown" },
+      { type: "entryStatus", targetId: knowledge.id, operator: "atLeast", status: "discovered" },
+      { type: "entryStatus", targetId: knowledge.id, operator: "atMost", status: "confirmed" }
+    ],
+    actions: [{ type: "setEntryStatus", targetId: target.id, status: "completed" }]
+  });
+
+  assert.equal(rule.conditions.length, 3);
+  const preview = await engine.previewEntryStatusTransition(source.id, "completed");
+  assert.equal(preview.conditionEvaluations[0].passed, true);
+  assert.deepEqual(preview.conditionEvaluations[0].conditions.map(condition => condition.passed), [true, true, true]);
+});
+
+test("group progress conditions can use reached-entry counts and percentages", async () => {
+  const { engine } = engineWithRepo();
+  const group = await engine.createGroup({ title: "Ritual clues", kind: "chapter" });
+  const one = await engine.createEntry({ title: "One", type: "knowledge", parentId: group.id });
+  const two = await engine.createEntry({ title: "Two", type: "knowledge", parentId: group.id });
+  await engine.createEntry({ title: "Three", type: "knowledge", parentId: group.id });
+  await engine.setEntryStatus(one.id, "discovered");
+  await engine.setEntryStatus(two.id, "confirmed");
+
+  const source = await engine.createEntry({ title: "Synthesize", type: "quest", status: "active" });
+  const target = await engine.createEntry({ title: "Reconstruct ritual", type: "quest", status: "available", active: false });
+  await engine.createTransitionRule(source.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    conditions: [
+      { type: "groupProgress", targetId: group.id, metric: "reached", operator: "gte", value: 2 },
+      { type: "groupProgress", targetId: group.id, metric: "percent", operator: "gte", value: 60 }
+    ],
+    actions: [{ type: "setEntryActive", targetId: target.id, value: true }]
+  });
+
+  const preview = await engine.previewEntryStatusTransition(source.id, "completed");
+  assert.equal(preview.conditionEvaluations[0].passed, true);
+  assert.equal(preview.conditionEvaluations[0].conditions[0].actualValue, 2);
+  assert.equal(preview.conditionEvaluations[0].conditions[1].actualValue, 67);
+});
+
+test("entry active and visibility conditions are evaluated independently", async () => {
+  const { engine } = engineWithRepo();
+  const source = await engine.createEntry({ title: "Source", type: "quest", status: "active" });
+  const gate = await engine.createEntry({ title: "Gate", type: "note", active: true, visible: false });
+  const target = await engine.createEntry({ title: "Target", type: "note", status: "active" });
+
+  await engine.createTransitionRule(source.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    conditions: [
+      { type: "entryActive", targetId: gate.id, value: true },
+      { type: "entryVisible", targetId: gate.id, value: false }
+    ],
+    actions: [{ type: "setEntryStatus", targetId: target.id, status: "completed" }]
+  });
+
+  const preview = await engine.previewEntryStatusTransition(source.id, "completed");
+  assert.equal(preview.conditionEvaluations[0].passed, true);
+  assert.deepEqual(preview.conditionEvaluations[0].conditions.map(condition => condition.passed), [true, true]);
+});
+
+test("deleting a condition target disables affected transition rules instead of broadening them silently", async () => {
+  const { engine } = engineWithRepo();
+  const source = await engine.createEntry({ title: "Source", type: "quest", status: "active" });
+  const conditionTarget = await engine.createTracker({ title: "Reputation", value: 5 });
+  const consequence = await engine.createEntry({ title: "Consequence", type: "note", status: "active" });
+
+  const rule = await engine.createTransitionRule(source.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    conditions: [{ type: "trackerValue", targetId: conditionTarget.id, operator: "gte", value: 5 }],
+    actions: [{ type: "setEntryStatus", targetId: consequence.id, status: "completed" }]
+  });
+
+  await engine.deleteTracker(conditionTarget.id);
+  const state = await engine.getState();
+  const storedRule = state.entries.find(entry => entry.id === source.id).transitionRules.find(candidate => candidate.id === rule.id);
+  assert.ok(storedRule);
+  assert.equal(storedRule.enabled, false);
+  assert.deepEqual(storedRule.conditions, []);
+});
+
+test("conditions are evaluated for transition rules reached through chained automatic status changes", async () => {
+  const { engine } = engineWithRepo();
+  const a = await engine.createEntry({ title: "A", type: "quest", status: "active" });
+  const b = await engine.createEntry({ title: "B", type: "knowledge", status: "unknown" });
+  const c = await engine.createEntry({ title: "C", type: "event", status: "pending" });
+  const tracker = await engine.createTracker({ title: "Gate", value: 3 });
+
+  await engine.createTransitionRule(a.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    actions: [{ type: "setEntryStatus", targetId: b.id, status: "discovered" }]
+  });
+  await engine.createTransitionRule(b.id, {
+    fromStatus: "unknown",
+    toStatus: "discovered",
+    conditions: [{ type: "trackerValue", targetId: tracker.id, operator: "gte", value: 3 }],
+    actions: [{ type: "setEntryStatus", targetId: c.id, status: "occurred" }]
+  });
+
+  const preview = await engine.previewEntryStatusTransition(a.id, "completed");
+  assert.equal(preview.conditionEvaluations.length, 1);
+  assert.equal(preview.conditionEvaluations[0].entryId, b.id);
+  assert.equal(preview.conditionEvaluations[0].passed, true);
+  assert.deepEqual(preview.actions.map(action => action.targetTitle), ["A", "B", "C"]);
+});

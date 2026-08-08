@@ -1481,3 +1481,101 @@ button.icon,
     flex-wrap: wrap;
   }
 }
+
+/* Advanced transition conditions */
+.cf-rule-conditions-section {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  padding: .55rem 0;
+  border-top: 1px solid var(--cf-border);
+  border-bottom: 1px solid var(--cf-border);
+}
+
+.cf-rule-actions-heading > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .08rem;
+}
+
+.cf-rule-actions-heading > div small {
+  color: var(--cf-muted);
+}
+
+.cf-rule-condition-mode {
+  display: grid;
+  grid-template-columns: minmax(150px, .7fr) minmax(0, 1.3fr);
+  align-items: center;
+  gap: .5rem;
+}
+
+.cf-rule-condition-list {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+
+.cf-rule-condition-row {
+  padding: .5rem;
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+  border: 1px solid var(--cf-border);
+  border-radius: .4rem;
+  background: var(--cf-panel-soft);
+}
+
+.cf-rule-condition-row > small {
+  color: var(--cf-muted);
+}
+
+.cf-rule-condition-comparison {
+  display: grid;
+  grid-template-columns: minmax(150px, .8fr) minmax(0, 1.2fr);
+  gap: .4rem;
+}
+
+.cf-rule-condition-group-fields {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.2fr) minmax(130px, .9fr) minmax(90px, .55fr);
+  gap: .4rem;
+}
+
+.cf-transition-condition-evaluation {
+  padding: .45rem .55rem;
+  margin: .35rem 0;
+  border: 1px solid var(--cf-border);
+  border-radius: .35rem;
+  background: var(--cf-panel-soft);
+}
+
+.cf-transition-condition-evaluation > strong,
+.cf-transition-condition-evaluation > small {
+  display: block;
+}
+
+.cf-transition-condition-evaluation > small {
+  margin-top: .1rem;
+  color: var(--cf-muted);
+}
+
+.cf-transition-condition-evaluation ul {
+  margin-bottom: 0;
+}
+
+.cf-transition-condition-evaluation li.is-passed > i {
+  opacity: .8;
+}
+
+.cf-transition-condition-evaluation li.is-failed > i {
+  opacity: .7;
+}
+
+@media (max-width: 900px) {
+  .cf-rule-condition-mode,
+  .cf-rule-condition-comparison,
+  .cf-rule-condition-group-fields {
+    grid-template-columns: 1fr;
+  }
+}

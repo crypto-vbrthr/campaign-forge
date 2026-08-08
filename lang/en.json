@@ -279,7 +279,14 @@
       "REWARD_ACTOR_NOT_FOUND": "The reward target actor was not found.",
       "REWARD_XP_CHARACTER_ONLY": "XP can only be granted to character actors.",
       "REWARD_CURRENCY_UNSUPPORTED": "The target actor does not support automatic currency rewards.",
-      "REWARD_ITEM_NOT_FOUND": "The linked reward item was not found."
+      "REWARD_ITEM_NOT_FOUND": "The linked reward item was not found.",
+      "INVALID_TRANSITION_CONDITION": "This transition condition type is invalid.",
+      "TRANSITION_CONDITION_TARGET_REQUIRED": "A target must be selected for the condition.",
+      "INVALID_TRANSITION_CONDITION_OPERATOR": "The condition comparison operator is invalid.",
+      "INVALID_TRANSITION_CONDITION_VALUE": "The condition comparison value is invalid.",
+      "INVALID_TRANSITION_CONDITION_STATUS": "The comparison status is invalid for the selected entry.",
+      "INVALID_TRANSITION_CONDITION_MODE": "The condition combination mode is invalid.",
+      "INVALID_TRANSITION_GROUP_METRIC": "The selected group progress metric is invalid."
     },
     "SessionChangeKinds": {
       "note": "Note",
@@ -348,7 +355,27 @@
       "PreviewStatus": "“{title}”: {from} → {to}",
       "PreviewActive": "“{title}”: Active = {value}",
       "PreviewVisible": "“{title}”: Visible = {value}",
-      "PreviewTracker": "“{title}”: {delta} (new value: {value})"
+      "PreviewTracker": "“{title}”: {delta} (new value: {value})",
+      "Conditions": "Additional conditions",
+      "ConditionsHint": "Optional. With no conditions, the rule runs on every matching status transition.",
+      "AddCondition": "Add condition",
+      "ConditionsCount": "conditions",
+      "ConditionMode": "Combine conditions",
+      "ConditionType": "Condition type",
+      "NoConditions": "No additional conditions. Only the status trigger controls this rule.",
+      "Operator": "Comparison",
+      "ConditionValue": "Comparison value",
+      "TargetGroup": "Group or chapter",
+      "GroupMetric": "Progress metric",
+      "CurrentGroupProgress": "Current group progress",
+      "ConditionEvaluation": "Condition check",
+      "ConditionsPassed": "Rule will run",
+      "ConditionsBlocked": "Rule will not run",
+      "ConditionRuleLabel": "“{title}”: {from} → {to}",
+      "ConditionPreviewStatus": "“{title}”: currently {actual}; condition {operator} {expected}",
+      "ConditionPreviewBoolean": "“{title}”: {field} is {actual}; requires {expected}",
+      "ConditionPreviewNumeric": "“{title}”: currently {actual}; condition {operator} {expected}",
+      "ConditionPreviewGroup": "“{title}”: currently {actual} ({reached}/{total}); condition {operator} {expected}"
     },
     "TransitionActions": {
       "setEntryStatus": "Set entry status",
@@ -427,6 +454,31 @@
         "skipped": "Skipped",
         "failed": "Failed"
       }
+    },
+    "TransitionConditionModes": {
+      "all": "All conditions must be met",
+      "any": "At least one condition must be met"
+    },
+    "TransitionConditions": {
+      "entryStatus": "Entry status",
+      "entryActive": "Entry active state",
+      "entryVisible": "Entry visibility",
+      "trackerValue": "Reputation or campaign value",
+      "groupProgress": "Group progress"
+    },
+    "TransitionOperators": {
+      "eq": "equals",
+      "ne": "does not equal",
+      "atLeast": "is at least",
+      "atMost": "is at most",
+      "gt": "is greater than",
+      "gte": "is at least",
+      "lt": "is less than",
+      "lte": "is at most"
+    },
+    "TransitionGroupMetrics": {
+      "reached": "Reached entries",
+      "percent": "Progress percent"
     }
   }
 }

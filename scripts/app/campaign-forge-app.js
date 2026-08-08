@@ -1,15 +1,20 @@
 import {
   ENTRY_TYPES,
+  GROUP_PROGRESS_METRICS,
   JOURNAL_LINK_ROLES,
   KEY_PLAYER_ROLES,
   KEY_PLAYER_STATES,
   MODULE_ID,
+  NUMERIC_CONDITION_OPERATORS,
   REWARD_STATES,
   REWARD_TYPES,
   SETTINGS,
   SESSION_CHANGE_KINDS,
+  STATUS_CONDITION_OPERATORS,
   STATUS_LABELS,
   TRANSITION_ACTION_TYPES,
+  TRANSITION_CONDITION_MODES,
+  TRANSITION_CONDITION_TYPES,
 } from "../core/constants.js";
 import { CampaignEngineError } from "../engine/campaign-engine.js";
 import { getGroupProgress } from "../data/state.js";
@@ -106,6 +111,46 @@ async function resolveJournalTarget(uuid) {
 
 function transitionActionTypeOptions(selected = "setEntryStatus") {
   return Object.entries(TRANSITION_ACTION_TYPES).map(([id, def]) => ({
+    id,
+    label: localize(def.label),
+    selected: id === selected
+  }));
+}
+
+function transitionConditionTypeOptions(selected = "entryStatus") {
+  return Object.entries(TRANSITION_CONDITION_TYPES).map(([id, def]) => ({
+    id,
+    label: localize(def.label),
+    selected: id === selected
+  }));
+}
+
+function transitionConditionModeOptions(selected = "all") {
+  return Object.entries(TRANSITION_CONDITION_MODES).map(([id, def]) => ({
+    id,
+    label: localize(def.label),
+    selected: id === selected
+  }));
+}
+
+function statusConditionOperatorOptions(selected = "eq") {
+  return Object.entries(STATUS_CONDITION_OPERATORS).map(([id, def]) => ({
+    id,
+    label: localize(def.label),
+    selected: id === selected
+  }));
+}
+
+function numericConditionOperatorOptions(selected = "gte") {
+  return Object.entries(NUMERIC_CONDITION_OPERATORS).map(([id, def]) => ({
+    id,
+    label: localize(def.label),
+    selected: id === selected
+  }));
+}
+
+function groupProgressMetricOptions(selected = "reached") {
+  return Object.entries(GROUP_PROGRESS_METRICS).map(([id, def]) => ({
     id,
     label: localize(def.label),
     selected: id === selected
@@ -313,6 +358,45 @@ function transitionPlanActionLabel(action) {
   return action.targetTitle || action.kind;
 }
 
+function transitionConditionEvaluationLabel(condition) {
+  if (condition.type === "entryStatus") {
+    return format("CAMPAIGN_FORGE.Transitions.ConditionPreviewStatus", {
+      title: condition.targetTitle ?? condition.targetId ?? "",
+      actual: localize(STATUS_LABELS[condition.actualStatus] ?? condition.actualStatus ?? ""),
+      operator: localize(STATUS_CONDITION_OPERATORS[condition.operator]?.label ?? condition.operator ?? ""),
+      expected: localize(STATUS_LABELS[condition.expectedStatus] ?? condition.expectedStatus ?? "")
+    });
+  }
+  if (condition.type === "entryActive" || condition.type === "entryVisible") {
+    return format("CAMPAIGN_FORGE.Transitions.ConditionPreviewBoolean", {
+      title: condition.targetTitle ?? condition.targetId ?? "",
+      field: localize(condition.type === "entryActive" ? "CAMPAIGN_FORGE.Fields.Active" : "CAMPAIGN_FORGE.Fields.Visible"),
+      actual: condition.actualValue ? localize("CAMPAIGN_FORGE.Common.Yes") : localize("CAMPAIGN_FORGE.Common.No"),
+      expected: condition.expectedValue ? localize("CAMPAIGN_FORGE.Common.Yes") : localize("CAMPAIGN_FORGE.Common.No")
+    });
+  }
+  if (condition.type === "trackerValue") {
+    return format("CAMPAIGN_FORGE.Transitions.ConditionPreviewNumeric", {
+      title: condition.targetTitle ?? condition.targetId ?? "",
+      actual: condition.actualValue ?? 0,
+      operator: localize(NUMERIC_CONDITION_OPERATORS[condition.operator]?.label ?? condition.operator ?? ""),
+      expected: condition.expectedValue ?? 0
+    });
+  }
+  if (condition.type === "groupProgress") {
+    const suffix = condition.metric === "percent" ? "%" : "";
+    return format("CAMPAIGN_FORGE.Transitions.ConditionPreviewGroup", {
+      title: condition.targetTitle ?? condition.targetId ?? "",
+      actual: `${condition.actualValue ?? 0}${suffix}`,
+      operator: localize(NUMERIC_CONDITION_OPERATORS[condition.operator]?.label ?? condition.operator ?? ""),
+      expected: `${condition.expectedValue ?? 0}${suffix}`,
+      reached: condition.progress?.reached ?? 0,
+      total: condition.progress?.total ?? 0
+    });
+  }
+  return condition.targetTitle || condition.type || "";
+}
+
 export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "campaign-forge",
@@ -349,6 +433,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       deleteTransitionRule: this._actionDeleteTransitionRule,
       cancelTransitionRule: this._actionCancelTransitionRule,
       saveTransitionRule: this._actionSaveTransitionRule,
+      addTransitionCondition: this._actionAddTransitionCondition,
+      removeTransitionCondition: this._actionRemoveTransitionCondition,
       addTransitionAction: this._actionAddTransitionAction,
       removeTransitionAction: this._actionRemoveTransitionAction,
       cancelEditor: this._actionCancelEditor,
@@ -764,7 +850,9 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         ...rule,
         fromLabel: localize(STATUS_LABELS[rule.fromStatus] ?? rule.fromStatus),
         toLabel: localize(STATUS_LABELS[rule.toStatus] ?? rule.toStatus),
-        actionCount: (rule.actions ?? []).length
+        actionCount: (rule.actions ?? []).length,
+        conditionCount: (rule.conditions ?? []).length,
+        conditionModeLabel: localize(TRANSITION_CONDITION_MODES[rule.conditionMode]?.label ?? TRANSITION_CONDITION_MODES.all.label)
       }));
 
       let ruleEditor = null;
@@ -778,18 +866,64 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
             enabled: true,
             fromStatus: statuses[0],
             toStatus: statuses[1] ?? statuses[0],
+            conditionMode: "all",
+            conditions: [],
             actions: []
           };
         }
         const draft = this._ruleEditor.draft;
         const sortedEntries = [...state.entries].sort((a, b) => String(a.title).localeCompare(String(b.title)));
         const sortedTrackers = [...state.trackers].sort((a, b) => String(a.title).localeCompare(String(b.title)));
+        const sortedGroups = [...state.groups].sort((a, b) => String(a.title).localeCompare(String(b.title)));
         ruleEditor = {
           id: existing?.id ?? "",
           isNew: !existing,
           enabled: draft.enabled !== false,
           fromStatuses: statusOptions(source.type, draft.fromStatus),
           toStatuses: statusOptions(source.type, draft.toStatus),
+          conditionModes: transitionConditionModeOptions(draft.conditionMode ?? "all"),
+          conditions: (draft.conditions ?? []).map((condition, index) => {
+            const targetEntry = state.entries.find(entry => entry.id === condition.targetId) ?? sortedEntries[0] ?? null;
+            const targetTracker = state.trackers.find(tracker => tracker.id === condition.targetId) ?? sortedTrackers[0] ?? null;
+            const targetGroup = state.groups.find(group => group.id === condition.targetId) ?? sortedGroups[0] ?? null;
+            const isEntryStatus = condition.type === "entryStatus";
+            const isEntryBoolean = condition.type === "entryActive" || condition.type === "entryVisible";
+            const isTracker = condition.type === "trackerValue";
+            const isGroup = condition.type === "groupProgress";
+            return {
+              ...condition,
+              index,
+              isEntryStatus,
+              isEntryBoolean,
+              isEntryActive: condition.type === "entryActive",
+              isEntryVisible: condition.type === "entryVisible",
+              isTracker,
+              isGroup,
+              types: transitionConditionTypeOptions(condition.type),
+              entryTargets: sortedEntries.map(entry => ({
+                id: entry.id,
+                label: `${entry.title} · ${localize(ENTRY_TYPES[entry.type]?.label ?? entry.type)}`,
+                selected: entry.id === condition.targetId
+              })),
+              trackerTargets: sortedTrackers.map(tracker => ({
+                id: tracker.id,
+                label: tracker.title,
+                selected: tracker.id === condition.targetId
+              })),
+              groupTargets: sortedGroups.map(group => ({
+                id: group.id,
+                label: group.title,
+                selected: group.id === condition.targetId
+              })),
+              statusOperators: statusConditionOperatorOptions(condition.operator ?? "eq"),
+              numericOperators: numericConditionOperatorOptions(condition.operator ?? "gte"),
+              targetStatuses: targetEntry ? statusOptions(targetEntry.type, condition.status ?? targetEntry.status) : [],
+              values: booleanOptions(Boolean(condition.value)),
+              metrics: groupProgressMetricOptions(condition.metric ?? "reached"),
+              targetMissing: isTracker ? !targetTracker : (isGroup ? !targetGroup : !targetEntry),
+              progressHint: isGroup && targetGroup ? getGroupProgress(state, targetGroup.id) : null
+            };
+          }),
           actions: (draft.actions ?? []).map((action, index) => {
             const targetEntry = state.entries.find(entry => entry.id === action.targetId) ?? sortedEntries[0] ?? null;
             const targetTracker = state.trackers.find(tracker => tracker.id === action.targetId) ?? sortedTrackers[0] ?? null;
@@ -1071,6 +1205,104 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const ruleEnabled = root.querySelector('[data-cf-rule-field="enabled"]');
     if (ruleEnabled) ruleEnabled.addEventListener("change", event => {
       if (this._ruleEditor?.draft) this._ruleEditor.draft.enabled = Boolean(event.currentTarget.checked);
+    });
+    const ruleConditionMode = root.querySelector('[data-cf-rule-field="conditionMode"]');
+    if (ruleConditionMode) ruleConditionMode.addEventListener("change", event => {
+      if (this._ruleEditor?.draft) this._ruleEditor.draft.conditionMode = event.currentTarget.value;
+    });
+
+    root.querySelectorAll("[data-cf-rule-condition-type]").forEach(select => {
+      select.addEventListener("change", async event => {
+        const index = Number(event.currentTarget.dataset.cfRuleConditionType);
+        const condition = this._ruleEditor?.draft?.conditions?.[index];
+        if (!condition) return;
+        const state = await this.engine.getState();
+        condition.type = event.currentTarget.value;
+        if (condition.type === "entryStatus") {
+          const entry = state.entries[0] ?? null;
+          condition.targetId = entry?.id ?? "";
+          condition.operator = "eq";
+          condition.status = entry?.status ?? "";
+          delete condition.value;
+          delete condition.metric;
+        } else if (condition.type === "entryActive" || condition.type === "entryVisible") {
+          const entry = state.entries[0] ?? null;
+          condition.targetId = entry?.id ?? "";
+          condition.value = true;
+          delete condition.operator;
+          delete condition.status;
+          delete condition.metric;
+        } else if (condition.type === "trackerValue") {
+          const tracker = state.trackers[0] ?? null;
+          condition.targetId = tracker?.id ?? "";
+          condition.operator = "gte";
+          condition.value = Number(tracker?.value ?? 0);
+          delete condition.status;
+          delete condition.metric;
+        } else {
+          const group = state.groups[0] ?? null;
+          condition.targetId = group?.id ?? "";
+          condition.operator = "gte";
+          condition.metric = "reached";
+          condition.value = 1;
+          delete condition.status;
+        }
+        await this.render();
+      });
+    });
+
+    root.querySelectorAll("[data-cf-rule-condition-target]").forEach(select => {
+      select.addEventListener("change", async event => {
+        const index = Number(event.currentTarget.dataset.cfRuleConditionTarget);
+        const condition = this._ruleEditor?.draft?.conditions?.[index];
+        if (!condition) return;
+        condition.targetId = event.currentTarget.value;
+        if (condition.type === "entryStatus") {
+          const state = await this.engine.getState();
+          const entry = state.entries.find(candidate => candidate.id === condition.targetId);
+          condition.status = entry?.status ?? ENTRY_TYPES[entry?.type]?.statuses?.[0] ?? "";
+        }
+        await this.render();
+      });
+    });
+
+    root.querySelectorAll("[data-cf-rule-condition-operator]").forEach(select => {
+      select.addEventListener("change", event => {
+        const index = Number(event.currentTarget.dataset.cfRuleConditionOperator);
+        const condition = this._ruleEditor?.draft?.conditions?.[index];
+        if (condition) condition.operator = event.currentTarget.value;
+      });
+    });
+    root.querySelectorAll("[data-cf-rule-condition-status]").forEach(select => {
+      select.addEventListener("change", event => {
+        const index = Number(event.currentTarget.dataset.cfRuleConditionStatus);
+        const condition = this._ruleEditor?.draft?.conditions?.[index];
+        if (condition) condition.status = event.currentTarget.value;
+      });
+    });
+    root.querySelectorAll("[data-cf-rule-condition-boolean]").forEach(select => {
+      select.addEventListener("change", event => {
+        const index = Number(event.currentTarget.dataset.cfRuleConditionBoolean);
+        const condition = this._ruleEditor?.draft?.conditions?.[index];
+        if (condition) condition.value = event.currentTarget.value === "true";
+      });
+    });
+    root.querySelectorAll("[data-cf-rule-condition-metric]").forEach(select => {
+      select.addEventListener("change", async event => {
+        const index = Number(event.currentTarget.dataset.cfRuleConditionMetric);
+        const condition = this._ruleEditor?.draft?.conditions?.[index];
+        if (!condition) return;
+        condition.metric = event.currentTarget.value;
+        if (condition.metric === "percent" && Number(condition.value) > 100) condition.value = 100;
+        await this.render();
+      });
+    });
+    root.querySelectorAll("[data-cf-rule-condition-value]").forEach(input => {
+      input.addEventListener("input", event => {
+        const index = Number(event.currentTarget.dataset.cfRuleConditionValue);
+        const condition = this._ruleEditor?.draft?.conditions?.[index];
+        if (condition) condition.value = Number(event.currentTarget.value);
+      });
     });
 
     root.querySelectorAll("[data-cf-rule-action-type]").forEach(select => {
@@ -1566,16 +1798,35 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!plan.actions.length) return false;
     if (plan.blocked) throw new CampaignEngineError("TRANSITION_CYCLE");
 
-    if (plan.consequences.length || plan.rewardOffers?.length) {
+    if (plan.consequences.length || plan.rewardOffers?.length || plan.conditionEvaluations?.length) {
       const consequenceItems = plan.consequences
         .map(action => `<li>${escapeHTML(transitionPlanActionLabel(action))}</li>`)
         .join("");
       const rewardItems = (plan.rewardOffers ?? [])
         .map(reward => `<li><i class="fa-solid fa-gift"></i> ${escapeHTML(rewardPreviewLabel(reward))}</li>`)
         .join("");
+      const conditionBlocks = (plan.conditionEvaluations ?? []).map(evaluation => {
+        const from = localize(STATUS_LABELS[evaluation.fromStatus] ?? evaluation.fromStatus);
+        const to = localize(STATUS_LABELS[evaluation.toStatus] ?? evaluation.toStatus);
+        const mode = localize(TRANSITION_CONDITION_MODES[evaluation.conditionMode]?.label ?? TRANSITION_CONDITION_MODES.all.label);
+        const items = (evaluation.conditions ?? []).map(condition => `
+          <li class="${condition.passed ? "is-passed" : "is-failed"}">
+            <i class="fa-solid ${condition.passed ? "fa-check" : "fa-xmark"}"></i>
+            ${escapeHTML(transitionConditionEvaluationLabel(condition))}
+          </li>`).join("");
+        const stateLabel = localize(evaluation.passed
+          ? "CAMPAIGN_FORGE.Transitions.ConditionsPassed"
+          : "CAMPAIGN_FORGE.Transitions.ConditionsBlocked");
+        return `<div class="cf-transition-condition-evaluation ${evaluation.passed ? "is-passed" : "is-failed"}">
+          <strong>${escapeHTML(format("CAMPAIGN_FORGE.Transitions.ConditionRuleLabel", { title: evaluation.entryTitle, from, to }))}</strong>
+          <small>${escapeHTML(mode)} · ${escapeHTML(stateLabel)}</small>
+          <ul>${items}</ul>
+        </div>`;
+      }).join("");
       const content = `
         <div class="cf-transition-preview-dialog">
           <p>${escapeHTML(format("CAMPAIGN_FORGE.Transitions.PreviewIntro", { title: plan.root.title }))}</p>
+          ${conditionBlocks ? `<h4>${escapeHTML(localize("CAMPAIGN_FORGE.Transitions.ConditionEvaluation"))}</h4>${conditionBlocks}` : ""}
           ${consequenceItems ? `<h4>${escapeHTML(localize("CAMPAIGN_FORGE.Transitions.Consequences"))}</h4><ul>${consequenceItems}</ul>` : ""}
           ${rewardItems ? `<h4>${escapeHTML(localize("CAMPAIGN_FORGE.Rewards.DueRewards"))}</h4><ul>${rewardItems}</ul>` : ""}
           <p class="hint">${escapeHTML(localize("CAMPAIGN_FORGE.Transitions.PreviewHint"))}</p>
@@ -1811,6 +2062,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         enabled: draft.enabled !== false,
         fromStatus: draft.fromStatus,
         toStatus: draft.toStatus,
+        conditionMode: draft.conditionMode ?? "all",
+        conditions: draft.conditions ?? [],
         actions: draft.actions ?? []
       };
       if (this._ruleEditor.ruleId) {
@@ -1823,6 +2076,29 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     } catch (error) {
       this._handleError(error);
     }
+  }
+
+  static async _actionAddTransitionCondition() {
+    if (this._editor?.kind !== "rules" || !this._ruleEditor?.draft) return;
+    const state = await this.engine.getState();
+    const entry = state.entries[0] ?? null;
+    this._ruleEditor.draft.conditions ??= [];
+    this._ruleEditor.draft.conditions.push({
+      id: `draft-condition-${Date.now()}-${this._ruleEditor.draft.conditions.length}`,
+      type: "entryStatus",
+      targetId: entry?.id ?? "",
+      operator: "eq",
+      status: entry?.status ?? ""
+    });
+    return this.render();
+  }
+
+  static _actionRemoveTransitionCondition(event, target) {
+    if (!this._ruleEditor?.draft?.conditions) return;
+    const index = Number(target.dataset.conditionIndex);
+    if (!Number.isInteger(index) || index < 0 || index >= this._ruleEditor.draft.conditions.length) return;
+    this._ruleEditor.draft.conditions.splice(index, 1);
+    return this.render();
   }
 
   static async _actionAddTransitionAction() {

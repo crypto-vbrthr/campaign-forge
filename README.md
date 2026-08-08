@@ -1,11 +1,16 @@
-# Campaign Forge v0.5.1
+# Campaign Forge v0.6.0
 
 Campaign Forge is a GM-facing Foundry VTT module for tracking campaign structure, knowledge, quests, events, sessions, long-term campaign values, important NPCs, and rule-driven campaign state changes.
 
-## v0.5.1 Reward reset fix
+## v0.6.0 Conditional transition rules
 
-- Resetting a reward now re-arms it for the next matching status transition instead of leaving it pending from the old trigger.
-- Reset clears the previous trigger metadata while deliberately leaving any already granted XP, currency, Items, or campaign-value changes untouched.
+- Transition rules may now contain optional additional conditions.
+- A rule can require all conditions or at least one condition.
+- Conditions can inspect another entry's status, active state, or visibility, compare campaign/reputation values, or check group/chapter progress.
+- Group progress can be tested by reached-entry count or percentage.
+- The transition preview reports passed and failed conditions before the status change is confirmed.
+- Existing multi-action rules continue to work, including chained automatic status changes.
+- Reward reset behavior from v0.5.1 remains unchanged: reset re-arms a reward for a later matching trigger without reversing anything already granted.
 
 ## v0.5.0 Rewards milestone
 
@@ -45,7 +50,7 @@ Campaign data is stored in a hidden world setting. UI collapse state and display
 
 ## Next planned blocks
 
-Richer transition conditions/actions, provider integrations such as Loot Forge or Item Forge, further Journal polish, and player-facing permissions.
+Further transition triggers and action types, provider integrations such as Loot Forge or Item Forge, further Journal polish, and player-facing permissions.
 
 
 ## Journal integration

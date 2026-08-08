@@ -426,7 +426,7 @@
                           <i class="fa-solid fa-code-branch"></i>
                           <span><strong>{{fromLabel}}</strong> <i class="fa-solid fa-arrow-right"></i> <strong>{{toLabel}}</strong></span>
                         </div>
-                        <small>{{actionCount}} {{localize "CAMPAIGN_FORGE.Transitions.ActionsCount"}}{{#unless enabled}} · {{localize "CAMPAIGN_FORGE.Transitions.Disabled"}}{{/unless}}</small>
+                        <small>{{actionCount}} {{localize "CAMPAIGN_FORGE.Transitions.ActionsCount"}}{{#if conditionCount}} · {{conditionCount}} {{localize "CAMPAIGN_FORGE.Transitions.ConditionsCount"}} · {{conditionModeLabel}}{{/if}}{{#unless enabled}} · {{localize "CAMPAIGN_FORGE.Transitions.Disabled"}}{{/unless}}</small>
                         <div class="cf-rule-summary-actions">
                           <button type="button" class="icon" data-action="editTransitionRule" data-rule-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Edit"}}">
                             <i class="fa-solid fa-pen"></i>
@@ -473,6 +473,119 @@
                         </select>
                       </label>
                     </div>
+
+                    <section class="cf-rule-conditions-section">
+                      <div class="cf-rule-actions-heading">
+                        <div>
+                          <strong>{{localize "CAMPAIGN_FORGE.Transitions.Conditions"}}</strong>
+                          <small>{{localize "CAMPAIGN_FORGE.Transitions.ConditionsHint"}}</small>
+                        </div>
+                        <button type="button" data-action="addTransitionCondition">
+                          <i class="fa-solid fa-plus"></i>
+                          {{localize "CAMPAIGN_FORGE.Transitions.AddCondition"}}
+                        </button>
+                      </div>
+
+                      {{#if editor.ruleEditor.conditions.length}}
+                        <label class="cf-rule-condition-mode">
+                          <span>{{localize "CAMPAIGN_FORGE.Transitions.ConditionMode"}}</span>
+                          <select data-cf-rule-field="conditionMode">
+                            {{#each editor.ruleEditor.conditionModes}}
+                              <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                            {{/each}}
+                          </select>
+                        </label>
+
+                        <div class="cf-rule-condition-list">
+                          {{#each editor.ruleEditor.conditions}}
+                            <article class="cf-rule-condition-row">
+                              <div class="cf-rule-action-top">
+                                <select data-cf-rule-condition-type="{{index}}" aria-label="{{localize "CAMPAIGN_FORGE.Transitions.ConditionType"}}">
+                                  {{#each types}}
+                                    <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                                  {{/each}}
+                                </select>
+                                <button type="button" class="icon" data-action="removeTransitionCondition" data-condition-index="{{index}}" title="{{localize "CAMPAIGN_FORGE.Actions.Delete"}}">
+                                  <i class="fa-solid fa-trash"></i>
+                                </button>
+                              </div>
+
+                              {{#if isEntryStatus}}
+                                <label>
+                                  <span>{{localize "CAMPAIGN_FORGE.Transitions.TargetEntry"}}</span>
+                                  <select data-cf-rule-condition-target="{{index}}">
+                                    {{#each entryTargets}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                  </select>
+                                </label>
+                                <div class="cf-rule-condition-comparison">
+                                  <select data-cf-rule-condition-operator="{{index}}" aria-label="{{localize "CAMPAIGN_FORGE.Transitions.Operator"}}">
+                                    {{#each statusOperators}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                  </select>
+                                  <select data-cf-rule-condition-status="{{index}}" aria-label="{{localize "CAMPAIGN_FORGE.Transitions.TargetStatus"}}">
+                                    {{#each targetStatuses}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                  </select>
+                                </div>
+                              {{/if}}
+
+                              {{#if isEntryBoolean}}
+                                <label>
+                                  <span>{{localize "CAMPAIGN_FORGE.Transitions.TargetEntry"}}</span>
+                                  <select data-cf-rule-condition-target="{{index}}">
+                                    {{#each entryTargets}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                  </select>
+                                </label>
+                                <label>
+                                  <span>{{#if isEntryActive}}{{localize "CAMPAIGN_FORGE.Fields.Active"}}{{else}}{{localize "CAMPAIGN_FORGE.Fields.Visible"}}{{/if}}</span>
+                                  <select data-cf-rule-condition-boolean="{{index}}">
+                                    {{#each values}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                  </select>
+                                </label>
+                              {{/if}}
+
+                              {{#if isTracker}}
+                                <label>
+                                  <span>{{localize "CAMPAIGN_FORGE.Transitions.TargetTracker"}}</span>
+                                  <select data-cf-rule-condition-target="{{index}}">
+                                    {{#each trackerTargets}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                  </select>
+                                </label>
+                                <div class="cf-rule-condition-comparison">
+                                  <select data-cf-rule-condition-operator="{{index}}" aria-label="{{localize "CAMPAIGN_FORGE.Transitions.Operator"}}">
+                                    {{#each numericOperators}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                  </select>
+                                  <input type="number" step="any" value="{{value}}" data-cf-rule-condition-value="{{index}}" aria-label="{{localize "CAMPAIGN_FORGE.Transitions.ConditionValue"}}">
+                                </div>
+                              {{/if}}
+
+                              {{#if isGroup}}
+                                <label>
+                                  <span>{{localize "CAMPAIGN_FORGE.Transitions.TargetGroup"}}</span>
+                                  <select data-cf-rule-condition-target="{{index}}">
+                                    {{#each groupTargets}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                  </select>
+                                </label>
+                                <div class="cf-rule-condition-group-fields">
+                                  <select data-cf-rule-condition-metric="{{index}}" aria-label="{{localize "CAMPAIGN_FORGE.Transitions.GroupMetric"}}">
+                                    {{#each metrics}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                  </select>
+                                  <select data-cf-rule-condition-operator="{{index}}" aria-label="{{localize "CAMPAIGN_FORGE.Transitions.Operator"}}">
+                                    {{#each numericOperators}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                  </select>
+                                  <input type="number" min="0" step="1" value="{{value}}" data-cf-rule-condition-value="{{index}}" aria-label="{{localize "CAMPAIGN_FORGE.Transitions.ConditionValue"}}">
+                                </div>
+                                {{#if progressHint}}
+                                  <small>{{localize "CAMPAIGN_FORGE.Transitions.CurrentGroupProgress"}}: {{progressHint.reached}} / {{progressHint.total}} ({{progressHint.percent}}%)</small>
+                                {{/if}}
+                              {{/if}}
+                            </article>
+                          {{/each}}
+                        </div>
+                      {{else}}
+                        <div class="cf-rule-empty compact">
+                          <span>{{localize "CAMPAIGN_FORGE.Transitions.NoConditions"}}</span>
+                        </div>
+                      {{/if}}
+                    </section>
 
                     <div class="cf-rule-actions-heading">
                       <strong>{{localize "CAMPAIGN_FORGE.Transitions.Consequences"}}</strong>

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.6.0
+
+- Added optional conditions to transition rules while keeping the existing simple `from status -> to status` trigger model.
+- Rules can require either **all** conditions or **at least one** condition. Nested boolean groups are deliberately not part of this release.
+- Added condition types for another entry's status, active state, visibility, numeric campaign/reputation values, and group/chapter progress.
+- Entry-status conditions support equality, inequality, and ordered comparisons such as “at least Discovered”.
+- Numeric conditions support `=`, `!=`, `>`, `>=`, `<`, and `<=`.
+- Group-progress conditions can compare either reached-entry count or progress percentage using the same type-aware progress logic as the Overview.
+- Transition previews now show which conditions passed or failed and whether each matching rule will execute.
+- Existing multi-action rules remain supported; several follow-up actions can run when a conditional rule passes.
+- Conditional rules also work in chained automatic status transitions and Journal-originated status changes because evaluation remains inside the central Campaign Engine.
+- Deleting an entry, tracker, or group used by a condition removes the broken condition and disables the affected rule rather than silently broadening it.
+- Added full German and English localization for condition editing, comparison operators, validation, and preview output.
+- Regression suite expanded from 38 to 46 engine tests.
+
 ## 0.5.1
 
 - Fixed reward reset semantics: resetting now returns a reward to `locked` and clears its previous trigger metadata.
