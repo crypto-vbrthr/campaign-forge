@@ -2,6 +2,7 @@ import {
   ENTRY_TYPES,
   MODULE_ID,
   SETTINGS,
+  SESSION_CHANGE_KINDS,
   STATUS_LABELS,
   STRUCTURAL_ACTIONS
 } from "../core/constants.js";
@@ -54,6 +55,14 @@ function statusOptions(type, selected) {
   }));
 }
 
+function sessionChangeKindOptions(selected = "note") {
+  return Object.entries(SESSION_CHANGE_KINDS).map(([id, def]) => ({
+    id,
+    label: localize(def.label),
+    selected: id === selected
+  }));
+}
+
 function actionSummary(change) {
   switch (change.action) {
     case "entry.status":
@@ -90,6 +99,14 @@ function actionSummary(change) {
         value: change.after?.value ?? ""
       });
     }
+    case "session.manual": {
+      const kind = change.details?.kind ?? "note";
+      const kindLabel = localize(SESSION_CHANGE_KINDS[kind]?.label ?? SESSION_CHANGE_KINDS.note.label);
+      return format("CAMPAIGN_FORGE.Changes.ManualSessionChange", {
+        kind: kindLabel,
+        title: change.targetTitle
+      });
+    }
     default:
       return change.targetTitle || change.action;
   }
@@ -122,6 +139,9 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       deleteNode: this._actionDeleteNode,
       startSession: this._actionStartSession,
       endSession: this._actionEndSession,
+      addSessionChange: this._actionAddSessionChange,
+      editSessionChange: this._actionEditSessionChange,
+      deleteSessionChange: this._actionDeleteSessionChange,
       createTracker: this._actionCreateTracker,
       editTracker: this._actionEditTracker,
       adjustTracker: this._actionAdjustTracker,
@@ -223,7 +243,10 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
             ...change,
             timeLabel: localeTime(change.timestamp),
             summary: actionSummary(change),
-            structural: Boolean(change.structural)
+            structural: Boolean(change.structural),
+            detailsText: change.action === "session.manual" ? String(change.details?.description ?? "") : "",
+            canEdit: session.status === "active" && change.action === "session.manual",
+            canDelete: session.status === "active" && change.action === "session.manual"
           }))
           .reverse();
         return {
@@ -355,6 +378,24 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         min: source?.min ?? "",
         max: source?.max ?? "",
         heading: localize(source ? "CAMPAIGN_FORGE.Editor.EditTracker" : "CAMPAIGN_FORGE.Editor.NewTracker")
+      };
+    }
+
+    if (this._editor.kind === "sessionChange") {
+      const activeSession = state.sessions.find(session => session.status === "active") ?? null;
+      const source = this._editor.id && activeSession
+        ? activeSession.changes.find(change => change.id === this._editor.id && change.action === "session.manual")
+        : null;
+      const changeKind = source?.details?.kind ?? "note";
+      return {
+        kind: "sessionChange",
+        id: source?.id ?? "",
+        isNew: !source,
+        title: source?.targetTitle ?? "",
+        description: source?.details?.description ?? "",
+        changeKind,
+        changeKinds: sessionChangeKindOptions(changeKind),
+        heading: localize(source ? "CAMPAIGN_FORGE.Editor.EditSessionChange" : "CAMPAIGN_FORGE.Editor.NewSessionChange")
       };
     }
 
@@ -607,6 +648,14 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         };
         if (this._editor.id) await this.engine.updateTracker(this._editor.id, payload);
         else await this.engine.createTracker(payload);
+      } else if (this._editor.kind === "sessionChange") {
+        const payload = {
+          title: data.title,
+          description: data.description ?? "",
+          kind: data.changeKind ?? "note"
+        };
+        if (this._editor.id) await this.engine.updateManualSessionChange(this._editor.id, payload);
+        else await this.engine.addManualSessionChange(payload);
       }
       this._editor = null;
       await this.render();
@@ -668,6 +717,29 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     try {
       await this.engine.startSession();
       this._activeTab = "sessions";
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static _actionAddSessionChange() {
+    this._editor = { kind: "sessionChange" };
+    this._activeTab = "sessions";
+    return this.render();
+  }
+
+  static _actionEditSessionChange(event, target) {
+    this._editor = { kind: "sessionChange", id: target.dataset.changeId };
+    this._activeTab = "sessions";
+    return this.render();
+  }
+
+  static async _actionDeleteSessionChange(event, target) {
+    const confirmed = await this._confirm("CAMPAIGN_FORGE.Confirm.DeleteSessionChange");
+    if (!confirmed) return;
+    try {
+      await this.engine.deleteManualSessionChange(target.dataset.changeId);
       await this.render();
     } catch (error) {
       this._handleError(error);

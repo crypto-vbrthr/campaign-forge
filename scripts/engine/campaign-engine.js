@@ -1,4 +1,4 @@
-import { ENTRY_TYPES, SORT_STEP } from "../core/constants.js";
+import { ENTRY_TYPES, SESSION_CHANGE_KINDS, SORT_STEP } from "../core/constants.js";
 import { cloneData, getChildren, nextSort, normalizeState } from "../data/state.js";
 
 export class CampaignEngineError extends Error {
@@ -429,6 +429,66 @@ export class CampaignEngine {
       session.endedAt = this._now();
       session.gameTimeEnd = this._gameTime();
       return cloneData(session);
+    });
+  }
+
+  async addManualSessionChange({ title, description = "", kind = "note" } = {}) {
+    const cleanTitle = String(title ?? "").trim();
+    if (!cleanTitle) throw new CampaignEngineError("TITLE_REQUIRED");
+    if (!SESSION_CHANGE_KINDS[kind]) throw new CampaignEngineError("INVALID_SESSION_CHANGE_KIND", { kind });
+
+    return this._mutate(state => {
+      const session = this._activeSession(state);
+      if (!session) throw new CampaignEngineError("NO_ACTIVE_SESSION");
+      const change = this._recordChange(state, {
+        action: "session.manual",
+        targetType: "session",
+        targetId: session.id,
+        targetTitle: cleanTitle,
+        source: "manual",
+        structural: false,
+        details: {
+          kind,
+          description: String(description ?? "")
+        }
+      });
+      return cloneData(change);
+    });
+  }
+
+  async updateManualSessionChange(changeId, { title, description = "", kind = "note" } = {}) {
+    const cleanTitle = String(title ?? "").trim();
+    if (!cleanTitle) throw new CampaignEngineError("TITLE_REQUIRED");
+    if (!SESSION_CHANGE_KINDS[kind]) throw new CampaignEngineError("INVALID_SESSION_CHANGE_KIND", { kind });
+
+    return this._mutate(state => {
+      const session = this._activeSession(state);
+      if (!session) throw new CampaignEngineError("NO_ACTIVE_SESSION");
+      const change = session.changes.find(candidate => candidate.id === changeId);
+      if (!change) throw new CampaignEngineError("SESSION_CHANGE_NOT_FOUND", { changeId });
+      if (change.action !== "session.manual") throw new CampaignEngineError("SESSION_CHANGE_NOT_MANUAL", { changeId });
+
+      change.targetTitle = cleanTitle;
+      change.details = {
+        ...(change.details ?? {}),
+        kind,
+        description: String(description ?? "")
+      };
+      change.editedAt = this._now();
+      return cloneData(change);
+    });
+  }
+
+  async deleteManualSessionChange(changeId) {
+    return this._mutate(state => {
+      const session = this._activeSession(state);
+      if (!session) throw new CampaignEngineError("NO_ACTIVE_SESSION");
+      const index = session.changes.findIndex(change => change.id === changeId);
+      if (index < 0) throw new CampaignEngineError("SESSION_CHANGE_NOT_FOUND", { changeId });
+      const change = session.changes[index];
+      if (change.action !== "session.manual") throw new CampaignEngineError("SESSION_CHANGE_NOT_MANUAL", { changeId });
+      session.changes.splice(index, 1);
+      return cloneData(change);
     });
   }
 

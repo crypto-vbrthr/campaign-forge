@@ -440,6 +440,29 @@ button.icon,
   gap: .3rem;
 }
 
+.cf-session-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: .8rem;
+  align-items: start;
+}
+
+.cf-session-panel {
+  min-width: 0;
+}
+
+.cf-session-actions {
+  display: flex;
+  gap: .4rem;
+  align-items: center;
+}
+
+.cf-session-help {
+  margin: -.2rem 0 .7rem;
+  color: var(--cf-muted);
+  font-size: .9em;
+}
+
 .cf-session-list {
   display: flex;
   flex-direction: column;
@@ -476,7 +499,7 @@ button.icon,
 
 .cf-change-row {
   display: grid;
-  grid-template-columns: 70px minmax(0, 1fr);
+  grid-template-columns: 70px minmax(0, 1fr) auto;
   gap: .7rem;
   padding: .42rem .7rem;
   border-top: 1px solid var(--cf-border);
@@ -590,5 +613,31 @@ button.icon,
 
   .cf-entry-status {
     width: 145px;
+  }
+}
+
+.cf-change-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+}
+
+.cf-change-content small {
+  color: var(--cf-muted);
+  white-space: pre-wrap;
+}
+
+@media (max-width: 860px) {
+  .cf-session-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cf-active-session-card {
+    grid-template-columns: 1fr;
+  }
+
+  .cf-session-actions {
+    justify-content: flex-start;
   }
 }

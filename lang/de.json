@@ -5,7 +5,7 @@
       "Overview": "Übersicht",
       "Campaign": "Kampagne",
       "Sessions": "Sitzungen",
-      "Trackers": "Werte",
+      "Trackers": "Werte & Ruf",
       "Settings": "Einstellungen"
     },
     "Common": {
@@ -21,7 +21,7 @@
       "NewChapter": "Neues Kapitel",
       "NewGroup": "Neue Gruppe",
       "NewEntry": "Neuer Eintrag",
-      "NewTracker": "Neuer Tracker",
+      "NewTracker": "Neuer Wert",
       "Edit": "Bearbeiten",
       "Delete": "Löschen",
       "Save": "Speichern",
@@ -29,7 +29,8 @@
       "Close": "Schließen",
       "MoveUp": "Nach oben",
       "MoveDown": "Nach unten",
-      "Drag": "Zum Verschieben ziehen"
+      "Drag": "Zum Verschieben ziehen",
+      "AddSessionChange": "Änderung hinzufügen"
     },
     "Session": {
       "Session": "Sitzung",
@@ -45,7 +46,7 @@
       "ActiveEntries": "Aktive Einträge",
       "Chapters": "Kapitel",
       "CompletedSessions": "Beendete Sitzungen",
-      "Trackers": "Tracker",
+      "Trackers": "Werte",
       "EntryTypes": "Einträge nach Typ",
       "CurrentSession": "Aktuelle Sitzung",
       "NoEntries": "Noch keine Einträge vorhanden."
@@ -62,13 +63,14 @@
       "Description": "Sitzungen werden bewusst gestartet. Nur während einer aktiven Sitzung werden Änderungen hier protokolliert.",
       "NoChanges": "Keine anzuzeigenden Änderungen.",
       "EmptyTitle": "Noch keine Sitzungen",
-      "EmptyText": "Beginne die erste Sitzung, wenn die Spielrunde tatsächlich startet."
+      "EmptyText": "Beginne die erste Sitzung, wenn die Spielrunde tatsächlich startet.",
+      "ManualChangeHint": "Änderungen an Kampagneneinträgen und Kampagnenwerten werden weiterhin automatisch protokolliert. Zusätzliche Ereignisse, Entscheidungen oder Notizen kannst du hier manuell ergänzen."
     },
     "Trackers": {
-      "Title": "Werte & Tracker",
-      "Description": "Numerische Kampagnenwerte wie Ruf, Fortschritt oder Sammlungsstände verwalten.",
-      "EmptyTitle": "Noch keine Tracker",
-      "EmptyText": "Lege einen Tracker an, wenn du einen langfristigen Zahlenwert verfolgen möchtest."
+      "Title": "Kampagnenwerte",
+      "Description": "Numerische Werte wie Ruf, Fortschritt oder Sammlungsstände verwalten. Intern werden diese Werte als Tracker geführt.",
+      "EmptyTitle": "Noch keine Kampagnenwerte",
+      "EmptyText": "Lege einen Wert an, wenn du Ruf, Fortschritt oder einen anderen langfristigen Zahlenwert verfolgen möchtest."
     },
     "Settings": {
       "Title": "Einstellungen",
@@ -86,8 +88,10 @@
       "EditGroup": "Gruppe bearbeiten",
       "NewEntry": "Neuer Eintrag",
       "EditEntry": "Eintrag bearbeiten",
-      "NewTracker": "Neuer Tracker",
-      "EditTracker": "Tracker bearbeiten"
+      "NewTracker": "Neuer Kampagnenwert",
+      "EditTracker": "Kampagnenwert bearbeiten",
+      "NewSessionChange": "Sitzungsänderung hinzufügen",
+      "EditSessionChange": "Sitzungsänderung bearbeiten"
     },
     "Fields": {
       "Title": "Titel",
@@ -148,15 +152,17 @@
       "GroupUpdated": "Gruppe „{title}“ wurde bearbeitet.",
       "GroupDeleted": "Gruppe „{title}“ wurde gelöscht.",
       "NodeMoved": "„{title}“ wurde verschoben.",
-      "TrackerCreated": "Tracker „{title}“ wurde erstellt.",
-      "TrackerUpdated": "Tracker „{title}“ wurde bearbeitet.",
-      "TrackerDeleted": "Tracker „{title}“ wurde gelöscht.",
-      "TrackerAdjusted": "„{title}“ wurde um {delta} auf {value} geändert."
+      "TrackerCreated": "Wert „{title}“ wurde erstellt.",
+      "TrackerUpdated": "Wert „{title}“ wurde bearbeitet.",
+      "TrackerDeleted": "Wert „{title}“ wurde gelöscht.",
+      "TrackerAdjusted": "„{title}“ wurde um {delta} auf {value} geändert.",
+      "ManualSessionChange": "{kind}: „{title}“"
     },
     "Confirm": {
       "Title": "Campaign Forge",
       "Delete": "„{title}“ wirklich löschen?",
-      "EndSession": "Die laufende Sitzung wirklich beenden?"
+      "EndSession": "Die laufende Sitzung wirklich beenden?",
+      "DeleteSessionChange": "Diese manuell hinzugefügte Sitzungsänderung wirklich löschen?"
     },
     "Errors": {
       "Generic": "Die Aktion konnte nicht ausgeführt werden. Details stehen in der Konsole.",
@@ -164,7 +170,7 @@
       "TITLE_REQUIRED": "Ein Titel ist erforderlich.",
       "GROUP_NOT_FOUND": "Die Gruppe wurde nicht gefunden.",
       "ENTRY_NOT_FOUND": "Der Eintrag wurde nicht gefunden.",
-      "TRACKER_NOT_FOUND": "Der Tracker wurde nicht gefunden.",
+      "TRACKER_NOT_FOUND": "Der Kampagnenwert wurde nicht gefunden.",
       "GROUP_NOT_EMPTY": "Die Gruppe kann erst gelöscht werden, wenn sie keine Untergruppen oder Einträge mehr enthält.",
       "INVALID_ENTRY_TYPE": "Dieser Eintragstyp ist ungültig.",
       "INVALID_STATUS": "Dieser Status ist für den Eintragstyp ungültig.",
@@ -173,7 +179,17 @@
       "GROUP_CYCLE": "Diese Verschiebung würde eine zyklische Gruppenstruktur erzeugen.",
       "SESSION_ALREADY_ACTIVE": "Es läuft bereits eine Sitzung.",
       "NO_ACTIVE_SESSION": "Es läuft keine Sitzung.",
-      "INVALID_TRACKER_RANGE": "Minimum darf nicht größer als Maximum sein."
+      "INVALID_TRACKER_RANGE": "Minimum darf nicht größer als Maximum sein.",
+      "INVALID_SESSION_CHANGE_KIND": "Diese Art von Sitzungsänderung ist ungültig.",
+      "SESSION_CHANGE_NOT_FOUND": "Die Sitzungsänderung wurde nicht gefunden.",
+      "SESSION_CHANGE_NOT_MANUAL": "Nur manuell hinzugefügte Sitzungsänderungen können hier gelöscht werden."
+    },
+    "SessionChangeKinds": {
+      "note": "Notiz",
+      "discovery": "Entdeckung",
+      "event": "Ereignis",
+      "decision": "Entscheidung",
+      "other": "Sonstiges"
     }
   }
 }

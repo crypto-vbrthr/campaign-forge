@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.3
+
+- Manuell hinzugefügte Änderungen einer aktiven Sitzung können jetzt bearbeitet werden.
+- Bearbeitungen erhalten einen `editedAt`-Zeitstempel, ohne den ursprünglichen Sitzungszeitpunkt zu verändern.
+- Deutsche UI-Terminologie für numerische Tracker vereinheitlicht: Reiter „Werte & Ruf“, „Kampagnenwerte“ und „Neuer Wert“.
+- Texte zur Sitzungsprotokollierung entsprechend präzisiert.
+
+## 0.1.2
+
+- Added an **Add change** control to active sessions.
+- Added manual session log entries for notes, discoveries, events, decisions, and other developments.
+- Manual session entries support an optional description and can be removed again while the session is active.
+- Clarified in the UI that changes to Campaign Forge entries and trackers are still logged automatically.
+- Added engine tests for manual session changes.
+
 ## 0.1.1
 
 ### Fixed

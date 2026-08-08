@@ -179,3 +179,57 @@ test("tracker ranges are validated and values are clamped on create/update", asy
   const updated = await engine.updateTracker(tracker.id, { value: -5 });
   assert.equal(updated.value, 0);
 });
+
+
+test("manual session changes can be added, edited, and removed while a session is active", async () => {
+  const { engine } = engineWithRepo();
+
+  await engine.startSession();
+  const change = await engine.addManualSessionChange({
+    title: "The party chooses the eastern passage",
+    description: "This may matter later.",
+    kind: "decision"
+  });
+
+  let state = await engine.getState();
+  let session = state.sessions.find(s => s.status === "active");
+  assert.equal(session.changes.length, 1);
+  assert.equal(session.changes[0].action, "session.manual");
+  assert.equal(session.changes[0].details.kind, "decision");
+  assert.equal(session.changes[0].details.description, "This may matter later.");
+
+  const edited = await engine.updateManualSessionChange(change.id, {
+    title: "The party takes the western passage",
+    description: "Corrected after checking the map.",
+    kind: "event"
+  });
+  assert.equal(edited.targetTitle, "The party takes the western passage");
+  assert.equal(edited.details.kind, "event");
+  assert.equal(edited.details.description, "Corrected after checking the map.");
+  assert.ok(edited.editedAt);
+
+  state = await engine.getState();
+  session = state.sessions.find(s => s.status === "active");
+  assert.equal(session.changes.length, 1);
+  assert.equal(session.changes[0].targetTitle, "The party takes the western passage");
+
+  await engine.deleteManualSessionChange(change.id);
+  state = await engine.getState();
+  session = state.sessions.find(s => s.status === "active");
+  assert.equal(session.changes.length, 0);
+});
+
+test("manual session changes require an active session and a valid kind", async () => {
+  const { engine } = engineWithRepo();
+
+  await assert.rejects(
+    () => engine.addManualSessionChange({ title: "No session" }),
+    error => error instanceof CampaignEngineError && error.code === "NO_ACTIVE_SESSION"
+  );
+
+  await engine.startSession();
+  await assert.rejects(
+    () => engine.addManualSessionChange({ title: "Bad kind", kind: "banana" }),
+    error => error instanceof CampaignEngineError && error.code === "INVALID_SESSION_CHANGE_KIND"
+  );
+});

@@ -41,3 +41,5 @@ Run the engine tests with:
 ```bash
 npm test
 ```
+
+- Active sessions can also receive manual log entries for discoveries, events, decisions, and notes.

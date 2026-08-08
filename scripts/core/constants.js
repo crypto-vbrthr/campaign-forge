@@ -47,6 +47,15 @@ export const ENTRY_TYPES = Object.freeze({
   }
 });
 
+
+export const SESSION_CHANGE_KINDS = Object.freeze({
+  note: { label: "CAMPAIGN_FORGE.SessionChangeKinds.note", icon: "fa-solid fa-note-sticky" },
+  discovery: { label: "CAMPAIGN_FORGE.SessionChangeKinds.discovery", icon: "fa-solid fa-lightbulb" },
+  event: { label: "CAMPAIGN_FORGE.SessionChangeKinds.event", icon: "fa-solid fa-bolt" },
+  decision: { label: "CAMPAIGN_FORGE.SessionChangeKinds.decision", icon: "fa-solid fa-code-branch" },
+  other: { label: "CAMPAIGN_FORGE.SessionChangeKinds.other", icon: "fa-solid fa-ellipsis" }
+});
+
 export const STATUS_LABELS = Object.freeze({
   inactive: "CAMPAIGN_FORGE.Status.inactive",
   available: "CAMPAIGN_FORGE.Status.available",

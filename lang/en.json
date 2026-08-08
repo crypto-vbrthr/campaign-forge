@@ -29,7 +29,8 @@
       "Close": "Close",
       "MoveUp": "Move up",
       "MoveDown": "Move down",
-      "Drag": "Drag to move"
+      "Drag": "Drag to move",
+      "AddSessionChange": "Add change"
     },
     "Session": {
       "Session": "Session",
@@ -62,7 +63,8 @@
       "Description": "Sessions are started explicitly. Only changes made while a session is active are recorded here.",
       "NoChanges": "No visible changes.",
       "EmptyTitle": "No sessions yet",
-      "EmptyText": "Start the first session when the actual game begins."
+      "EmptyText": "Start the first session when the actual game begins.",
+      "ManualChangeHint": "Changes to campaign entries and trackers are still recorded automatically. You can add extra events, decisions, or notes here manually."
     },
     "Trackers": {
       "Title": "Trackers",
@@ -87,7 +89,9 @@
       "NewEntry": "New entry",
       "EditEntry": "Edit entry",
       "NewTracker": "New tracker",
-      "EditTracker": "Edit tracker"
+      "EditTracker": "Edit tracker",
+      "NewSessionChange": "Add session change",
+      "EditSessionChange": "Edit session change"
     },
     "Fields": {
       "Title": "Title",
@@ -151,12 +155,14 @@
       "TrackerCreated": "Tracker “{title}” was created.",
       "TrackerUpdated": "Tracker “{title}” was edited.",
       "TrackerDeleted": "Tracker “{title}” was deleted.",
-      "TrackerAdjusted": "“{title}” changed by {delta} to {value}."
+      "TrackerAdjusted": "“{title}” changed by {delta} to {value}.",
+      "ManualSessionChange": "{kind}: “{title}”"
     },
     "Confirm": {
       "Title": "Campaign Forge",
       "Delete": "Really delete “{title}”?",
-      "EndSession": "Really end the current session?"
+      "EndSession": "Really end the current session?",
+      "DeleteSessionChange": "Really delete this manually added session change?"
     },
     "Errors": {
       "Generic": "The action could not be completed. Details are available in the console.",
@@ -173,7 +179,17 @@
       "GROUP_CYCLE": "This move would create a cyclic group structure.",
       "SESSION_ALREADY_ACTIVE": "A session is already running.",
       "NO_ACTIVE_SESSION": "No session is currently running.",
-      "INVALID_TRACKER_RANGE": "Minimum cannot be greater than maximum."
+      "INVALID_TRACKER_RANGE": "Minimum cannot be greater than maximum.",
+      "INVALID_SESSION_CHANGE_KIND": "This session change type is invalid.",
+      "SESSION_CHANGE_NOT_FOUND": "The session change could not be found.",
+      "SESSION_CHANGE_NOT_MANUAL": "Only manually added session changes can be deleted here."
+    },
+    "SessionChangeKinds": {
+      "note": "Note",
+      "discovery": "Discovery",
+      "event": "Event",
+      "decision": "Decision",
+      "other": "Other"
     }
   }
 }
