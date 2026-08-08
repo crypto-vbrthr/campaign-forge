@@ -145,6 +145,32 @@ async function enrichCampaignEntry(match) {
   return entry ? createEntryEmbed(entry, mode) : createMissingEmbed(entryId);
 }
 
+function rewardLabel(reward) {
+  if (reward.type === "xp") return format("CAMPAIGN_FORGE.Rewards.PreviewXP", { amount: reward.amount ?? 0 });
+  if (reward.type === "currency") {
+    const coins = reward.coins ?? {};
+    const amount = ["pp", "gp", "sp", "cp"]
+      .filter(denom => Number(coins[denom] ?? 0) > 0)
+      .map(denom => `${Number(coins[denom])} ${denom.toUpperCase()}`)
+      .join(", ");
+    return format("CAMPAIGN_FORGE.Rewards.PreviewCurrency", { amount });
+  }
+  if (reward.type === "item") {
+    return format("CAMPAIGN_FORGE.Rewards.PreviewItem", {
+      quantity: reward.quantity ?? 1,
+      item: reward.itemName || reward.itemUuid || localize("CAMPAIGN_FORGE.Rewards.UnknownItem")
+    });
+  }
+  if (reward.type === "tracker") {
+    const delta = Number(reward.delta ?? 0);
+    return format("CAMPAIGN_FORGE.Rewards.PreviewTracker", {
+      title: reward.targetTitle ?? reward.trackerId ?? "",
+      delta: delta >= 0 ? `+${delta}` : String(delta)
+    });
+  }
+  return reward.type ?? "";
+}
+
 function consequenceLabel(action) {
   if (action.kind === "entry.status") {
     return format("CAMPAIGN_FORGE.Transitions.PreviewStatus", {
@@ -185,13 +211,18 @@ async function requestStatusChange(entryId, status) {
     if (plan.blocked) throw new Error("TRANSITION_CYCLE");
     if (!plan.actions.length) return false;
 
-    if (plan.consequences.length) {
-      const items = plan.consequences.map(action => {
+    if (plan.consequences.length || plan.rewardOffers?.length) {
+      const consequences = plan.consequences.map(action => {
         const li = document.createElement("li");
         li.textContent = consequenceLabel(action);
         return li.outerHTML;
       }).join("");
-      const content = `<div class="cf-transition-preview-dialog"><p>${escapeHTML(format("CAMPAIGN_FORGE.Transitions.PreviewIntro", { title: plan.root.title }))}</p><ul>${items}</ul><p class="hint">${escapeHTML(localize("CAMPAIGN_FORGE.Transitions.PreviewHint"))}</p></div>`;
+      const rewards = (plan.rewardOffers ?? []).map(reward => {
+        const li = document.createElement("li");
+        li.textContent = rewardLabel(reward);
+        return li.outerHTML;
+      }).join("");
+      const content = `<div class="cf-transition-preview-dialog"><p>${escapeHTML(format("CAMPAIGN_FORGE.Transitions.PreviewIntro", { title: plan.root.title }))}</p>${consequences ? `<h4>${escapeHTML(localize("CAMPAIGN_FORGE.Transitions.Consequences"))}</h4><ul>${consequences}</ul>` : ""}${rewards ? `<h4>${escapeHTML(localize("CAMPAIGN_FORGE.Rewards.DueRewards"))}</h4><ul>${rewards}</ul>` : ""}<p class="hint">${escapeHTML(localize("CAMPAIGN_FORGE.Transitions.PreviewHint"))}</p></div>`;
       const DialogV2 = foundry.applications?.api?.DialogV2;
       const confirmed = DialogV2
         ? await DialogV2.confirm({ window: { title: localize("CAMPAIGN_FORGE.Transitions.ConfirmTitle") }, content, modal: true, rejectClose: false })
@@ -199,7 +230,21 @@ async function requestStatusChange(entryId, status) {
       if (!confirmed) return false;
     }
 
-    await engine.setEntryStatus(entryId, status, { source: "journal" });
+    let rewardMode = "defer";
+    if (plan.rewardOffers?.length) {
+      const DialogV2 = foundry.applications?.api?.DialogV2;
+      const grantNow = DialogV2
+        ? await DialogV2.confirm({
+            window: { title: localize("CAMPAIGN_FORGE.Rewards.GrantConfirmTitle") },
+            content: `<p>${escapeHTML(localize("CAMPAIGN_FORGE.Rewards.GrantConfirmText"))}</p>`,
+            modal: true,
+            rejectClose: false
+          })
+        : globalThis.confirm?.(localize("CAMPAIGN_FORGE.Rewards.GrantConfirmText"));
+      rewardMode = grantNow ? "grant" : "defer";
+    }
+
+    await engine.setEntryStatus(entryId, status, { source: "journal", rewardMode });
     return true;
   } catch (error) {
     console.error(`${MODULE_ID} | Journal status change failed`, error);

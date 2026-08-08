@@ -5,9 +5,9 @@ import { CampaignEngine, CampaignEngineError } from "../scripts/engine/campaign-
 import { MemoryRepository, deterministicOptions } from "./helpers.js";
 import { getGroupProgress } from "../scripts/data/state.js";
 
-function engineWithRepo() {
+function engineWithRepo(rewardExecutor = null) {
   const repository = new MemoryRepository();
-  const engine = new CampaignEngine(repository, deterministicOptions());
+  const engine = new CampaignEngine(repository, { ...deterministicOptions(), rewardExecutor });
   return { engine, repository };
 }
 
@@ -622,4 +622,191 @@ test("status changes originating from Journals use the normal transition transac
   assert.equal(session.changes[1].source, "transition");
   assert.equal(session.changes[0].transactionId, session.changes[1].transactionId);
   assert.equal(state.entries.find(candidate => candidate.id === target.id).status, "discovered");
+});
+
+
+test("reward rules become pending on their status trigger without granting automatically", async () => {
+  const calls = [];
+  const { engine } = engineWithRepo({ execute: async reward => { calls.push(reward); return { ok: true }; } });
+  const quest = await engine.createEntry({ title: "Reward quest", type: "quest", status: "active" });
+  const rule = await engine.createRewardRule(quest.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    rewards: [{ type: "xp", actorUuid: "Actor.hero", amount: 250 }]
+  });
+
+  const preview = await engine.previewEntryStatusTransition(quest.id, "completed");
+  assert.equal(preview.rewardOffers.length, 1);
+  assert.equal(preview.rewardOffers[0].amount, 250);
+
+  await engine.setEntryStatus(quest.id, "completed", { rewardMode: "defer" });
+  const state = await engine.getState();
+  const stored = state.entries.find(entry => entry.id === quest.id);
+  assert.equal(stored.rewardRules[0].id, rule.id);
+  assert.equal(stored.rewardRules[0].rewards[0].state, "pending");
+  assert.equal(calls.length, 0);
+});
+
+test("due external rewards can be granted with duplicate protection", async () => {
+  const calls = [];
+  const executor = { execute: async reward => { calls.push(reward); return { actorName: "Hero", amount: reward.amount }; } };
+  const { engine } = engineWithRepo(executor);
+  const quest = await engine.createEntry({ title: "XP quest", type: "quest", status: "active" });
+  await engine.createRewardRule(quest.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    rewards: [{ type: "xp", actorUuid: "Actor.hero", amount: 100 }]
+  });
+
+  await engine.startSession();
+  await engine.setEntryStatus(quest.id, "completed", { rewardMode: "grant" });
+  let state = await engine.getState();
+  let storedReward = state.entries.find(entry => entry.id === quest.id).rewardRules[0].rewards[0];
+  assert.equal(storedReward.state, "granted");
+  assert.equal(calls.length, 1);
+  const session = state.sessions.find(session => session.status === "active");
+  assert.ok(session.changes.some(change => change.action === "reward.pending"));
+  assert.ok(session.changes.some(change => change.action === "reward.granted"));
+
+  await engine.setEntryStatus(quest.id, "active");
+  const preview = await engine.previewEntryStatusTransition(quest.id, "completed");
+  assert.equal(preview.rewardOffers.length, 0);
+  await engine.setEntryStatus(quest.id, "completed", { rewardMode: "grant" });
+  state = await engine.getState();
+  storedReward = state.entries.find(entry => entry.id === quest.id).rewardRules[0].rewards[0];
+  assert.equal(storedReward.state, "granted");
+  assert.equal(calls.length, 1);
+});
+
+test("tracker rewards are applied internally and share the transition transaction", async () => {
+  const { engine } = engineWithRepo();
+  const reputation = await engine.createTracker({ title: "Ostwall", value: 4, min: 0, max: 5 });
+  const quest = await engine.createEntry({ title: "Help Ostwall", type: "quest", status: "active" });
+  await engine.createRewardRule(quest.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    rewards: [{ type: "tracker", trackerId: reputation.id, delta: 3 }]
+  });
+
+  await engine.startSession();
+  await engine.setEntryStatus(quest.id, "completed", { rewardMode: "grant" });
+  const state = await engine.getState();
+  assert.equal(state.trackers.find(tracker => tracker.id === reputation.id).value, 5);
+  const reward = state.entries.find(entry => entry.id === quest.id).rewardRules[0].rewards[0];
+  assert.equal(reward.state, "granted");
+  const session = state.sessions.find(session => session.status === "active");
+  const relevant = session.changes.filter(change => ["entry.status", "reward.pending", "tracker.adjusted", "reward.granted"].includes(change.action));
+  assert.ok(relevant.length >= 4);
+  assert.ok(relevant.every(change => change.transactionId === relevant[0].transactionId));
+});
+
+test("failed rewards remain retryable and can later be granted", async () => {
+  let attempt = 0;
+  const executor = {
+    execute: async () => {
+      attempt += 1;
+      if (attempt === 1) throw new Error("temporary failure");
+      return { ok: true };
+    }
+  };
+  const { engine } = engineWithRepo(executor);
+  const quest = await engine.createEntry({ title: "Fragile reward", type: "quest", status: "active" });
+  const rule = await engine.createRewardRule(quest.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    rewards: [{ type: "item", actorUuid: "Actor.hero", itemUuid: "Compendium.test.Item.sword", itemName: "Sword" }]
+  });
+  const rewardId = rule.rewards[0].id;
+
+  await engine.setEntryStatus(quest.id, "completed", { rewardMode: "grant" });
+  let state = await engine.getState();
+  assert.equal(state.entries.find(entry => entry.id === quest.id).rewardRules[0].rewards[0].state, "failed");
+
+  await engine.grantReward(quest.id, rule.id, rewardId);
+  state = await engine.getState();
+  assert.equal(state.entries.find(entry => entry.id === quest.id).rewardRules[0].rewards[0].state, "granted");
+  assert.equal(attempt, 2);
+});
+
+test("rewards can be skipped and reset without silently re-awarding them", async () => {
+  const { engine } = engineWithRepo({ execute: async () => ({ ok: true }) });
+  const quest = await engine.createEntry({ title: "Optional reward", type: "quest", status: "active" });
+  const rule = await engine.createRewardRule(quest.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    rewards: [{ type: "xp", actorUuid: "Actor.hero", amount: 50 }]
+  });
+  const rewardId = rule.rewards[0].id;
+  await engine.setEntryStatus(quest.id, "completed");
+  await engine.skipReward(quest.id, rule.id, rewardId);
+
+  let state = await engine.getState();
+  assert.equal(state.entries.find(entry => entry.id === quest.id).rewardRules[0].rewards[0].state, "skipped");
+  await assert.rejects(
+    () => engine.grantReward(quest.id, rule.id, rewardId),
+    error => error instanceof CampaignEngineError && error.code === "REWARD_SKIPPED"
+  );
+
+  await engine.resetReward(quest.id, rule.id, rewardId);
+  state = await engine.getState();
+  assert.equal(state.entries.find(entry => entry.id === quest.id).rewardRules[0].rewards[0].state, "pending");
+  await engine.grantReward(quest.id, rule.id, rewardId);
+  state = await engine.getState();
+  assert.equal(state.entries.find(entry => entry.id === quest.id).rewardRules[0].rewards[0].state, "granted");
+});
+
+test("deleting a tracker cleans tracker rewards that reference it", async () => {
+  const { engine } = engineWithRepo();
+  const tracker = await engine.createTracker({ title: "Reputation", value: 0 });
+  const quest = await engine.createEntry({ title: "Quest", type: "quest", status: "active" });
+  await engine.createRewardRule(quest.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    rewards: [{ type: "tracker", trackerId: tracker.id, delta: 1 }]
+  });
+
+  await engine.deleteTracker(tracker.id);
+  const state = await engine.getState();
+  assert.equal(state.entries.find(entry => entry.id === quest.id).rewardRules.length, 0);
+});
+
+test("one reward rule can contain and process multiple rewards", async () => {
+  const calls = [];
+  const { engine } = engineWithRepo({ execute: async reward => { calls.push(reward.type); return { ok: true }; } });
+  const reputation = await engine.createTracker({ title: "Guild", value: 1 });
+  const quest = await engine.createEntry({ title: "Multi reward quest", type: "quest", status: "active" });
+  await engine.createRewardRule(quest.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    rewards: [
+      { type: "xp", actorUuid: "Actor.hero", amount: 150 },
+      { type: "currency", actorUuid: "Actor.hero", coins: { gp: 12 } },
+      { type: "tracker", trackerId: reputation.id, delta: 2 }
+    ]
+  });
+
+  const preview = await engine.previewEntryStatusTransition(quest.id, "completed");
+  assert.equal(preview.rewardOffers.length, 3);
+  await engine.setEntryStatus(quest.id, "completed", { rewardMode: "grant" });
+
+  const state = await engine.getState();
+  const rewards = state.entries.find(entry => entry.id === quest.id).rewardRules[0].rewards;
+  assert.deepEqual(rewards.map(reward => reward.state), ["granted", "granted", "granted"]);
+  assert.deepEqual(calls.sort(), ["currency", "xp"]);
+  assert.equal(state.trackers.find(tracker => tracker.id === reputation.id).value, 3);
+});
+
+test("a locked reward cannot be skipped before its trigger becomes due", async () => {
+  const { engine } = engineWithRepo({ execute: async () => ({ ok: true }) });
+  const quest = await engine.createEntry({ title: "Locked reward", type: "quest", status: "active" });
+  const rule = await engine.createRewardRule(quest.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    rewards: [{ type: "xp", actorUuid: "Actor.hero", amount: 25 }]
+  });
+
+  await assert.rejects(
+    () => engine.skipReward(quest.id, rule.id, rule.rewards[0].id),
+    error => error instanceof CampaignEngineError && error.code === "REWARD_NOT_PENDING"
+  );
 });

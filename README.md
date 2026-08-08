@@ -1,8 +1,8 @@
-# Campaign Forge v0.4.0
+# Campaign Forge v0.5.0
 
 Campaign Forge is a GM-facing Foundry VTT module for tracking campaign structure, knowledge, quests, events, sessions, long-term campaign values, important NPCs, and rule-driven campaign state changes.
 
-## v0.4.0 Journal integration milestone
+## v0.5.0 Rewards milestone
 
 - Journal sidebar launcher and ApplicationV2 campaign workspace.
 - Campaign tree with chapters, nested groups, typed entries, manual ordering, and drag & drop.
@@ -24,6 +24,15 @@ Campaign Forge is a GM-facing Foundry VTT module for tracking campaign structure
 - GMs can change entry status directly from a Journal live block; the central transition engine, consequence preview, and session logging remain in effect.
 - Non-GM users receive read-only live blocks and entries marked hidden are not exposed through Journal embeds.
 - German and English localization for all application text.
+- New **Reward Rules** attach one or more rewards to an explicit entry status transition.
+- Supported built-in rewards: PF2e character XP, currency, existing Foundry Items, and Campaign Forge reputation/campaign values.
+- XP, currency, and Item rewards select a target character Actor; Items can be referenced from the world or a compendium by drag & drop.
+- Reward previews are shown together with transition consequences before the status change is applied.
+- The GM can grant due rewards immediately or defer them while still applying the status transition.
+- Reward lifecycle states distinguish not-yet-due, pending, granted, skipped, and failed rewards.
+- Granted rewards are protected against accidental duplicate payout; skipped or failed rewards can be deliberately reset/retried.
+- Journal-originated status changes use the same reward flow as changes made in Campaign Forge.
+- Reward changes are included in the active session log and share transaction IDs with the triggering status transition.
 
 ## Storage
 
@@ -31,7 +40,7 @@ Campaign data is stored in a hidden world setting. UI collapse state and display
 
 ## Next planned blocks
 
-Further Journal polish, richer player-facing permissions, and later reward/provider integrations.
+Richer transition conditions/actions, provider integrations such as Loot Forge or Item Forge, further Journal polish, and player-facing permissions.
 
 
 ## Journal integration

@@ -196,7 +196,15 @@
       "RuleDeleted": "Transition rule for “{title}” deleted.",
       "JournalLinkAdded": "Added a Journal link to “{title}”.",
       "JournalLinkUpdated": "Updated a Journal link for “{title}”.",
-      "JournalLinkRemoved": "Removed a Journal link from “{title}”."
+      "JournalLinkRemoved": "Removed a Journal link from “{title}”.",
+      "RewardRuleCreated": "Reward rule created for “{title}”.",
+      "RewardRuleUpdated": "Reward rule updated for “{title}”.",
+      "RewardRuleDeleted": "Reward rule deleted for “{title}”.",
+      "RewardPending": "A reward became due for “{title}”.",
+      "RewardGranted": "Reward for “{title}” was granted.",
+      "RewardSkipped": "Reward for “{title}” was skipped.",
+      "RewardFailed": "Reward for “{title}” could not be granted.",
+      "RewardReset": "Reward for “{title}” was reset."
     },
     "Confirm": {
       "Title": "Campaign Forge",
@@ -204,7 +212,10 @@
       "EndSession": "Really end the current session?",
       "DeleteSessionChange": "Really delete this manually added session change?",
       "DeleteTransitionRule": "Delete this transition rule?",
-      "DeleteJournalLink": "Remove this Journal link?"
+      "DeleteJournalLink": "Remove this Journal link?",
+      "DeleteRewardRule": "Delete this reward rule?",
+      "SkipReward": "Skip this reward?",
+      "ResetReward": "Reset this reward status? Previously granted game values or items are not automatically taken back."
     },
     "Errors": {
       "Generic": "The action could not be completed. Details are available in the console.",
@@ -247,7 +258,28 @@
       "INVALID_JOURNAL_LINK_ROLE": "This Journal link role is invalid.",
       "JOURNAL_LINK_EXISTS": "This Journal is already linked to the entry.",
       "JOURNAL_LINK_NOT_FOUND": "The Journal link could not be found.",
-      "JOURNAL_NOT_FOUND": "The linked Journal or Journal page could not be found."
+      "JOURNAL_NOT_FOUND": "The linked Journal or Journal page could not be found.",
+      "REWARD_REQUIRED": "A reward rule needs at least one reward.",
+      "INVALID_REWARD_TYPE": "This reward type is invalid.",
+      "REWARD_ACTOR_REQUIRED": "This reward requires a target actor.",
+      "INVALID_REWARD_AMOUNT": "The XP reward must be greater than 0.",
+      "REWARD_CURRENCY_REQUIRED": "A currency reward needs at least one coin amount greater than 0.",
+      "REWARD_ITEM_REQUIRED": "This reward requires an item.",
+      "REWARD_TRACKER_REQUIRED": "This reward requires a reputation or campaign value.",
+      "INVALID_REWARD_DELTA": "The campaign-value change may not be 0.",
+      "INVALID_REWARD_TRIGGER": "The reward rule status trigger is invalid.",
+      "REWARD_TRIGGER_SAME_STATUS": "The reward rule from/to statuses must be different.",
+      "REWARD_RULE_NOT_FOUND": "The reward rule was not found.",
+      "REWARD_NOT_FOUND": "The reward was not found.",
+      "REWARD_ALREADY_GRANTED": "This reward has already been granted.",
+      "REWARD_SKIPPED": "This reward was skipped. Reset it before granting it.",
+      "REWARD_NOT_PENDING": "This reward is not due yet.",
+      "REWARD_PROVIDER_UNAVAILABLE": "No executable provider is available for this reward type.",
+      "REWARD_EXECUTION_FAILED": "The reward could not be fully granted.",
+      "REWARD_ACTOR_NOT_FOUND": "The reward target actor was not found.",
+      "REWARD_XP_CHARACTER_ONLY": "XP can only be granted to character actors.",
+      "REWARD_CURRENCY_UNSUPPORTED": "The target actor does not support automatic currency rewards.",
+      "REWARD_ITEM_NOT_FOUND": "The linked reward item was not found."
     },
     "SessionChangeKinds": {
       "note": "Note",
@@ -352,6 +384,49 @@
       "Missing": "This Campaign Forge entry no longer exists.",
       "Loading": "Loading Campaign Forge entry…",
       "OpenInForge": "Open in Campaign Forge"
+    },
+    "Rewards": {
+      "Title": "Rewards",
+      "Manage": "Manage rewards",
+      "NewRule": "New reward rule",
+      "EditRule": "Edit reward rule",
+      "NoRules": "No reward rules are defined for this entry yet.",
+      "Rewards": "Rewards",
+      "RewardsCount": "rewards",
+      "AddReward": "Add reward",
+      "NoRewards": "Add at least one reward to the rule.",
+      "Type": "Reward type",
+      "TargetActor": "Target actor",
+      "XPAmount": "XP",
+      "Tracker": "Reputation / campaign value",
+      "Quantity": "Quantity",
+      "DropItem": "Drop an item from the world or a compendium here",
+      "DropItemOnly": "Only a Foundry item can be dropped here.",
+      "DueRewards": "Rewards due",
+      "GrantConfirmTitle": "Grant rewards",
+      "GrantConfirmText": "Grant the due rewards automatically now? Choosing “No” keeps the status change and leaves the rewards pending.",
+      "GrantNow": "Grant now",
+      "Skip": "Skip",
+      "Reset": "Reset / allow again",
+      "UnknownItem": "Unknown item",
+      "MissingActor": "Missing actor ({uuid})",
+      "PreviewXP": "{amount} XP",
+      "PreviewCurrency": "{amount}",
+      "PreviewItem": "{quantity} × {item}",
+      "PreviewTracker": "{title} {delta}",
+      "Types": {
+        "xp": "XP",
+        "currency": "Currency",
+        "item": "Item",
+        "tracker": "Reputation / campaign value"
+      },
+      "States": {
+        "locked": "Not due yet",
+        "pending": "Pending",
+        "granted": "Granted",
+        "skipped": "Skipped",
+        "failed": "Failed"
+      }
     }
   }
 }

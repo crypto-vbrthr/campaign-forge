@@ -88,6 +88,21 @@ export const TRANSITION_ACTION_TYPES = Object.freeze({
 export const MAX_TRANSITION_DEPTH = 24;
 export const MAX_TRANSITION_ACTIONS = 100;
 
+export const REWARD_TYPES = Object.freeze({
+  xp: { label: "CAMPAIGN_FORGE.Rewards.Types.xp", icon: "fa-solid fa-star" },
+  currency: { label: "CAMPAIGN_FORGE.Rewards.Types.currency", icon: "fa-solid fa-coins" },
+  item: { label: "CAMPAIGN_FORGE.Rewards.Types.item", icon: "fa-solid fa-gift" },
+  tracker: { label: "CAMPAIGN_FORGE.Rewards.Types.tracker", icon: "fa-solid fa-chart-line" }
+});
+
+export const REWARD_STATES = Object.freeze({
+  locked: { label: "CAMPAIGN_FORGE.Rewards.States.locked" },
+  pending: { label: "CAMPAIGN_FORGE.Rewards.States.pending" },
+  granted: { label: "CAMPAIGN_FORGE.Rewards.States.granted" },
+  skipped: { label: "CAMPAIGN_FORGE.Rewards.States.skipped" },
+  failed: { label: "CAMPAIGN_FORGE.Rewards.States.failed" }
+});
+
 export const OVERVIEW_REACHED_STATUSES = Object.freeze({
   quest: Object.freeze(["completed"]),
   knowledge: Object.freeze(["discovered", "understood", "confirmed"]),
@@ -142,6 +157,9 @@ export const STRUCTURAL_ACTIONS = new Set([
   "entry.rule.created",
   "entry.rule.updated",
   "entry.rule.deleted",
+  "entry.rewardRule.created",
+  "entry.rewardRule.updated",
+  "entry.rewardRule.deleted",
   "entry.journal.added",
   "entry.journal.updated",
   "entry.journal.removed",

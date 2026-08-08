@@ -5,6 +5,8 @@ import {
   KEY_PLAYER_STATES,
   MAX_TRANSITION_ACTIONS,
   MAX_TRANSITION_DEPTH,
+  REWARD_STATES,
+  REWARD_TYPES,
   SESSION_CHANGE_KINDS,
   SORT_STEP,
   TRANSITION_ACTION_TYPES
@@ -25,13 +27,15 @@ export class CampaignEngine {
     now = () => Date.now(),
     idFactory = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
     userId = () => null,
-    gameTime = () => null
+    gameTime = () => null,
+    rewardExecutor = null
   } = {}) {
     this.repository = repository;
     this._now = now;
     this._idFactory = idFactory;
     this._userId = userId;
     this._gameTime = gameTime;
+    this._rewardExecutor = rewardExecutor;
   }
 
   async getState() {
@@ -204,6 +208,201 @@ export class CampaignEngine {
     };
   }
 
+  _normalizeRewards(state, rewards = [], existingRewards = []) {
+    if (!Array.isArray(rewards) || !rewards.length) {
+      throw new CampaignEngineError("REWARD_REQUIRED");
+    }
+
+    return rewards.map(raw => {
+      const type = String(raw?.type ?? "");
+      if (!REWARD_TYPES[type]) throw new CampaignEngineError("INVALID_REWARD_TYPE", { type });
+      const id = String(raw?.id ?? this._newId());
+      const existing = existingRewards.find(reward => reward.id === id) ?? null;
+      const runtime = {
+        state: REWARD_STATES[existing?.state] ? existing.state : "locked",
+        triggeredAt: existing?.triggeredAt ?? null,
+        triggerTransactionId: existing?.triggerTransactionId ?? null,
+        grantedAt: existing?.grantedAt ?? null,
+        skippedAt: existing?.skippedAt ?? null,
+        failedAt: existing?.failedAt ?? null,
+        lastError: existing?.lastError ?? null,
+        lastResult: cloneData(existing?.lastResult ?? null)
+      };
+
+      if (type === "xp") {
+        const actorUuid = String(raw?.actorUuid ?? "").trim();
+        const amount = Number(raw?.amount);
+        if (!actorUuid) throw new CampaignEngineError("REWARD_ACTOR_REQUIRED", { type });
+        if (!Number.isFinite(amount) || amount <= 0) throw new CampaignEngineError("INVALID_REWARD_AMOUNT", { amount: raw?.amount });
+        return { id, type, actorUuid, amount: Math.trunc(amount), ...runtime };
+      }
+
+      if (type === "currency") {
+        const actorUuid = String(raw?.actorUuid ?? "").trim();
+        if (!actorUuid) throw new CampaignEngineError("REWARD_ACTOR_REQUIRED", { type });
+        const coins = Object.fromEntries(["pp", "gp", "sp", "cp"].map(denom => {
+          const value = Math.max(0, Math.trunc(Number(raw?.coins?.[denom] ?? 0) || 0));
+          return [denom, value];
+        }));
+        if (!Object.values(coins).some(value => value > 0)) throw new CampaignEngineError("REWARD_CURRENCY_REQUIRED");
+        return { id, type, actorUuid, coins, ...runtime };
+      }
+
+      if (type === "item") {
+        const actorUuid = String(raw?.actorUuid ?? "").trim();
+        const itemUuid = String(raw?.itemUuid ?? "").trim();
+        const quantity = Math.max(1, Math.trunc(Number(raw?.quantity ?? 1) || 1));
+        if (!actorUuid) throw new CampaignEngineError("REWARD_ACTOR_REQUIRED", { type });
+        if (!itemUuid) throw new CampaignEngineError("REWARD_ITEM_REQUIRED");
+        return {
+          id,
+          type,
+          actorUuid,
+          itemUuid,
+          itemName: String(raw?.itemName ?? existing?.itemName ?? ""),
+          quantity,
+          ...runtime
+        };
+      }
+
+      const trackerId = String(raw?.trackerId ?? raw?.targetId ?? "").trim();
+      const delta = Number(raw?.delta);
+      if (!trackerId) throw new CampaignEngineError("REWARD_TRACKER_REQUIRED");
+      this._findTracker(state, trackerId);
+      if (!Number.isFinite(delta) || delta === 0) throw new CampaignEngineError("INVALID_REWARD_DELTA", { delta: raw?.delta });
+      return { id, type, trackerId, delta, ...runtime };
+    });
+  }
+
+  _validateRewardRule(state, entry, data = {}, existingRule = null) {
+    const statuses = ENTRY_TYPES[entry.type].statuses;
+    const fromStatus = String(data.fromStatus ?? existingRule?.fromStatus ?? entry.status);
+    const toStatus = String(data.toStatus ?? existingRule?.toStatus ?? entry.status);
+    if (!statuses.includes(fromStatus) || !statuses.includes(toStatus)) {
+      throw new CampaignEngineError("INVALID_REWARD_TRIGGER", { fromStatus, toStatus, type: entry.type });
+    }
+    if (fromStatus === toStatus) throw new CampaignEngineError("REWARD_TRIGGER_SAME_STATUS", { status: fromStatus });
+    const rewards = this._normalizeRewards(state, data.rewards ?? existingRule?.rewards ?? [], existingRule?.rewards ?? []);
+    return {
+      id: String(existingRule?.id ?? data.id ?? this._newId()),
+      enabled: data.enabled !== undefined ? Boolean(data.enabled) : (existingRule?.enabled !== false),
+      fromStatus,
+      toStatus,
+      rewards
+    };
+  }
+
+  _findReward(state, entryId, ruleId, rewardId) {
+    const entry = this._findEntry(state, entryId);
+    const rule = (entry.rewardRules ?? []).find(candidate => candidate.id === ruleId);
+    if (!rule) throw new CampaignEngineError("REWARD_RULE_NOT_FOUND", { entryId, ruleId });
+    const reward = (rule.rewards ?? []).find(candidate => candidate.id === rewardId);
+    if (!reward) throw new CampaignEngineError("REWARD_NOT_FOUND", { entryId, ruleId, rewardId });
+    return { entry, rule, reward };
+  }
+
+  _rewardPreviewData(state, entry, rule, reward, causedByEntryId = null) {
+    const data = {
+      entryId: entry.id,
+      entryTitle: entry.title,
+      ruleId: rule.id,
+      rewardId: reward.id,
+      type: reward.type,
+      causedByEntryId,
+      actorUuid: reward.actorUuid ?? "",
+      amount: reward.amount ?? 0,
+      coins: cloneData(reward.coins ?? null),
+      itemUuid: reward.itemUuid ?? "",
+      itemName: reward.itemName ?? "",
+      quantity: reward.quantity ?? 1,
+      trackerId: reward.trackerId ?? "",
+      delta: reward.delta ?? 0
+    };
+    if (reward.type === "tracker") {
+      const tracker = state.trackers.find(candidate => candidate.id === reward.trackerId);
+      data.targetTitle = tracker?.title ?? reward.trackerId;
+    }
+    return data;
+  }
+
+  async _grantRewardInState(state, entryId, ruleId, rewardId, { transactionId = null, source = "reward" } = {}) {
+    const { entry, reward } = this._findReward(state, entryId, ruleId, rewardId);
+    const previousState = reward.state;
+    if (reward.state === "granted") throw new CampaignEngineError("REWARD_ALREADY_GRANTED", { rewardId });
+    if (reward.state === "skipped") throw new CampaignEngineError("REWARD_SKIPPED", { rewardId });
+    if (!["pending", "failed"].includes(reward.state)) throw new CampaignEngineError("REWARD_NOT_PENDING", { rewardId });
+
+    const tx = transactionId || this._newId();
+    const timestamp = this._now();
+    try {
+      let result = null;
+      if (reward.type === "tracker") {
+        const tracker = this._findTracker(state, reward.trackerId);
+        const previousValue = Number(tracker.value ?? 0);
+        let nextValue = previousValue + Number(reward.delta);
+        if (Number.isFinite(tracker.min)) nextValue = Math.max(tracker.min, nextValue);
+        if (Number.isFinite(tracker.max)) nextValue = Math.min(tracker.max, nextValue);
+        tracker.value = nextValue;
+        tracker.updatedAt = new Date(timestamp).toISOString();
+        result = { trackerId: tracker.id, previousValue, value: nextValue, delta: nextValue - previousValue };
+        if (nextValue !== previousValue) {
+          this._recordChange(state, {
+            action: "tracker.adjusted",
+            targetType: "tracker",
+            targetId: tracker.id,
+            targetTitle: tracker.title,
+            before: { value: previousValue },
+            after: { value: nextValue },
+            source,
+            structural: false,
+            transactionId: tx,
+            details: { delta: nextValue - previousValue, rewardId, entryId }
+          });
+        }
+      } else {
+        if (!this._rewardExecutor?.execute) throw new CampaignEngineError("REWARD_PROVIDER_UNAVAILABLE", { type: reward.type });
+        result = await this._rewardExecutor.execute(cloneData(reward));
+      }
+
+      reward.state = "granted";
+      reward.grantedAt = timestamp;
+      reward.failedAt = null;
+      reward.lastError = null;
+      reward.lastResult = cloneData(result ?? null);
+      this._recordChange(state, {
+        action: "reward.granted",
+        targetType: "entry",
+        targetId: entry.id,
+        targetTitle: entry.title,
+        before: { state: previousState },
+        after: { state: "granted" },
+        source,
+        structural: false,
+        transactionId: tx,
+        details: { rewardId, ruleId, rewardType: reward.type, result: cloneData(result ?? null) }
+      });
+      return cloneData(reward);
+    } catch (error) {
+      reward.state = "failed";
+      reward.failedAt = timestamp;
+      reward.lastError = error?.code ?? error?.message ?? String(error);
+      this._recordChange(state, {
+        action: "reward.failed",
+        targetType: "entry",
+        targetId: entry.id,
+        targetTitle: entry.title,
+        before: { state: "pending" },
+        after: { state: "failed" },
+        source,
+        structural: false,
+        transactionId: tx,
+        details: { rewardId, ruleId, rewardType: reward.type, error: reward.lastError }
+      });
+      if (error instanceof CampaignEngineError) throw error;
+      throw new CampaignEngineError("REWARD_EXECUTION_FAILED", { rewardId, message: reward.lastError });
+    }
+  }
+
   _buildTransitionPlan(state, entryId, status) {
     const scratch = cloneData(state);
     const root = this._findEntry(scratch, entryId);
@@ -214,6 +413,7 @@ export class CampaignEngine {
 
     const transactionId = this._newId();
     const actions = [];
+    const rewardOffers = [];
     const warnings = [];
     const transitionStack = [];
     const executedRules = new Set();
@@ -329,6 +529,19 @@ export class CampaignEngine {
           }
         }
       }
+
+      const matchingRewardRules = (target.rewardRules ?? []).filter(rule =>
+        rule.enabled !== false && rule.fromStatus === previousStatus && rule.toStatus === nextStatus
+      );
+      for (const rewardRule of matchingRewardRules) {
+        for (const reward of rewardRule.rewards ?? []) {
+          if (reward.state !== "locked") continue;
+          rewardOffers.push(this._rewardPreviewData(scratch, target, rewardRule, reward, causedByEntryId));
+          reward.state = "pending";
+          reward.triggeredAt = this._now();
+          reward.triggerTransactionId = transactionId;
+        }
+      }
       transitionStack.pop();
     };
 
@@ -344,6 +557,7 @@ export class CampaignEngine {
       },
       actions,
       consequences: actions.filter(action => !action.root),
+      rewardOffers,
       warnings,
       blocked: warnings.some(warning => warning.code === "TRANSITION_CYCLE")
     };
@@ -546,6 +760,7 @@ export class CampaignEngine {
         journalLinks: [],
         relations: [],
         transitionRules: [],
+        rewardRules: [],
         createdAt: timestamp,
         updatedAt: timestamp
       };
@@ -582,6 +797,9 @@ export class CampaignEngine {
         const statuses = ENTRY_TYPES[entry.type].statuses;
         if (!statuses.includes(patch.status) && !statuses.includes(entry.status)) entry.status = statuses[0];
         entry.transitionRules = (entry.transitionRules ?? []).filter(rule =>
+          statuses.includes(rule.fromStatus) && statuses.includes(rule.toStatus)
+        );
+        entry.rewardRules = (entry.rewardRules ?? []).filter(rule =>
           statuses.includes(rule.fromStatus) && statuses.includes(rule.toStatus)
         );
       }
@@ -701,8 +919,8 @@ export class CampaignEngine {
     return cloneData(this._buildTransitionPlan(state, id, status));
   }
 
-  async setEntryStatus(id, status, { source = "manual", applyRules = true } = {}) {
-    return this._mutate(state => {
+  async setEntryStatus(id, status, { source = "manual", applyRules = true, rewardMode = "defer" } = {}) {
+    return this._mutate(async state => {
       const entry = this._findEntry(state, id);
       const statuses = ENTRY_TYPES[entry.type].statuses;
       if (!statuses.includes(status)) {
@@ -730,6 +948,41 @@ export class CampaignEngine {
       const plan = this._buildTransitionPlan(state, id, status);
       if (plan.blocked) throw new CampaignEngineError("TRANSITION_CYCLE");
       this._applyTransitionPlan(state, plan, { source });
+
+      for (const offer of plan.rewardOffers ?? []) {
+        const { reward } = this._findReward(state, offer.entryId, offer.ruleId, offer.rewardId);
+        if (reward.state !== "locked") continue;
+        reward.state = "pending";
+        reward.triggeredAt = this._now();
+        reward.triggerTransactionId = plan.transactionId;
+        reward.failedAt = null;
+        reward.lastError = null;
+        this._recordChange(state, {
+          action: "reward.pending",
+          targetType: "entry",
+          targetId: offer.entryId,
+          targetTitle: offer.entryTitle,
+          before: { state: "locked" },
+          after: { state: "pending" },
+          source: "reward",
+          structural: false,
+          transactionId: plan.transactionId,
+          details: { rewardId: offer.rewardId, ruleId: offer.ruleId, rewardType: offer.type }
+        });
+      }
+
+      if (rewardMode === "grant") {
+        for (const offer of plan.rewardOffers ?? []) {
+          try {
+            await this._grantRewardInState(state, offer.entryId, offer.ruleId, offer.rewardId, {
+              transactionId: plan.transactionId,
+              source: "reward"
+            });
+          } catch {
+            // A failed reward is recorded and remains retryable without rolling back the campaign transition.
+          }
+        }
+      }
       return cloneData(this._findEntry(state, id));
     });
   }
@@ -790,6 +1043,127 @@ export class CampaignEngine {
         structural: true
       });
       return cloneData(rule);
+    });
+  }
+
+  async createRewardRule(entryId, data = {}) {
+    return this._mutate(state => {
+      const entry = this._findEntry(state, entryId);
+      entry.rewardRules ??= [];
+      const rule = this._validateRewardRule(state, entry, data);
+      entry.rewardRules.push(rule);
+      entry.updatedAt = new Date(this._now()).toISOString();
+      this._recordChange(state, {
+        action: "entry.rewardRule.created",
+        targetType: "entry",
+        targetId: entry.id,
+        targetTitle: entry.title,
+        after: rule,
+        structural: true
+      });
+      return cloneData(rule);
+    });
+  }
+
+  async updateRewardRule(entryId, ruleId, patch = {}) {
+    return this._mutate(state => {
+      const entry = this._findEntry(state, entryId);
+      const index = (entry.rewardRules ?? []).findIndex(rule => rule.id === ruleId);
+      if (index < 0) throw new CampaignEngineError("REWARD_RULE_NOT_FOUND", { entryId, ruleId });
+      const before = cloneData(entry.rewardRules[index]);
+      const rule = this._validateRewardRule(state, entry, patch, entry.rewardRules[index]);
+      entry.rewardRules[index] = rule;
+      entry.updatedAt = new Date(this._now()).toISOString();
+      this._recordChange(state, {
+        action: "entry.rewardRule.updated",
+        targetType: "entry",
+        targetId: entry.id,
+        targetTitle: entry.title,
+        before,
+        after: rule,
+        structural: true
+      });
+      return cloneData(rule);
+    });
+  }
+
+  async deleteRewardRule(entryId, ruleId) {
+    return this._mutate(state => {
+      const entry = this._findEntry(state, entryId);
+      const index = (entry.rewardRules ?? []).findIndex(rule => rule.id === ruleId);
+      if (index < 0) throw new CampaignEngineError("REWARD_RULE_NOT_FOUND", { entryId, ruleId });
+      const [rule] = entry.rewardRules.splice(index, 1);
+      entry.updatedAt = new Date(this._now()).toISOString();
+      this._recordChange(state, {
+        action: "entry.rewardRule.deleted",
+        targetType: "entry",
+        targetId: entry.id,
+        targetTitle: entry.title,
+        before: rule,
+        structural: true
+      });
+      return cloneData(rule);
+    });
+  }
+
+  async grantReward(entryId, ruleId, rewardId) {
+    return this._mutate(state => this._grantRewardInState(state, entryId, ruleId, rewardId, {
+      transactionId: this._newId(),
+      source: "reward"
+    }));
+  }
+
+  async skipReward(entryId, ruleId, rewardId) {
+    return this._mutate(state => {
+      const { entry, reward } = this._findReward(state, entryId, ruleId, rewardId);
+      if (reward.state === "granted") throw new CampaignEngineError("REWARD_ALREADY_GRANTED", { rewardId });
+      if (![
+        "pending",
+        "failed"
+      ].includes(reward.state)) throw new CampaignEngineError("REWARD_NOT_PENDING", { rewardId });
+      const before = { state: reward.state };
+      reward.state = "skipped";
+      reward.skippedAt = this._now();
+      reward.lastError = null;
+      this._recordChange(state, {
+        action: "reward.skipped",
+        targetType: "entry",
+        targetId: entry.id,
+        targetTitle: entry.title,
+        before,
+        after: { state: "skipped" },
+        source: "reward",
+        structural: false,
+        transactionId: this._newId(),
+        details: { rewardId, ruleId, rewardType: reward.type }
+      });
+      return cloneData(reward);
+    });
+  }
+
+  async resetReward(entryId, ruleId, rewardId) {
+    return this._mutate(state => {
+      const { entry, reward } = this._findReward(state, entryId, ruleId, rewardId);
+      const before = { state: reward.state };
+      reward.state = reward.triggeredAt ? "pending" : "locked";
+      reward.grantedAt = null;
+      reward.skippedAt = null;
+      reward.failedAt = null;
+      reward.lastError = null;
+      reward.lastResult = null;
+      this._recordChange(state, {
+        action: "reward.reset",
+        targetType: "entry",
+        targetId: entry.id,
+        targetTitle: entry.title,
+        before,
+        after: { state: reward.state },
+        source: "reward",
+        structural: false,
+        transactionId: this._newId(),
+        details: { rewardId, ruleId, rewardType: reward.type }
+      });
+      return cloneData(reward);
     });
   }
 
@@ -1104,6 +1478,10 @@ export class CampaignEngine {
           rule.actions = (rule.actions ?? []).filter(action => !(action.type === "adjustTracker" && action.targetId === id));
         }
         entry.transitionRules = (entry.transitionRules ?? []).filter(rule => (rule.actions ?? []).length > 0);
+        for (const rule of entry.rewardRules ?? []) {
+          rule.rewards = (rule.rewards ?? []).filter(reward => !(reward.type === "tracker" && reward.trackerId === id));
+        }
+        entry.rewardRules = (entry.rewardRules ?? []).filter(rule => (rule.rewards ?? []).length > 0);
       }
       for (const keyPlayer of state.keyPlayers) {
         if (keyPlayer.relationshipTrackerId === id) keyPlayer.relationshipTrackerId = null;

@@ -4,6 +4,8 @@ import {
   KEY_PLAYER_ROLES,
   KEY_PLAYER_STATES,
   MODULE_ID,
+  REWARD_STATES,
+  REWARD_TYPES,
   SETTINGS,
   SESSION_CHANGE_KINDS,
   STATUS_LABELS,
@@ -110,6 +112,45 @@ function transitionActionTypeOptions(selected = "setEntryStatus") {
   }));
 }
 
+function rewardTypeOptions(selected = "xp") {
+  return Object.entries(REWARD_TYPES).map(([id, def]) => ({
+    id,
+    label: localize(def.label),
+    selected: id === selected
+  }));
+}
+
+function rewardStateLabel(state) {
+  return localize(REWARD_STATES[state]?.label ?? state);
+}
+
+function rewardPreviewLabel(reward) {
+  if (reward.type === "xp") {
+    return format("CAMPAIGN_FORGE.Rewards.PreviewXP", { amount: reward.amount ?? 0 });
+  }
+  if (reward.type === "currency") {
+    const coins = reward.coins ?? {};
+    const parts = ["pp", "gp", "sp", "cp"]
+      .filter(denom => Number(coins[denom] ?? 0) > 0)
+      .map(denom => `${Number(coins[denom])} ${denom.toUpperCase()}`);
+    return format("CAMPAIGN_FORGE.Rewards.PreviewCurrency", { amount: parts.join(", ") });
+  }
+  if (reward.type === "item") {
+    return format("CAMPAIGN_FORGE.Rewards.PreviewItem", {
+      quantity: reward.quantity ?? 1,
+      item: reward.itemName || reward.itemUuid || localize("CAMPAIGN_FORGE.Rewards.UnknownItem")
+    });
+  }
+  if (reward.type === "tracker") {
+    const delta = Number(reward.delta ?? 0);
+    return format("CAMPAIGN_FORGE.Rewards.PreviewTracker", {
+      title: reward.targetTitle ?? reward.trackerId ?? "",
+      delta: delta >= 0 ? `+${delta}` : String(delta)
+    });
+  }
+  return reward.type ?? "";
+}
+
 function booleanOptions(selected) {
   return [
     { id: "true", label: localize("CAMPAIGN_FORGE.Common.Yes"), selected: selected === true },
@@ -123,6 +164,16 @@ async function resolveActor(uuid) {
   try {
     const document = await globalThis.fromUuid(uuid);
     return document?.documentName === "Actor" ? document : null;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveItem(uuid) {
+  if (!uuid || typeof globalThis.fromUuid !== "function") return null;
+  try {
+    const document = await globalThis.fromUuid(uuid);
+    return document?.documentName === "Item" ? document : null;
   } catch {
     return null;
   }
@@ -196,6 +247,22 @@ function actionSummary(change) {
       return format("CAMPAIGN_FORGE.Changes.RuleUpdated", { title: change.targetTitle });
     case "entry.rule.deleted":
       return format("CAMPAIGN_FORGE.Changes.RuleDeleted", { title: change.targetTitle });
+    case "entry.rewardRule.created":
+      return format("CAMPAIGN_FORGE.Changes.RewardRuleCreated", { title: change.targetTitle });
+    case "entry.rewardRule.updated":
+      return format("CAMPAIGN_FORGE.Changes.RewardRuleUpdated", { title: change.targetTitle });
+    case "entry.rewardRule.deleted":
+      return format("CAMPAIGN_FORGE.Changes.RewardRuleDeleted", { title: change.targetTitle });
+    case "reward.pending":
+      return format("CAMPAIGN_FORGE.Changes.RewardPending", { title: change.targetTitle });
+    case "reward.granted":
+      return format("CAMPAIGN_FORGE.Changes.RewardGranted", { title: change.targetTitle });
+    case "reward.skipped":
+      return format("CAMPAIGN_FORGE.Changes.RewardSkipped", { title: change.targetTitle });
+    case "reward.failed":
+      return format("CAMPAIGN_FORGE.Changes.RewardFailed", { title: change.targetTitle });
+    case "reward.reset":
+      return format("CAMPAIGN_FORGE.Changes.RewardReset", { title: change.targetTitle });
     case "entry.journal.added":
       return format("CAMPAIGN_FORGE.Changes.JournalLinkAdded", { title: change.targetTitle });
     case "entry.journal.updated":
@@ -266,6 +333,17 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       editGroup: this._actionEditGroup,
       editEntry: this._actionEditEntry,
       manageRules: this._actionManageRules,
+      manageRewards: this._actionManageRewards,
+      addRewardRule: this._actionAddRewardRule,
+      editRewardRule: this._actionEditRewardRule,
+      deleteRewardRule: this._actionDeleteRewardRule,
+      cancelRewardRule: this._actionCancelRewardRule,
+      saveRewardRule: this._actionSaveRewardRule,
+      addRewardItem: this._actionAddRewardItem,
+      removeRewardItem: this._actionRemoveRewardItem,
+      grantReward: this._actionGrantReward,
+      skipReward: this._actionSkipReward,
+      resetReward: this._actionResetReward,
       addTransitionRule: this._actionAddTransitionRule,
       editTransitionRule: this._actionEditTransitionRule,
       deleteTransitionRule: this._actionDeleteTransitionRule,
@@ -326,6 +404,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this._activeTab = "overview";
     this._editor = null;
     this._ruleEditor = null;
+    this._rewardEditor = null;
     this._focusKey = null;
   }
 
@@ -393,6 +472,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
             hasPrimaryJournal: (entry.journalLinks ?? []).some(link => link.primary),
             ruleCount: (entry.transitionRules ?? []).length,
             hasRules: (entry.transitionRules ?? []).length > 0,
+            rewardRuleCount: (entry.rewardRules ?? []).length,
+            hasRewardRules: (entry.rewardRules ?? []).length > 0,
             overviewPinned: pinnedTargets.has(`entry:${entry.id}`),
             focusKey: `entry:${entry.id}`
           });
@@ -606,7 +687,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         showJournalButton: game.settings.get(MODULE_ID, SETTINGS.SHOW_JOURNAL_BUTTON),
         showStructuralChanges: game.settings.get(MODULE_ID, SETTINGS.SHOW_STRUCTURAL_CHANGES)
       },
-      version: game.modules.get(MODULE_ID)?.version ?? "0.4.0",
+      version: game.modules.get(MODULE_ID)?.version ?? "0.5.0",
       labels: {
         title: localize("CAMPAIGN_FORGE.Title"),
         noActiveSession: localize("CAMPAIGN_FORGE.Session.NoneActive")
@@ -748,6 +829,122 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         hasRules: rules.length > 0,
         ruleEditor,
         heading: localize("CAMPAIGN_FORGE.Transitions.Title")
+      };
+    }
+
+    if (this._editor.kind === "rewards") {
+      const source = state.entries.find(entry => entry.id === this._editor.entryId);
+      if (!source) return null;
+
+      const rules = (source.rewardRules ?? []).map(rule => {
+        const rewards = rule.rewards ?? [];
+        const counts = Object.fromEntries(Object.keys(REWARD_STATES).map(stateId => [
+          stateId,
+          rewards.filter(reward => reward.state === stateId).length
+        ]));
+        return {
+          ...rule,
+          entryId: source.id,
+          fromLabel: localize(STATUS_LABELS[rule.fromStatus] ?? rule.fromStatus),
+          toLabel: localize(STATUS_LABELS[rule.toStatus] ?? rule.toStatus),
+          rewardCount: rewards.length,
+          counts,
+          rewardItems: rewards.map(reward => ({
+            ...reward,
+            typeLabel: localize(REWARD_TYPES[reward.type]?.label ?? reward.type),
+            stateLabel: rewardStateLabel(reward.state),
+            previewLabel: rewardPreviewLabel({
+              ...reward,
+              targetTitle: state.trackers.find(tracker => tracker.id === reward.trackerId)?.title
+            }),
+            canGrant: ["pending", "failed"].includes(reward.state),
+            canSkip: ["pending", "failed"].includes(reward.state),
+            canReset: ["granted", "skipped", "failed"].includes(reward.state)
+          }))
+        };
+      });
+
+      let rewardEditor = null;
+      if (this._rewardEditor?.entryId === source.id) {
+        const existing = this._rewardEditor.ruleId
+          ? source.rewardRules.find(rule => rule.id === this._rewardEditor.ruleId)
+          : null;
+        if (!this._rewardEditor.draft) {
+          const statuses = ENTRY_TYPES[source.type].statuses;
+          this._rewardEditor.draft = existing ? JSON.parse(JSON.stringify(existing)) : {
+            enabled: true,
+            fromStatus: statuses[0],
+            toStatus: statuses[1] ?? statuses[0],
+            rewards: []
+          };
+        }
+        const draft = this._rewardEditor.draft;
+        const actors = [...(game.actors?.contents ?? game.actors ?? [])]
+          .filter(actor => actor?.documentName === "Actor" && actor.type === "character")
+          .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        const trackers = [...state.trackers].sort((a, b) => String(a.title).localeCompare(String(b.title)));
+
+        rewardEditor = {
+          id: existing?.id ?? "",
+          isNew: !existing,
+          enabled: draft.enabled !== false,
+          fromStatuses: statusOptions(source.type, draft.fromStatus),
+          toStatuses: statusOptions(source.type, draft.toStatus),
+          rewards: await Promise.all((draft.rewards ?? []).map(async (reward, index) => {
+            const liveItem = await resolveItem(reward.itemUuid);
+            const actorTargets = actors.map(actor => ({
+              id: actor.uuid,
+              label: actor.name,
+              selected: actor.uuid === reward.actorUuid
+            }));
+            if (reward.actorUuid && !actorTargets.some(option => option.id === reward.actorUuid)) {
+              actorTargets.unshift({
+                id: reward.actorUuid,
+                label: format("CAMPAIGN_FORGE.Rewards.MissingActor", { uuid: reward.actorUuid }),
+                selected: true
+              });
+            }
+            return {
+              ...reward,
+              index,
+              isXp: reward.type === "xp",
+              isCurrency: reward.type === "currency",
+              isItem: reward.type === "item",
+              isTracker: reward.type === "tracker",
+              types: rewardTypeOptions(reward.type),
+              actorTargets,
+              trackerTargets: trackers.map(tracker => ({
+                id: tracker.id,
+                label: tracker.title,
+                selected: tracker.id === reward.trackerId
+              })),
+              amount: reward.amount ?? 100,
+              coins: {
+                pp: reward.coins?.pp ?? 0,
+                gp: reward.coins?.gp ?? 0,
+                sp: reward.coins?.sp ?? 0,
+                cp: reward.coins?.cp ?? 0
+              },
+              itemUuid: reward.itemUuid ?? "",
+              itemName: liveItem?.name ?? reward.itemName ?? "",
+              quantity: reward.quantity ?? 1,
+              delta: reward.delta ?? 1,
+              state: reward.state ?? "locked",
+              stateLabel: rewardStateLabel(reward.state ?? "locked")
+            };
+          }))
+        };
+      }
+
+      return {
+        kind: "rewards",
+        entryId: source.id,
+        title: source.title,
+        typeLabel: localize(ENTRY_TYPES[source.type]?.label ?? source.type),
+        rules,
+        hasRules: rules.length > 0,
+        rewardEditor,
+        heading: localize("CAMPAIGN_FORGE.Rewards.Title")
       };
     }
 
@@ -941,6 +1138,93 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         const draftAction = this._ruleEditor?.draft?.actions?.[index];
         if (draftAction) draftAction.delta = Number(event.currentTarget.value);
       });
+    });
+
+    const rewardTriggerFrom = root.querySelector('[data-cf-reward-field="fromStatus"]');
+    if (rewardTriggerFrom) rewardTriggerFrom.addEventListener("change", event => {
+      if (this._rewardEditor?.draft) this._rewardEditor.draft.fromStatus = event.currentTarget.value;
+    });
+    const rewardTriggerTo = root.querySelector('[data-cf-reward-field="toStatus"]');
+    if (rewardTriggerTo) rewardTriggerTo.addEventListener("change", event => {
+      if (this._rewardEditor?.draft) this._rewardEditor.draft.toStatus = event.currentTarget.value;
+    });
+    const rewardEnabled = root.querySelector('[data-cf-reward-field="enabled"]');
+    if (rewardEnabled) rewardEnabled.addEventListener("change", event => {
+      if (this._rewardEditor?.draft) this._rewardEditor.draft.enabled = Boolean(event.currentTarget.checked);
+    });
+
+    root.querySelectorAll("[data-cf-reward-type]").forEach(select => {
+      select.addEventListener("change", async event => {
+        const index = Number(event.currentTarget.dataset.cfRewardType);
+        const reward = this._rewardEditor?.draft?.rewards?.[index];
+        if (!reward) return;
+        reward.type = event.currentTarget.value;
+        const state = await this.engine.getState();
+        const actors = [...(game.actors?.contents ?? game.actors ?? [])].filter(actor => actor?.type === "character");
+        if (["xp", "currency", "item"].includes(reward.type)) reward.actorUuid ||= actors[0]?.uuid ?? "";
+        if (reward.type === "xp") reward.amount = Number(reward.amount || 100);
+        if (reward.type === "currency") reward.coins ??= { pp: 0, gp: 0, sp: 0, cp: 0 };
+        if (reward.type === "item") reward.quantity = Math.max(1, Number(reward.quantity || 1));
+        if (reward.type === "tracker") {
+          reward.trackerId ||= state.trackers[0]?.id ?? "";
+          reward.delta = Number(reward.delta || 1);
+        }
+        await this.render();
+      });
+    });
+
+    root.querySelectorAll("[data-cf-reward-actor]").forEach(select => {
+      select.addEventListener("change", event => {
+        const index = Number(event.currentTarget.dataset.cfRewardActor);
+        const reward = this._rewardEditor?.draft?.rewards?.[index];
+        if (reward) reward.actorUuid = event.currentTarget.value;
+      });
+    });
+    root.querySelectorAll("[data-cf-reward-amount]").forEach(input => {
+      input.addEventListener("input", event => {
+        const index = Number(event.currentTarget.dataset.cfRewardAmount);
+        const reward = this._rewardEditor?.draft?.rewards?.[index];
+        if (reward) reward.amount = Number(event.currentTarget.value);
+      });
+    });
+    root.querySelectorAll("[data-cf-reward-coin]").forEach(input => {
+      input.addEventListener("input", event => {
+        const index = Number(event.currentTarget.dataset.cfRewardIndex);
+        const denom = event.currentTarget.dataset.cfRewardCoin;
+        const reward = this._rewardEditor?.draft?.rewards?.[index];
+        if (!reward) return;
+        reward.coins ??= { pp: 0, gp: 0, sp: 0, cp: 0 };
+        reward.coins[denom] = Number(event.currentTarget.value);
+      });
+    });
+    root.querySelectorAll("[data-cf-reward-tracker]").forEach(select => {
+      select.addEventListener("change", event => {
+        const index = Number(event.currentTarget.dataset.cfRewardTracker);
+        const reward = this._rewardEditor?.draft?.rewards?.[index];
+        if (reward) reward.trackerId = event.currentTarget.value;
+      });
+    });
+    root.querySelectorAll("[data-cf-reward-delta]").forEach(input => {
+      input.addEventListener("input", event => {
+        const index = Number(event.currentTarget.dataset.cfRewardDelta);
+        const reward = this._rewardEditor?.draft?.rewards?.[index];
+        if (reward) reward.delta = Number(event.currentTarget.value);
+      });
+    });
+    root.querySelectorAll("[data-cf-reward-quantity]").forEach(input => {
+      input.addEventListener("input", event => {
+        const index = Number(event.currentTarget.dataset.cfRewardQuantity);
+        const reward = this._rewardEditor?.draft?.rewards?.[index];
+        if (reward) reward.quantity = Number(event.currentTarget.value);
+      });
+    });
+    root.querySelectorAll("[data-cf-reward-item-drop]").forEach(dropZone => {
+      dropZone.addEventListener("dragover", event => {
+        event.preventDefault();
+        dropZone.classList.add("cf-drop-target");
+      });
+      dropZone.addEventListener("dragleave", () => dropZone.classList.remove("cf-drop-target"));
+      dropZone.addEventListener("drop", event => this._onRewardItemDrop(event, dropZone));
     });
 
     root.querySelectorAll("[data-cf-journal-link-role]").forEach(select => {
@@ -1162,6 +1446,34 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     }
   }
 
+  async _onRewardItemDrop(event, dropZone) {
+    event.preventDefault();
+    event.stopPropagation();
+    dropZone.classList.remove("cf-drop-target");
+    const index = Number(dropZone.dataset.cfRewardItemDrop);
+    const reward = this._rewardEditor?.draft?.rewards?.[index];
+    if (!reward) return;
+    const dragData = this._readFoundryDragData(event);
+    const uuid = dragData?.uuid || (dragData?.type === "Item" && dragData?.id ? `Item.${dragData.id}` : null);
+    if (!uuid) {
+      ui.notifications.warn(localize("CAMPAIGN_FORGE.Rewards.DropItemOnly"));
+      return;
+    }
+    let item = null;
+    try {
+      item = await globalThis.fromUuid?.(uuid);
+    } catch {
+      item = null;
+    }
+    if (!item || item.documentName !== "Item") {
+      ui.notifications.warn(localize("CAMPAIGN_FORGE.Rewards.DropItemOnly"));
+      return;
+    }
+    reward.itemUuid = item.uuid;
+    reward.itemName = item.name ?? "";
+    await this.render();
+  }
+
   _readFoundryDragData(event) {
     const dragReaders = [
       globalThis.TextEditor?.getDragEventData,
@@ -1254,14 +1566,18 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!plan.actions.length) return false;
     if (plan.blocked) throw new CampaignEngineError("TRANSITION_CYCLE");
 
-    if (plan.consequences.length) {
-      const items = plan.consequences
+    if (plan.consequences.length || plan.rewardOffers?.length) {
+      const consequenceItems = plan.consequences
         .map(action => `<li>${escapeHTML(transitionPlanActionLabel(action))}</li>`)
+        .join("");
+      const rewardItems = (plan.rewardOffers ?? [])
+        .map(reward => `<li><i class="fa-solid fa-gift"></i> ${escapeHTML(rewardPreviewLabel(reward))}</li>`)
         .join("");
       const content = `
         <div class="cf-transition-preview-dialog">
           <p>${escapeHTML(format("CAMPAIGN_FORGE.Transitions.PreviewIntro", { title: plan.root.title }))}</p>
-          <ul>${items}</ul>
+          ${consequenceItems ? `<h4>${escapeHTML(localize("CAMPAIGN_FORGE.Transitions.Consequences"))}</h4><ul>${consequenceItems}</ul>` : ""}
+          ${rewardItems ? `<h4>${escapeHTML(localize("CAMPAIGN_FORGE.Rewards.DueRewards"))}</h4><ul>${rewardItems}</ul>` : ""}
           <p class="hint">${escapeHTML(localize("CAMPAIGN_FORGE.Transitions.PreviewHint"))}</p>
         </div>`;
       const confirmed = await DialogV2.confirm({
@@ -1273,7 +1589,18 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       if (!confirmed) return false;
     }
 
-    await this.engine.setEntryStatus(entryId, status, { source: "manual" });
+    let rewardMode = "defer";
+    if (plan.rewardOffers?.length) {
+      const grantNow = await DialogV2.confirm({
+        window: { title: localize("CAMPAIGN_FORGE.Rewards.GrantConfirmTitle") },
+        content: `<p>${escapeHTML(localize("CAMPAIGN_FORGE.Rewards.GrantConfirmText"))}</p>`,
+        modal: true,
+        rejectClose: false
+      });
+      rewardMode = grantNow ? "grant" : "defer";
+    }
+
+    await this.engine.setEntryStatus(entryId, status, { source: "manual", rewardMode });
     return true;
   }
 
@@ -1281,6 +1608,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this._activeTab = target.dataset.tab;
     this._editor = null;
     this._ruleEditor = null;
+    this._rewardEditor = null;
     return this.render();
   }
 
@@ -1317,8 +1645,128 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
   static _actionManageRules(event, target) {
     this._editor = { kind: "rules", entryId: target.dataset.nodeId };
     this._ruleEditor = null;
+    this._rewardEditor = null;
     this._activeTab = "campaign";
     return this.render();
+  }
+
+  static _actionManageRewards(event, target) {
+    this._editor = { kind: "rewards", entryId: target.dataset.nodeId };
+    this._rewardEditor = null;
+    this._activeTab = "campaign";
+    return this.render();
+  }
+
+  static _actionAddRewardRule() {
+    if (this._editor?.kind !== "rewards") return;
+    this._rewardEditor = { entryId: this._editor.entryId, ruleId: null, draft: null };
+    return this.render();
+  }
+
+  static _actionEditRewardRule(event, target) {
+    if (this._editor?.kind !== "rewards") return;
+    this._rewardEditor = { entryId: this._editor.entryId, ruleId: target.dataset.ruleId, draft: null };
+    return this.render();
+  }
+
+  static async _actionDeleteRewardRule(event, target) {
+    if (this._editor?.kind !== "rewards") return;
+    const confirmed = await this._confirm("CAMPAIGN_FORGE.Confirm.DeleteRewardRule");
+    if (!confirmed) return;
+    try {
+      await this.engine.deleteRewardRule(this._editor.entryId, target.dataset.ruleId);
+      if (this._rewardEditor?.ruleId === target.dataset.ruleId) this._rewardEditor = null;
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static _actionCancelRewardRule() {
+    this._rewardEditor = null;
+    return this.render();
+  }
+
+  static async _actionSaveRewardRule() {
+    if (this._editor?.kind !== "rewards" || !this._rewardEditor?.draft) return;
+    const draft = this._rewardEditor.draft;
+    try {
+      const payload = {
+        enabled: draft.enabled !== false,
+        fromStatus: draft.fromStatus,
+        toStatus: draft.toStatus,
+        rewards: draft.rewards ?? []
+      };
+      if (this._rewardEditor.ruleId) {
+        await this.engine.updateRewardRule(this._editor.entryId, this._rewardEditor.ruleId, payload);
+      } else {
+        await this.engine.createRewardRule(this._editor.entryId, payload);
+      }
+      this._rewardEditor = null;
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionAddRewardItem() {
+    if (this._editor?.kind !== "rewards" || !this._rewardEditor?.draft) return;
+    const actors = [...(game.actors?.contents ?? game.actors ?? [])].filter(actor => actor?.type === "character");
+    this._rewardEditor.draft.rewards ??= [];
+    this._rewardEditor.draft.rewards.push({
+      id: `draft-reward-${Date.now()}-${this._rewardEditor.draft.rewards.length}`,
+      type: "xp",
+      state: "locked",
+      actorUuid: actors[0]?.uuid ?? "",
+      amount: 100,
+      coins: { pp: 0, gp: 0, sp: 0, cp: 0 },
+      itemUuid: "",
+      itemName: "",
+      quantity: 1,
+      trackerId: "",
+      delta: 1
+    });
+    return this.render();
+  }
+
+  static _actionRemoveRewardItem(event, target) {
+    if (!this._rewardEditor?.draft?.rewards) return;
+    const index = Number(target.dataset.rewardIndex);
+    if (!Number.isInteger(index) || index < 0 || index >= this._rewardEditor.draft.rewards.length) return;
+    this._rewardEditor.draft.rewards.splice(index, 1);
+    return this.render();
+  }
+
+  static async _actionGrantReward(event, target) {
+    try {
+      await this.engine.grantReward(target.dataset.entryId, target.dataset.ruleId, target.dataset.rewardId);
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+      await this.render();
+    }
+  }
+
+  static async _actionSkipReward(event, target) {
+    const confirmed = await this._confirm("CAMPAIGN_FORGE.Confirm.SkipReward");
+    if (!confirmed) return;
+    try {
+      await this.engine.skipReward(target.dataset.entryId, target.dataset.ruleId, target.dataset.rewardId);
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionResetReward(event, target) {
+    const confirmed = await this._confirm("CAMPAIGN_FORGE.Confirm.ResetReward");
+    if (!confirmed) return;
+    try {
+      await this.engine.resetReward(target.dataset.entryId, target.dataset.ruleId, target.dataset.rewardId);
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
   }
 
   static _actionAddTransitionRule() {
@@ -1402,6 +1850,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
   static _actionCancelEditor() {
     this._editor = null;
     this._ruleEditor = null;
+    this._rewardEditor = null;
     return this.render();
   }
 

@@ -1367,3 +1367,117 @@ button.icon,
     grid-column: 2 / -1;
   }
 }
+
+/* Rewards */
+.cf-reward-button.has-rules {
+  opacity: 1;
+}
+
+.cf-reward-state-summary,
+.cf-reward-summary-items,
+.cf-reward-summary-item,
+.cf-inline-actions {
+  display: flex;
+  align-items: center;
+}
+
+.cf-reward-state-summary {
+  gap: .45rem;
+  flex-wrap: wrap;
+  margin-top: .25rem;
+  color: var(--cf-muted);
+  font-size: .82em;
+}
+
+.cf-reward-summary-items {
+  flex-direction: column;
+  align-items: stretch;
+  gap: .25rem;
+  margin-top: .45rem;
+}
+
+.cf-reward-summary-item {
+  gap: .4rem;
+  min-width: 0;
+  padding-top: .25rem;
+  border-top: 1px solid var(--cf-border);
+}
+
+.cf-reward-summary-item > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.cf-inline-actions {
+  gap: .1rem;
+}
+
+.cf-reward-state {
+  flex: 0 0 auto;
+  padding: .12rem .38rem;
+  border: 1px solid var(--cf-border);
+  border-radius: 999px;
+  color: var(--cf-muted);
+  font-size: .78em;
+  white-space: nowrap;
+}
+
+.cf-reward-state.is-pending,
+.cf-reward-state.is-failed {
+  border-color: var(--cf-border-strong);
+  color: inherit;
+}
+
+.cf-reward-state.is-granted {
+  opacity: .78;
+}
+
+.cf-reward-currency-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .35rem;
+}
+
+.cf-reward-item-drop {
+  min-height: 64px;
+  padding: .55rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: .5rem;
+  align-items: center;
+  border: 1px dashed var(--cf-border-strong);
+  border-radius: .4rem;
+  color: var(--cf-muted);
+}
+
+.cf-reward-item-drop > i {
+  grid-row: 1 / span 2;
+}
+
+.cf-reward-item-drop strong,
+.cf-reward-item-drop small,
+.cf-reward-item-drop span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cf-reward-item-drop small {
+  white-space: nowrap;
+  opacity: .72;
+}
+
+.cf-reward-item-drop.cf-drop-target {
+  background: var(--cf-hover);
+}
+
+@media (max-width: 650px) {
+  .cf-reward-currency-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cf-reward-summary-item {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}

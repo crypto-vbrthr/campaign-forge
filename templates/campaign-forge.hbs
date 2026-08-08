@@ -160,7 +160,7 @@
     {{/if}}
 
     {{#if (eq activeTab "campaign")}}
-      <section class="cf-tab-panel cf-campaign-layout {{#if (eq editor.kind "rules")}}has-rule-editor{{/if}}">
+      <section class="cf-tab-panel cf-campaign-layout {{#if (eq editor.kind "rules")}}has-rule-editor{{/if}} {{#if (eq editor.kind "rewards")}}has-rule-editor{{/if}}">
         <div class="cf-campaign-tree-panel">
           <div class="cf-section-heading">
             <div>
@@ -274,6 +274,10 @@
                       <button type="button" class="icon cf-rule-button {{#if hasRules}}has-rules{{/if}}" data-action="manageRules" data-node-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Transitions.Manage"}}">
                         <i class="fa-solid fa-code-branch"></i>
                         {{#if hasRules}}<span class="cf-rule-count">{{ruleCount}}</span>{{/if}}
+                      </button>
+                      <button type="button" class="icon cf-rule-button cf-reward-button {{#if hasRewardRules}}has-rules{{/if}}" data-action="manageRewards" data-node-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Rewards.Manage"}}">
+                        <i class="fa-solid fa-gift"></i>
+                        {{#if hasRewardRules}}<span class="cf-rule-count">{{rewardRuleCount}}</span>{{/if}}
                       </button>
                       <button type="button" class="icon" data-action="editEntry" data-node-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Edit"}}">
                         <i class="fa-solid fa-pen"></i>
@@ -555,7 +559,158 @@
                 {{/if}}
               {{/if}}
 
+              {{#if (eq editor.kind "rewards")}}
+                <div class="cf-rules-header">
+                  <div>
+                    <strong>{{editor.title}}</strong>
+                    <small>{{editor.typeLabel}}</small>
+                  </div>
+                  <button type="button" data-action="addRewardRule">
+                    <i class="fa-solid fa-plus"></i>
+                    {{localize "CAMPAIGN_FORGE.Rewards.NewRule"}}
+                  </button>
+                </div>
+
+                {{#if editor.hasRules}}
+                  <div class="cf-rule-list cf-reward-rule-list">
+                    {{#each editor.rules}}
+                      <article class="cf-rule-summary cf-reward-rule-summary {{#unless enabled}}is-disabled{{/unless}}">
+                        <div class="cf-rule-trigger-summary">
+                          <i class="fa-solid fa-gift"></i>
+                          <span><strong>{{fromLabel}}</strong> <i class="fa-solid fa-arrow-right"></i> <strong>{{toLabel}}</strong></span>
+                        </div>
+                        <small>{{rewardCount}} {{localize "CAMPAIGN_FORGE.Rewards.RewardsCount"}}{{#unless enabled}} · {{localize "CAMPAIGN_FORGE.Transitions.Disabled"}}{{/unless}}</small>
+                        <div class="cf-reward-state-summary">
+                          {{#if counts.pending}}<span>{{counts.pending}} {{localize "CAMPAIGN_FORGE.Rewards.States.pending"}}</span>{{/if}}
+                          {{#if counts.granted}}<span>{{counts.granted}} {{localize "CAMPAIGN_FORGE.Rewards.States.granted"}}</span>{{/if}}
+                          {{#if counts.failed}}<span>{{counts.failed}} {{localize "CAMPAIGN_FORGE.Rewards.States.failed"}}</span>{{/if}}
+                        </div>
+                        <div class="cf-reward-summary-items">
+                          {{#each rewardItems}}
+                            <div class="cf-reward-summary-item">
+                              <span><strong>{{typeLabel}}</strong> · {{previewLabel}}</span>
+                              <span class="cf-reward-state is-{{state}}">{{stateLabel}}</span>
+                              <div class="cf-inline-actions">
+                                {{#if canGrant}}
+                                  <button type="button" class="icon" data-action="grantReward" data-entry-id="{{../entryId}}" data-rule-id="{{../id}}" data-reward-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Rewards.GrantNow"}}"><i class="fa-solid fa-gift"></i></button>
+                                {{/if}}
+                                {{#if canSkip}}
+                                  <button type="button" class="icon" data-action="skipReward" data-entry-id="{{../entryId}}" data-rule-id="{{../id}}" data-reward-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Rewards.Skip"}}"><i class="fa-solid fa-forward"></i></button>
+                                {{/if}}
+                                {{#if canReset}}
+                                  <button type="button" class="icon" data-action="resetReward" data-entry-id="{{../entryId}}" data-rule-id="{{../id}}" data-reward-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Rewards.Reset"}}"><i class="fa-solid fa-rotate-left"></i></button>
+                                {{/if}}
+                              </div>
+                            </div>
+                          {{/each}}
+                        </div>
+                        <div class="cf-rule-summary-actions">
+                          <button type="button" class="icon" data-action="editRewardRule" data-rule-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Edit"}}"><i class="fa-solid fa-pen"></i></button>
+                          <button type="button" class="icon" data-action="deleteRewardRule" data-rule-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Delete"}}"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                      </article>
+                    {{/each}}
+                  </div>
+                {{else}}
+                  {{#unless editor.rewardEditor}}
+                    <div class="cf-rule-empty">
+                      <i class="fa-solid fa-gift"></i>
+                      <span>{{localize "CAMPAIGN_FORGE.Rewards.NoRules"}}</span>
+                    </div>
+                  {{/unless}}
+                {{/if}}
+
+                {{#if editor.rewardEditor}}
+                  <section class="cf-rule-editor cf-reward-editor">
+                    <h4>{{#if editor.rewardEditor.isNew}}{{localize "CAMPAIGN_FORGE.Rewards.NewRule"}}{{else}}{{localize "CAMPAIGN_FORGE.Rewards.EditRule"}}{{/if}}</h4>
+                    <label class="cf-checkbox-row">
+                      <input type="checkbox" data-cf-reward-field="enabled" {{#if editor.rewardEditor.enabled}}checked{{/if}}>
+                      <span>{{localize "CAMPAIGN_FORGE.Transitions.Enabled"}}</span>
+                    </label>
+                    <div class="cf-rule-trigger-fields">
+                      <label>
+                        <span>{{localize "CAMPAIGN_FORGE.Transitions.FromStatus"}}</span>
+                        <select data-cf-reward-field="fromStatus">
+                          {{#each editor.rewardEditor.fromStatuses}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                        </select>
+                      </label>
+                      <i class="fa-solid fa-arrow-right"></i>
+                      <label>
+                        <span>{{localize "CAMPAIGN_FORGE.Transitions.ToStatus"}}</span>
+                        <select data-cf-reward-field="toStatus">
+                          {{#each editor.rewardEditor.toStatuses}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                        </select>
+                      </label>
+                    </div>
+
+                    <div class="cf-rule-actions-heading">
+                      <strong>{{localize "CAMPAIGN_FORGE.Rewards.Rewards"}}</strong>
+                      <button type="button" data-action="addRewardItem"><i class="fa-solid fa-plus"></i> {{localize "CAMPAIGN_FORGE.Rewards.AddReward"}}</button>
+                    </div>
+
+                    <div class="cf-rule-action-list cf-reward-item-list">
+                      {{#each editor.rewardEditor.rewards}}
+                        <article class="cf-rule-action-row cf-reward-item-row">
+                          <div class="cf-rule-action-top">
+                            <select data-cf-reward-type="{{index}}" aria-label="{{localize "CAMPAIGN_FORGE.Rewards.Type"}}">
+                              {{#each types}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                            </select>
+                            <span class="cf-reward-state is-{{state}}">{{stateLabel}}</span>
+                            <button type="button" class="icon" data-action="removeRewardItem" data-reward-index="{{index}}" title="{{localize "CAMPAIGN_FORGE.Actions.Delete"}}"><i class="fa-solid fa-trash"></i></button>
+                          </div>
+
+                          {{#if isTracker}}
+                            <label>
+                              <span>{{localize "CAMPAIGN_FORGE.Rewards.Tracker"}}</span>
+                              <select data-cf-reward-tracker="{{index}}">
+                                {{#each trackerTargets}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                              </select>
+                            </label>
+                            <label>
+                              <span>{{localize "CAMPAIGN_FORGE.Transitions.Delta"}}</span>
+                              <input type="number" step="any" value="{{delta}}" data-cf-reward-delta="{{index}}">
+                            </label>
+                          {{else}}
+                            <label>
+                              <span>{{localize "CAMPAIGN_FORGE.Rewards.TargetActor"}}</span>
+                              <select data-cf-reward-actor="{{index}}">
+                                {{#each actorTargets}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                              </select>
+                            </label>
+                            {{#if isXp}}
+                              <label><span>{{localize "CAMPAIGN_FORGE.Rewards.XPAmount"}}</span><input type="number" min="1" step="1" value="{{amount}}" data-cf-reward-amount="{{index}}"></label>
+                            {{/if}}
+                            {{#if isCurrency}}
+                              <div class="cf-reward-currency-grid">
+                                <label><span>PP</span><input type="number" min="0" step="1" value="{{coins.pp}}" data-cf-reward-index="{{index}}" data-cf-reward-coin="pp"></label>
+                                <label><span>GP</span><input type="number" min="0" step="1" value="{{coins.gp}}" data-cf-reward-index="{{index}}" data-cf-reward-coin="gp"></label>
+                                <label><span>SP</span><input type="number" min="0" step="1" value="{{coins.sp}}" data-cf-reward-index="{{index}}" data-cf-reward-coin="sp"></label>
+                                <label><span>CP</span><input type="number" min="0" step="1" value="{{coins.cp}}" data-cf-reward-index="{{index}}" data-cf-reward-coin="cp"></label>
+                              </div>
+                            {{/if}}
+                            {{#if isItem}}
+                              <div class="cf-reward-item-drop" data-cf-reward-item-drop="{{index}}">
+                                <i class="fa-solid fa-box-open"></i>
+                                {{#if itemUuid}}<strong>{{itemName}}</strong><small>{{itemUuid}}</small>{{else}}<span>{{localize "CAMPAIGN_FORGE.Rewards.DropItem"}}</span>{{/if}}
+                              </div>
+                              <label><span>{{localize "CAMPAIGN_FORGE.Rewards.Quantity"}}</span><input type="number" min="1" step="1" value="{{quantity}}" data-cf-reward-quantity="{{index}}"></label>
+                            {{/if}}
+                          {{/if}}
+                        </article>
+                      {{/each}}
+                    </div>
+                    {{#unless editor.rewardEditor.rewards.length}}<div class="cf-rule-empty compact"><span>{{localize "CAMPAIGN_FORGE.Rewards.NoRewards"}}</span></div>{{/unless}}
+
+                    <div class="cf-editor-footer">
+                      <button type="button" data-action="cancelRewardRule">{{localize "CAMPAIGN_FORGE.Actions.Cancel"}}</button>
+                      <button type="button" class="cf-primary-action" data-action="saveRewardRule"><i class="fa-solid fa-floppy-disk"></i> {{localize "CAMPAIGN_FORGE.Actions.Save"}}</button>
+                    </div>
+                  </section>
+                {{/if}}
+              {{/if}}
+
               {{#unless (eq editor.kind "rules")}}
+              {{#unless (eq editor.kind "rewards")}}
               <div class="cf-editor-footer">
                 <button type="button" data-action="cancelEditor">{{localize "CAMPAIGN_FORGE.Actions.Cancel"}}</button>
                 <button type="button" class="cf-primary-action" data-action="saveEditor">
@@ -563,6 +718,7 @@
                   {{localize "CAMPAIGN_FORGE.Actions.Save"}}
                 </button>
               </div>
+              {{/unless}}
               {{/unless}}
             </form>
           </aside>

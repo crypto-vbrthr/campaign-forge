@@ -1,4 +1,4 @@
-import { ENTRY_TYPES, JOURNAL_LINK_ROLES, KEY_PLAYER_ROLES, KEY_PLAYER_STATES, OVERVIEW_REACHED_STATUSES, SORT_STEP, TRANSITION_ACTION_TYPES } from "../core/constants.js";
+import { ENTRY_TYPES, JOURNAL_LINK_ROLES, KEY_PLAYER_ROLES, KEY_PLAYER_STATES, OVERVIEW_REACHED_STATUSES, REWARD_STATES, REWARD_TYPES, SORT_STEP, TRANSITION_ACTION_TYPES } from "../core/constants.js";
 
 function nowIso() {
   return new Date().toISOString();
@@ -92,6 +92,7 @@ export function normalizeState(raw) {
     }
     entry.relations = Array.isArray(entry.relations) ? entry.relations : [];
     entry.transitionRules = Array.isArray(entry.transitionRules) ? entry.transitionRules : [];
+    entry.rewardRules = Array.isArray(entry.rewardRules) ? entry.rewardRules : [];
     entry.transitionRules = entry.transitionRules
       .filter(rule => rule && typeof rule === "object")
       .map((rule, ruleIndex) => ({
@@ -109,6 +110,44 @@ export function normalizeState(raw) {
             ...(action.value !== undefined ? { value: Boolean(action.value) } : {}),
             ...(action.delta !== undefined ? { delta: Number(action.delta) } : {})
           }))
+      }));
+    entry.rewardRules = entry.rewardRules
+      .filter(rule => rule && typeof rule === "object")
+      .map((rule, ruleIndex) => ({
+        id: String(rule.id ?? `reward-rule-${entry.id}-${ruleIndex + 1}`),
+        enabled: rule.enabled !== false,
+        fromStatus: String(rule.fromStatus ?? entry.status),
+        toStatus: String(rule.toStatus ?? entry.status),
+        rewards: (Array.isArray(rule.rewards) ? rule.rewards : [])
+          .filter(reward => reward && REWARD_TYPES[reward.type])
+          .map((reward, rewardIndex) => {
+            const stateId = REWARD_STATES[reward.state] ? reward.state : "locked";
+            return {
+              id: String(reward.id ?? `reward-${entry.id}-${ruleIndex + 1}-${rewardIndex + 1}`),
+              type: String(reward.type),
+              state: stateId,
+              actorUuid: String(reward.actorUuid ?? ""),
+              amount: Number(reward.amount ?? 0),
+              coins: {
+                pp: Number(reward.coins?.pp ?? 0),
+                gp: Number(reward.coins?.gp ?? 0),
+                sp: Number(reward.coins?.sp ?? 0),
+                cp: Number(reward.coins?.cp ?? 0)
+              },
+              itemUuid: String(reward.itemUuid ?? ""),
+              itemName: String(reward.itemName ?? ""),
+              quantity: Math.max(1, Math.trunc(Number(reward.quantity ?? 1) || 1)),
+              trackerId: String(reward.trackerId ?? ""),
+              delta: Number(reward.delta ?? 0),
+              triggeredAt: reward.triggeredAt ?? null,
+              triggerTransactionId: reward.triggerTransactionId ?? null,
+              grantedAt: reward.grantedAt ?? null,
+              skippedAt: reward.skippedAt ?? null,
+              failedAt: reward.failedAt ?? null,
+              lastError: reward.lastError ?? null,
+              lastResult: reward.lastResult ?? null
+            };
+          })
       }));
     entry.createdAt ??= state.meta.createdAt;
     entry.updatedAt ??= entry.createdAt;

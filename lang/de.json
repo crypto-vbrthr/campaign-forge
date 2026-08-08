@@ -196,7 +196,15 @@
       "RuleDeleted": "Folgeregel für „{title}“ gelöscht.",
       "JournalLinkAdded": "Journal-Verknüpfung für „{title}“ hinzugefügt.",
       "JournalLinkUpdated": "Journal-Verknüpfung für „{title}“ bearbeitet.",
-      "JournalLinkRemoved": "Journal-Verknüpfung für „{title}“ entfernt."
+      "JournalLinkRemoved": "Journal-Verknüpfung für „{title}“ entfernt.",
+      "RewardRuleCreated": "Belohnungsregel für „{title}“ erstellt.",
+      "RewardRuleUpdated": "Belohnungsregel für „{title}“ bearbeitet.",
+      "RewardRuleDeleted": "Belohnungsregel für „{title}“ gelöscht.",
+      "RewardPending": "Für „{title}“ wurde eine Belohnung fällig.",
+      "RewardGranted": "Belohnung für „{title}“ wurde vergeben.",
+      "RewardSkipped": "Belohnung für „{title}“ wurde übersprungen.",
+      "RewardFailed": "Belohnung für „{title}“ konnte nicht vergeben werden.",
+      "RewardReset": "Belohnung für „{title}“ wurde zurückgesetzt."
     },
     "Confirm": {
       "Title": "Campaign Forge",
@@ -204,7 +212,10 @@
       "EndSession": "Die laufende Sitzung wirklich beenden?",
       "DeleteSessionChange": "Diese manuell hinzugefügte Sitzungsänderung wirklich löschen?",
       "DeleteTransitionRule": "Diese Folgeregel wirklich löschen?",
-      "DeleteJournalLink": "Diese Journal-Verknüpfung wirklich entfernen?"
+      "DeleteJournalLink": "Diese Journal-Verknüpfung wirklich entfernen?",
+      "DeleteRewardRule": "Diese Belohnungsregel wirklich löschen?",
+      "SkipReward": "Diese Belohnung wirklich überspringen?",
+      "ResetReward": "Den Vergabestatus dieser Belohnung zurücksetzen? Bereits vergebene Spielwerte oder Gegenstände werden dadurch nicht automatisch zurückgenommen."
     },
     "Errors": {
       "Generic": "Die Aktion konnte nicht ausgeführt werden. Details stehen in der Konsole.",
@@ -247,7 +258,28 @@
       "INVALID_JOURNAL_LINK_ROLE": "Diese Rolle für eine Journal-Verknüpfung ist ungültig.",
       "JOURNAL_LINK_EXISTS": "Dieses Journal ist mit dem Eintrag bereits verknüpft.",
       "JOURNAL_LINK_NOT_FOUND": "Die Journal-Verknüpfung wurde nicht gefunden.",
-      "JOURNAL_NOT_FOUND": "Das verknüpfte Journal oder die Journalseite konnte nicht gefunden werden."
+      "JOURNAL_NOT_FOUND": "Das verknüpfte Journal oder die Journalseite konnte nicht gefunden werden.",
+      "REWARD_REQUIRED": "Die Belohnungsregel benötigt mindestens eine Belohnung.",
+      "INVALID_REWARD_TYPE": "Dieser Belohnungstyp ist ungültig.",
+      "REWARD_ACTOR_REQUIRED": "Für diese Belohnung muss ein Ziel-Actor gewählt werden.",
+      "INVALID_REWARD_AMOUNT": "Die EP-Belohnung muss größer als 0 sein.",
+      "REWARD_CURRENCY_REQUIRED": "Für eine Geldbelohnung muss mindestens eine Münzmenge größer als 0 sein.",
+      "REWARD_ITEM_REQUIRED": "Für diese Belohnung muss ein Gegenstand ausgewählt werden.",
+      "REWARD_TRACKER_REQUIRED": "Für diese Belohnung muss ein Ruf- oder Kampagnenwert ausgewählt werden.",
+      "INVALID_REWARD_DELTA": "Die Änderung des Kampagnenwerts darf nicht 0 sein.",
+      "INVALID_REWARD_TRIGGER": "Der Statusauslöser der Belohnungsregel ist ungültig.",
+      "REWARD_TRIGGER_SAME_STATUS": "Ausgangs- und Zielstatus der Belohnungsregel müssen verschieden sein.",
+      "REWARD_RULE_NOT_FOUND": "Die Belohnungsregel wurde nicht gefunden.",
+      "REWARD_NOT_FOUND": "Die Belohnung wurde nicht gefunden.",
+      "REWARD_ALREADY_GRANTED": "Diese Belohnung wurde bereits vergeben.",
+      "REWARD_SKIPPED": "Diese Belohnung wurde übersprungen. Setze sie zuerst zurück, wenn du sie vergeben möchtest.",
+      "REWARD_NOT_PENDING": "Diese Belohnung ist noch nicht fällig.",
+      "REWARD_PROVIDER_UNAVAILABLE": "Für diesen Belohnungstyp ist kein ausführbarer Provider verfügbar.",
+      "REWARD_EXECUTION_FAILED": "Die Belohnung konnte nicht vollständig vergeben werden.",
+      "REWARD_ACTOR_NOT_FOUND": "Der Ziel-Actor der Belohnung wurde nicht gefunden.",
+      "REWARD_XP_CHARACTER_ONLY": "EP können nur an Charakter-Actors vergeben werden.",
+      "REWARD_CURRENCY_UNSUPPORTED": "Der Ziel-Actor unterstützt die automatische Geldvergabe nicht.",
+      "REWARD_ITEM_NOT_FOUND": "Der verknüpfte Gegenstand wurde nicht gefunden."
     },
     "SessionChangeKinds": {
       "note": "Notiz",
@@ -352,6 +384,49 @@
       "Missing": "Dieser Campaign-Forge-Eintrag existiert nicht mehr.",
       "Loading": "Campaign-Forge-Eintrag wird geladen …",
       "OpenInForge": "In Campaign Forge öffnen"
+    },
+    "Rewards": {
+      "Title": "Belohnungen",
+      "Manage": "Belohnungen verwalten",
+      "NewRule": "Neue Belohnungsregel",
+      "EditRule": "Belohnungsregel bearbeiten",
+      "NoRules": "Für diesen Eintrag sind noch keine Belohnungsregeln definiert.",
+      "Rewards": "Belohnungen",
+      "RewardsCount": "Belohnungen",
+      "AddReward": "Belohnung hinzufügen",
+      "NoRewards": "Füge der Regel mindestens eine Belohnung hinzu.",
+      "Type": "Belohnungstyp",
+      "TargetActor": "Ziel-Actor",
+      "XPAmount": "EP",
+      "Tracker": "Ruf-/Kampagnenwert",
+      "Quantity": "Anzahl",
+      "DropItem": "Gegenstand aus Welt oder Kompendium hier ablegen",
+      "DropItemOnly": "Hier kann nur ein Foundry-Gegenstand abgelegt werden.",
+      "DueRewards": "Fällige Belohnungen",
+      "GrantConfirmTitle": "Belohnungen vergeben",
+      "GrantConfirmText": "Die fälligen Belohnungen jetzt automatisch vergeben? Mit „Nein“ bleibt die Statusänderung bestehen und die Belohnungen bleiben ausstehend.",
+      "GrantNow": "Jetzt vergeben",
+      "Skip": "Überspringen",
+      "Reset": "Zurücksetzen / erneut ermöglichen",
+      "UnknownItem": "Unbekannter Gegenstand",
+      "MissingActor": "Fehlender Actor ({uuid})",
+      "PreviewXP": "{amount} EP",
+      "PreviewCurrency": "{amount}",
+      "PreviewItem": "{quantity} × {item}",
+      "PreviewTracker": "{title} {delta}",
+      "Types": {
+        "xp": "EP",
+        "currency": "Geld",
+        "item": "Gegenstand",
+        "tracker": "Ruf / Kampagnenwert"
+      },
+      "States": {
+        "locked": "Noch nicht fällig",
+        "pending": "Ausstehend",
+        "granted": "Vergeben",
+        "skipped": "Übersprungen",
+        "failed": "Fehlgeschlagen"
+      }
     }
   }
 }

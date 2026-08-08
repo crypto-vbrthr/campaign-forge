@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.5.0
+
+- Added status-triggered Reward Rules to Campaign Forge entries.
+- One reward rule can contain multiple rewards and is tied to an explicit `from status -> to status` transition.
+- Added built-in reward types for PF2e XP, currency, Foundry Items, and Campaign Forge reputation/campaign values.
+- XP, currency, and Item rewards target a character Actor; reward Items can be selected by drag & drop from world Items or compendiums.
+- Transition previews now include all rewards that become due, including rewards reached through chained status transitions.
+- GMs can grant rewards immediately when changing status or defer payout while leaving rewards pending.
+- Added explicit reward states: locked, pending, granted, skipped, and failed.
+- Added duplicate-payout protection plus deliberate skip, reset, retry, and re-enable workflows.
+- Failed external rewards remain retryable without rolling back the campaign status transition.
+- Tracker/reputation rewards execute inside Campaign Forge and share the triggering transition transaction.
+- Journal-originated status changes use the same reward preview and grant/defer workflow.
+- Reward-rule maintenance and reward lifecycle changes are represented in session history.
+- Public API expanded with reward-rule CRUD plus grant/skip/reset operations.
+- Added German and English localization for the complete reward workflow.
+- Regression suite expanded from 29 to 37 engine tests, including multi-reward rules and locked-reward safeguards.
+
 ## 0.4.0
 
 - Added Journal references to Campaign Forge entries with drag & drop support for both `JournalEntry` and `JournalEntryPage` documents.

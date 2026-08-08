@@ -5,6 +5,7 @@ import { CampaignEngine } from "./engine/campaign-engine.js";
 import { CampaignForgeApp } from "./app/campaign-forge-app.js";
 import { injectJournalButton, registerJournalIntegration } from "./integrations/journal-sidebar.js";
 import { campaignEntryEmbedSyntax, refreshJournalEmbeds, registerJournalEntryIntegration } from "./integrations/journal-entries.js";
+import { FoundryRewardExecutor } from "./integrations/reward-provider.js";
 
 let engine = null;
 let app = null;
@@ -31,7 +32,7 @@ function exposeApi() {
   if (!module) return;
 
   module.api = {
-    version: "0.4.0",
+    version: "0.5.0",
     open: openCampaignForge,
     getState: () => engine.getState(),
     getJournalEmbedSyntax: (entryId, mode = "card") => campaignEntryEmbedSyntax(entryId, mode),
@@ -79,6 +80,30 @@ function exposeApi() {
     deleteTransitionRule: (entryId, ruleId) => {
       requireGM();
       return engine.deleteTransitionRule(entryId, ruleId);
+    },
+    createRewardRule: (entryId, data) => {
+      requireGM();
+      return engine.createRewardRule(entryId, data);
+    },
+    updateRewardRule: (entryId, ruleId, data) => {
+      requireGM();
+      return engine.updateRewardRule(entryId, ruleId, data);
+    },
+    deleteRewardRule: (entryId, ruleId) => {
+      requireGM();
+      return engine.deleteRewardRule(entryId, ruleId);
+    },
+    grantReward: (entryId, ruleId, rewardId) => {
+      requireGM();
+      return engine.grantReward(entryId, ruleId, rewardId);
+    },
+    skipReward: (entryId, ruleId, rewardId) => {
+      requireGM();
+      return engine.skipReward(entryId, ruleId, rewardId);
+    },
+    resetReward: (entryId, ruleId, rewardId) => {
+      requireGM();
+      return engine.resetReward(entryId, ruleId, rewardId);
     },
     startSession: () => {
       requireGM();
@@ -138,7 +163,8 @@ Hooks.once("init", () => {
 Hooks.once("ready", async () => {
   engine = new CampaignEngine(new FoundryCampaignRepository(), {
     userId: () => game.user?.id ?? null,
-    gameTime: () => game.time?.worldTime ?? null
+    gameTime: () => game.time?.worldTime ?? null,
+    rewardExecutor: new FoundryRewardExecutor()
   });
 
   exposeApi();
