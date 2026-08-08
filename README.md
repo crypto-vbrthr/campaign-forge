@@ -1,6 +1,11 @@
-# Campaign Forge v0.5.0
+# Campaign Forge v0.5.1
 
 Campaign Forge is a GM-facing Foundry VTT module for tracking campaign structure, knowledge, quests, events, sessions, long-term campaign values, important NPCs, and rule-driven campaign state changes.
+
+## v0.5.1 Reward reset fix
+
+- Resetting a reward now re-arms it for the next matching status transition instead of leaving it pending from the old trigger.
+- Reset clears the previous trigger metadata while deliberately leaving any already granted XP, currency, Items, or campaign-value changes untouched.
 
 ## v0.5.0 Rewards milestone
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.1
+
+- Fixed reward reset semantics: resetting now returns a reward to `locked` and clears its previous trigger metadata.
+- A reset reward becomes due again when its configured `from status -> to status` trigger occurs later.
+- Resetting an already granted reward still does not reverse previously awarded XP, currency, Items, or tracker/reputation changes; it deliberately allows a later trigger to award it again.
+- Added regression coverage for skipped and already-granted rewards being re-armed and triggered again.
+
 ## 0.5.0
 
 - Added status-triggered Reward Rules to Campaign Forge entries.

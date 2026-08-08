@@ -687,7 +687,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         showJournalButton: game.settings.get(MODULE_ID, SETTINGS.SHOW_JOURNAL_BUTTON),
         showStructuralChanges: game.settings.get(MODULE_ID, SETTINGS.SHOW_STRUCTURAL_CHANGES)
       },
-      version: game.modules.get(MODULE_ID)?.version ?? "0.5.0",
+      version: game.modules.get(MODULE_ID)?.version ?? "0.5.1",
       labels: {
         title: localize("CAMPAIGN_FORGE.Title"),
         noActiveSession: localize("CAMPAIGN_FORGE.Session.NoneActive")

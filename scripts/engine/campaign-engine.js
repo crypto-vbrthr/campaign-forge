@@ -1144,8 +1144,18 @@ export class CampaignEngine {
   async resetReward(entryId, ruleId, rewardId) {
     return this._mutate(state => {
       const { entry, reward } = this._findReward(state, entryId, ruleId, rewardId);
-      const before = { state: reward.state };
-      reward.state = reward.triggeredAt ? "pending" : "locked";
+      const before = {
+        state: reward.state,
+        triggeredAt: reward.triggeredAt ?? null,
+        triggerTransactionId: reward.triggerTransactionId ?? null
+      };
+
+      // Reset means re-arm the reward for the next matching status transition.
+      // It deliberately does not undo any XP, currency, Item, or tracker change
+      // that may already have been granted in Foundry.
+      reward.state = "locked";
+      reward.triggeredAt = null;
+      reward.triggerTransactionId = null;
       reward.grantedAt = null;
       reward.skippedAt = null;
       reward.failedAt = null;
@@ -1157,7 +1167,11 @@ export class CampaignEngine {
         targetId: entry.id,
         targetTitle: entry.title,
         before,
-        after: { state: reward.state },
+        after: {
+          state: reward.state,
+          triggeredAt: null,
+          triggerTransactionId: null
+        },
         source: "reward",
         structural: false,
         transactionId: this._newId(),
