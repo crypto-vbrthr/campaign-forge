@@ -6,7 +6,8 @@
       "Campaign": "Campaign",
       "Sessions": "Sessions",
       "Trackers": "Trackers",
-      "Settings": "Settings"
+      "Settings": "Settings",
+      "KeyPlayers": "Key Players"
     },
     "Common": {
       "Navigation": "Navigation",
@@ -33,7 +34,9 @@
       "AddSessionChange": "Add change",
       "PinToOverview": "Show in overview",
       "UnpinFromOverview": "Remove from overview",
-      "OpenOverviewTarget": "Jump to element"
+      "OpenOverviewTarget": "Jump to element",
+      "MarkKeyPlayerSeen": "Mark as appeared in current session",
+      "OpenActor": "Open Actor"
     },
     "Session": {
       "Session": "Session",
@@ -44,7 +47,7 @@
     },
     "Overview": {
       "Title": "Overview",
-      "Description": "Keep long-term important entries, groups, and campaign values in view.",
+      "Description": "Long-term important entries, groups, campaign values, and key players at a glance.",
       "Entries": "Entries",
       "ActiveEntries": "Active entries",
       "Chapters": "Chapters",
@@ -54,13 +57,15 @@
       "CurrentSession": "Current session",
       "NoEntries": "No entries yet.",
       "PinnedTitle": "Pinned campaign points",
-      "PinnedDescription": "Mark entries, groups, or values in their respective views to keep them visible here.",
+      "PinnedDescription": "Pin entries, groups, values, or key players from their respective views to keep them visible here.",
       "NoPinnedTitle": "Nothing pinned yet",
-      "NoPinnedText": "Pin important entries, groups, or values to the overview using the thumbtack button.",
+      "NoPinnedText": "Pin important entries, groups, values, or key players to the Overview using the pin icon.",
       "ProgressCount": "{reached} / {total} reached",
       "NoProgressEntries": "No contained entries",
       "CampaignValue": "Campaign value",
-      "UnboundedValue": "no fixed bounds"
+      "UnboundedValue": "no fixed bounds",
+      "KeyPlayers": "Key Players",
+      "KeyPlayer": "Key Player"
     },
     "Campaign": {
       "Title": "Campaign",
@@ -102,7 +107,8 @@
       "NewTracker": "New tracker",
       "EditTracker": "Edit tracker",
       "NewSessionChange": "Add session change",
-      "EditSessionChange": "Edit session change"
+      "EditSessionChange": "Edit session change",
+      "EditKeyPlayer": "Edit Key Player"
     },
     "Fields": {
       "Title": "Title",
@@ -113,7 +119,12 @@
       "Visible": "Visible",
       "Value": "Value",
       "Minimum": "Minimum",
-      "Maximum": "Maximum"
+      "Maximum": "Maximum",
+      "CampaignRole": "Campaign role",
+      "KeyPlayerState": "Current state",
+      "RelationshipTracker": "Reputation/relationship value",
+      "LinkedEntries": "Linked campaign entries",
+      "GMNote": "GM note"
     },
     "GroupKinds": {
       "chapter": "Chapter",
@@ -170,7 +181,12 @@
       "ManualSessionChange": "{kind}: “{title}”",
       "OverviewPinned": "“{title}” was pinned to the overview.",
       "OverviewUnpinned": "“{title}” was removed from the overview.",
-      "OverviewMoved": "“{title}” was moved in the overview."
+      "OverviewMoved": "“{title}” was moved in the overview.",
+      "KeyPlayerCreated": "Key player “{title}” was added.",
+      "KeyPlayerUpdated": "Key player “{title}” was edited.",
+      "KeyPlayerDeleted": "Key player “{title}” was removed.",
+      "KeyPlayerMoved": "Key player “{title}” was moved.",
+      "KeyPlayerAppeared": "“{title}” was marked as appearing in this session."
     },
     "Confirm": {
       "Title": "Campaign Forge",
@@ -198,7 +214,13 @@
       "SESSION_CHANGE_NOT_FOUND": "The session change could not be found.",
       "SESSION_CHANGE_NOT_MANUAL": "Only manually added session changes can be deleted here.",
       "INVALID_OVERVIEW_TARGET": "This element type cannot be used in the overview.",
-      "OVERVIEW_PIN_NOT_FOUND": "The overview item could not be found."
+      "OVERVIEW_PIN_NOT_FOUND": "The overview item could not be found.",
+      "KEY_PLAYER_NOT_FOUND": "The key player could not be found.",
+      "KEY_PLAYER_ALREADY_EXISTS": "This Actor is already registered as a key player.",
+      "ACTOR_UUID_REQUIRED": "A key player requires an Actor reference.",
+      "ACTOR_NOT_FOUND": "The linked Actor could not be found.",
+      "INVALID_KEY_PLAYER_ROLE": "This campaign role is invalid.",
+      "INVALID_KEY_PLAYER_STATE": "This key player state is invalid."
     },
     "SessionChangeKinds": {
       "note": "Note",
@@ -206,6 +228,41 @@
       "event": "Event",
       "decision": "Decision",
       "other": "Other"
+    },
+    "KeyPlayers": {
+      "Title": "Key Players",
+      "Description": "Keep important campaign NPCs close at hand and connect them to campaign state, reputation values, and entries.",
+      "DropHint": "Drag an Actor from the Actor sidebar here to add them as a key player.",
+      "DropActorOnly": "Only Foundry Actors can be dropped here.",
+      "EmptyTitle": "No key players yet",
+      "EmptyText": "Drag an important NPC from the Actor sidebar into the area above.",
+      "UnknownActor": "Unknown Actor",
+      "ActorMissing": "The linked Actor can no longer be resolved. The stored reference is preserved.",
+      "LastSeen": "Last appearance",
+      "NeverSeen": "not recorded yet",
+      "SessionNumber": "Session #{number}",
+      "LinkedEntries": "Linked entries",
+      "LinkedEntriesHint": "Use Ctrl or Cmd for multiple selection. Entries are referenced, not copied.",
+      "NoRelationshipTracker": "No linked reputation/relationship value"
+    },
+    "KeyPlayerRoles": {
+      "ally": "Ally",
+      "patron": "Patron",
+      "informant": "Informant",
+      "rival": "Rival",
+      "antagonist": "Antagonist",
+      "authority": "Authority",
+      "neutral": "Neutral",
+      "other": "Other role"
+    },
+    "KeyPlayerStates": {
+      "active": "Active",
+      "missing": "Missing",
+      "captured": "Captured",
+      "hiding": "In hiding",
+      "dead": "Dead",
+      "inactive": "Out of the story",
+      "unknown": "Unknown"
     }
   }
 }

@@ -57,7 +57,9 @@
             <div class="cf-overview-pin-list">
               {{#each overviewPins}}
                 <article class="cf-overview-pin">
-                  <span class="cf-overview-pin-icon"><i class="{{icon}}"></i></span>
+                  <span class="cf-overview-pin-icon">
+                    {{#if image}}<img src="{{image}}" alt="">{{else}}<i class="{{icon}}"></i>{{/if}}
+                  </span>
                   <div class="cf-overview-pin-main">
                     <div class="cf-overview-pin-heading">
                       <strong>{{targetTitle}}</strong>
@@ -116,6 +118,10 @@
           <article class="cf-stat-card">
             <span>{{localize "CAMPAIGN_FORGE.Overview.Trackers"}}</span>
             <strong>{{overview.trackers}}</strong>
+          </article>
+          <article class="cf-stat-card">
+            <span>{{localize "CAMPAIGN_FORGE.Overview.KeyPlayers"}}</span>
+            <strong>{{overview.keyPlayers}}</strong>
           </article>
         </div>
 
@@ -592,6 +598,146 @@
               </form>
             </aside>
           {{/if}}
+        {{/if}}
+      </section>
+    {{/if}}
+
+    {{#if (eq activeTab "keyPlayers")}}
+      <section class="cf-tab-panel cf-keyplayer-layout {{#if (eq editor.kind "keyPlayer")}}has-editor{{/if}}">
+        <div class="cf-keyplayer-panel">
+          <div class="cf-section-heading">
+            <div>
+              <h2>{{localize "CAMPAIGN_FORGE.KeyPlayers.Title"}}</h2>
+              <p>{{localize "CAMPAIGN_FORGE.KeyPlayers.Description"}}</p>
+            </div>
+          </div>
+
+          <div class="cf-keyplayer-drop" data-cf-keyplayer-drop>
+            <i class="fa-solid fa-user-plus"></i>
+            <span>{{localize "CAMPAIGN_FORGE.KeyPlayers.DropHint"}}</span>
+          </div>
+
+          <div class="cf-keyplayer-list">
+            {{#if keyPlayers.length}}
+              {{#each keyPlayers}}
+                <article class="cf-keyplayer-row {{#if actorMissing}}is-missing{{/if}}" data-cf-focus-key="{{focusKey}}">
+                  <img class="cf-keyplayer-portrait" src="{{image}}" alt="">
+                  <div class="cf-keyplayer-main">
+                    <div class="cf-keyplayer-heading">
+                      <strong>{{name}}</strong>
+                      <span>{{roleLabel}} · {{stateLabel}}</span>
+                    </div>
+                    {{#if actorMissing}}
+                      <small class="cf-keyplayer-warning"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "CAMPAIGN_FORGE.KeyPlayers.ActorMissing"}}</small>
+                    {{/if}}
+                    {{#if note}}<p>{{note}}</p>{{/if}}
+                    <div class="cf-keyplayer-meta">
+                      <span><i class="fa-solid fa-clock-rotate-left"></i> {{localize "CAMPAIGN_FORGE.KeyPlayers.LastSeen"}}: {{lastSeenLabel}}</span>
+                      <span><i class="fa-solid fa-link"></i> {{localize "CAMPAIGN_FORGE.KeyPlayers.LinkedEntries"}}: {{linkedEntryCount}}</span>
+                      {{#if hasRelationship}}
+                        <span><i class="fa-solid fa-handshake"></i> {{relationshipTitle}}: {{relationshipValue}}</span>
+                      {{/if}}
+                    </div>
+                  </div>
+                  <div class="cf-row-actions cf-keyplayer-actions">
+                    {{#if canMarkSeen}}
+                      <button type="button" class="icon {{#if seenThisSession}}is-seen{{/if}}" data-action="markKeyPlayerSeen" data-key-player-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.MarkKeyPlayerSeen"}}" {{#if seenThisSession}}disabled{{/if}}>
+                        <i class="fa-solid {{#if seenThisSession}}fa-check{{else}}fa-eye{{/if}}"></i>
+                      </button>
+                    {{/if}}
+                    <button type="button" class="icon {{#if overviewPinned}}is-pinned{{/if}}" data-action="toggleOverviewPin" data-target-type="keyPlayer" data-target-id="{{id}}" data-pinned="{{overviewPinned}}" title="{{#if overviewPinned}}{{localize "CAMPAIGN_FORGE.Actions.UnpinFromOverview"}}{{else}}{{localize "CAMPAIGN_FORGE.Actions.PinToOverview"}}{{/if}}">
+                      <i class="fa-solid fa-thumbtack"></i>
+                    </button>
+                    <button type="button" class="icon" data-action="openKeyPlayerActor" data-key-player-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.OpenActor"}}" {{#if actorMissing}}disabled{{/if}}>
+                      <i class="fa-solid fa-user"></i>
+                    </button>
+                    <button type="button" class="icon" data-action="moveKeyPlayerUp" data-key-player-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.MoveUp"}}">
+                      <i class="fa-solid fa-arrow-up"></i>
+                    </button>
+                    <button type="button" class="icon" data-action="moveKeyPlayerDown" data-key-player-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.MoveDown"}}">
+                      <i class="fa-solid fa-arrow-down"></i>
+                    </button>
+                    <button type="button" class="icon" data-action="editKeyPlayer" data-key-player-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Edit"}}">
+                      <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button type="button" class="icon" data-action="deleteKeyPlayer" data-key-player-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Delete"}}">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </article>
+              {{/each}}
+            {{else}}
+              <div class="cf-empty-state">
+                <i class="fa-solid fa-users"></i>
+                <strong>{{localize "CAMPAIGN_FORGE.KeyPlayers.EmptyTitle"}}</strong>
+                <span>{{localize "CAMPAIGN_FORGE.KeyPlayers.EmptyText"}}</span>
+              </div>
+            {{/if}}
+          </div>
+        </div>
+
+        {{#if (eq editor.kind "keyPlayer")}}
+          <aside class="cf-editor">
+            <div class="cf-editor-heading">
+              <h3>{{editor.heading}}</h3>
+              <button type="button" class="icon" data-action="cancelEditor" title="{{localize "CAMPAIGN_FORGE.Actions.Close"}}">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <form class="cf-editor-form">
+              <div class="cf-keyplayer-editor-actor">
+                <img src="{{editor.actorImg}}" alt="">
+                <div>
+                  <strong>{{editor.actorName}}</strong>
+                  <small>{{editor.actorUuid}}</small>
+                </div>
+              </div>
+              <label>
+                <span>{{localize "CAMPAIGN_FORGE.Fields.CampaignRole"}}</span>
+                <select name="role">
+                  {{#each editor.roles}}
+                    <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                  {{/each}}
+                </select>
+              </label>
+              <label>
+                <span>{{localize "CAMPAIGN_FORGE.Fields.KeyPlayerState"}}</span>
+                <select name="state">
+                  {{#each editor.states}}
+                    <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                  {{/each}}
+                </select>
+              </label>
+              <label>
+                <span>{{localize "CAMPAIGN_FORGE.Fields.RelationshipTracker"}}</span>
+                <select name="relationshipTrackerId">
+                  {{#each editor.trackers}}
+                    <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                  {{/each}}
+                </select>
+              </label>
+              <label>
+                <span>{{localize "CAMPAIGN_FORGE.Fields.LinkedEntries"}}</span>
+                <select name="entryLinks" multiple size="8">
+                  {{#each editor.entries}}
+                    <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                  {{/each}}
+                </select>
+                <small>{{localize "CAMPAIGN_FORGE.KeyPlayers.LinkedEntriesHint"}}</small>
+              </label>
+              <label>
+                <span>{{localize "CAMPAIGN_FORGE.Fields.GMNote"}}</span>
+                <textarea name="note" rows="7">{{editor.note}}</textarea>
+              </label>
+              <div class="cf-editor-footer">
+                <button type="button" data-action="cancelEditor">{{localize "CAMPAIGN_FORGE.Actions.Cancel"}}</button>
+                <button type="button" class="cf-primary-action" data-action="saveEditor">
+                  <i class="fa-solid fa-floppy-disk"></i>
+                  {{localize "CAMPAIGN_FORGE.Actions.Save"}}
+                </button>
+              </div>
+            </form>
+          </aside>
         {{/if}}
       </section>
     {{/if}}

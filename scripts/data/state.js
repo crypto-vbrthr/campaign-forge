@@ -1,4 +1,4 @@
-import { ENTRY_TYPES, OVERVIEW_REACHED_STATUSES, SORT_STEP } from "../core/constants.js";
+import { ENTRY_TYPES, KEY_PLAYER_ROLES, KEY_PLAYER_STATES, OVERVIEW_REACHED_STATUSES, SORT_STEP } from "../core/constants.js";
 
 function nowIso() {
   return new Date().toISOString();
@@ -71,7 +71,7 @@ export function normalizeState(raw) {
   }
 
   state.overviewPins = state.overviewPins
-    .filter(pin => pin && ["entry", "group", "tracker"].includes(pin.targetType) && pin.targetId)
+    .filter(pin => pin && ["entry", "group", "tracker", "keyPlayer"].includes(pin.targetType) && pin.targetId)
     .map((pin, index) => ({
       id: String(pin.id ?? `overview-${pin.targetType}-${pin.targetId}`),
       targetType: pin.targetType,
@@ -79,6 +79,23 @@ export function normalizeState(raw) {
       sort: Number.isFinite(Number(pin.sort)) ? Number(pin.sort) : (index + 1) * SORT_STEP,
       createdAt: pin.createdAt ?? state.meta.createdAt
     }));
+
+  for (const keyPlayer of state.keyPlayers) {
+    keyPlayer.actorUuid = String(keyPlayer.actorUuid ?? "");
+    keyPlayer.actorName = String(keyPlayer.actorName ?? "");
+    keyPlayer.actorImg = String(keyPlayer.actorImg ?? "");
+    if (!KEY_PLAYER_ROLES[keyPlayer.role]) keyPlayer.role = "neutral";
+    if (!KEY_PLAYER_STATES[keyPlayer.state]) keyPlayer.state = "active";
+    keyPlayer.note = String(keyPlayer.note ?? "");
+    keyPlayer.relationshipTrackerId = keyPlayer.relationshipTrackerId || null;
+    keyPlayer.entryLinks = Array.isArray(keyPlayer.entryLinks)
+      ? [...new Set(keyPlayer.entryLinks.filter(Boolean).map(String))]
+      : [];
+    keyPlayer.lastSeenSessionId = keyPlayer.lastSeenSessionId || null;
+    keyPlayer.sort = Number.isFinite(Number(keyPlayer.sort)) ? Number(keyPlayer.sort) : SORT_STEP;
+    keyPlayer.createdAt ??= state.meta.createdAt;
+    keyPlayer.updatedAt ??= keyPlayer.createdAt;
+  }
 
   for (const tracker of state.trackers) {
     tracker.value = Number(tracker.value ?? 0);
@@ -102,6 +119,19 @@ export function normalizeState(raw) {
     session.endedAt ??= null;
     session.gameTimeStart ??= null;
     session.gameTimeEnd ??= null;
+  }
+
+  const trackerIds = new Set(state.trackers.map(tracker => tracker.id));
+  const entryIds = new Set(state.entries.map(entry => entry.id));
+  const sessionIds = new Set(state.sessions.map(session => session.id));
+  for (const keyPlayer of state.keyPlayers) {
+    if (keyPlayer.relationshipTrackerId && !trackerIds.has(keyPlayer.relationshipTrackerId)) {
+      keyPlayer.relationshipTrackerId = null;
+    }
+    keyPlayer.entryLinks = keyPlayer.entryLinks.filter(entryId => entryIds.has(entryId));
+    if (keyPlayer.lastSeenSessionId && !sessionIds.has(keyPlayer.lastSeenSessionId)) {
+      keyPlayer.lastSeenSessionId = null;
+    }
   }
 
   return state;

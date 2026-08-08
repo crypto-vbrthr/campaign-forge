@@ -1,8 +1,8 @@
 {
   "id": "campaign-forge",
   "title": "Campaign Forge",
-  "description": "Campaign progress, knowledge, session, and tracker management for Foundry VTT.",
-  "version": "0.2.0",
+  "description": "Campaign progress, knowledge, session, tracker, and key-player management for Foundry VTT.",
+  "version": "0.2.1",
   "authors": [
     {
       "name": "Campaign Forge"

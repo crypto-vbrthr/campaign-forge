@@ -6,7 +6,8 @@
       "Campaign": "Kampagne",
       "Sessions": "Sitzungen",
       "Trackers": "Werte & Ruf",
-      "Settings": "Einstellungen"
+      "Settings": "Einstellungen",
+      "KeyPlayers": "Schlüsselpersonen"
     },
     "Common": {
       "Navigation": "Navigation",
@@ -33,7 +34,9 @@
       "AddSessionChange": "Änderung hinzufügen",
       "PinToOverview": "In Übersicht anzeigen",
       "UnpinFromOverview": "Aus Übersicht entfernen",
-      "OpenOverviewTarget": "Zum Element springen"
+      "OpenOverviewTarget": "Zum Element springen",
+      "MarkKeyPlayerSeen": "In aktueller Sitzung als aufgetreten markieren",
+      "OpenActor": "Actor öffnen"
     },
     "Session": {
       "Session": "Sitzung",
@@ -44,7 +47,7 @@
     },
     "Overview": {
       "Title": "Übersicht",
-      "Description": "Langfristig wichtige Einträge, Gruppen und Kampagnenwerte auf einen Blick.",
+      "Description": "Langfristig wichtige Einträge, Gruppen, Kampagnenwerte und Schlüsselpersonen auf einen Blick.",
       "Entries": "Einträge",
       "ActiveEntries": "Aktive Einträge",
       "Chapters": "Kapitel",
@@ -54,13 +57,15 @@
       "CurrentSession": "Aktuelle Sitzung",
       "NoEntries": "Noch keine Einträge vorhanden.",
       "PinnedTitle": "Angeheftete Kampagnenpunkte",
-      "PinnedDescription": "Markiere Einträge, Gruppen oder Werte in den jeweiligen Ansichten, um sie hier dauerhaft im Blick zu behalten.",
+      "PinnedDescription": "Markiere Einträge, Gruppen, Werte oder Schlüsselpersonen in den jeweiligen Ansichten, um sie hier dauerhaft im Blick zu behalten.",
       "NoPinnedTitle": "Noch nichts angeheftet",
-      "NoPinnedText": "Hefte wichtige Einträge, Gruppen oder Werte über das Stecknadel-Symbol an die Übersicht an.",
+      "NoPinnedText": "Hefte wichtige Einträge, Gruppen, Werte oder Schlüsselpersonen über das Stecknadel-Symbol an die Übersicht an.",
       "ProgressCount": "{reached} / {total} erreicht",
       "NoProgressEntries": "Keine enthaltenen Einträge",
       "CampaignValue": "Kampagnenwert",
-      "UnboundedValue": "ohne feste Grenzen"
+      "UnboundedValue": "ohne feste Grenzen",
+      "KeyPlayers": "Schlüsselpersonen",
+      "KeyPlayer": "Schlüsselperson"
     },
     "Campaign": {
       "Title": "Kampagne",
@@ -102,7 +107,8 @@
       "NewTracker": "Neuer Kampagnenwert",
       "EditTracker": "Kampagnenwert bearbeiten",
       "NewSessionChange": "Sitzungsänderung hinzufügen",
-      "EditSessionChange": "Sitzungsänderung bearbeiten"
+      "EditSessionChange": "Sitzungsänderung bearbeiten",
+      "EditKeyPlayer": "Schlüsselperson bearbeiten"
     },
     "Fields": {
       "Title": "Titel",
@@ -113,7 +119,12 @@
       "Visible": "Sichtbar",
       "Value": "Wert",
       "Minimum": "Minimum",
-      "Maximum": "Maximum"
+      "Maximum": "Maximum",
+      "CampaignRole": "Kampagnenrolle",
+      "KeyPlayerState": "Aktueller Zustand",
+      "RelationshipTracker": "Ruf-/Beziehungswert",
+      "LinkedEntries": "Verknüpfte Kampagneneinträge",
+      "GMNote": "SL-Notiz"
     },
     "GroupKinds": {
       "chapter": "Kapitel",
@@ -170,7 +181,12 @@
       "ManualSessionChange": "{kind}: „{title}“",
       "OverviewPinned": "„{title}“ wurde an die Übersicht angeheftet.",
       "OverviewUnpinned": "„{title}“ wurde aus der Übersicht entfernt.",
-      "OverviewMoved": "„{title}“ wurde in der Übersicht verschoben."
+      "OverviewMoved": "„{title}“ wurde in der Übersicht verschoben.",
+      "KeyPlayerCreated": "Schlüsselperson „{title}“ wurde hinzugefügt.",
+      "KeyPlayerUpdated": "Schlüsselperson „{title}“ wurde bearbeitet.",
+      "KeyPlayerDeleted": "Schlüsselperson „{title}“ wurde entfernt.",
+      "KeyPlayerMoved": "Schlüsselperson „{title}“ wurde verschoben.",
+      "KeyPlayerAppeared": "„{title}“ wurde in dieser Sitzung als aufgetreten markiert."
     },
     "Confirm": {
       "Title": "Campaign Forge",
@@ -198,7 +214,13 @@
       "SESSION_CHANGE_NOT_FOUND": "Die Sitzungsänderung wurde nicht gefunden.",
       "SESSION_CHANGE_NOT_MANUAL": "Nur manuell hinzugefügte Sitzungsänderungen können hier gelöscht werden.",
       "INVALID_OVERVIEW_TARGET": "Dieser Elementtyp kann nicht in der Übersicht verwendet werden.",
-      "OVERVIEW_PIN_NOT_FOUND": "Der Eintrag in der Übersicht wurde nicht gefunden."
+      "OVERVIEW_PIN_NOT_FOUND": "Der Eintrag in der Übersicht wurde nicht gefunden.",
+      "KEY_PLAYER_NOT_FOUND": "Die Schlüsselperson wurde nicht gefunden.",
+      "KEY_PLAYER_ALREADY_EXISTS": "Dieser Actor ist bereits als Schlüsselperson eingetragen.",
+      "ACTOR_UUID_REQUIRED": "Für eine Schlüsselperson ist eine Actor-Referenz erforderlich.",
+      "ACTOR_NOT_FOUND": "Der verknüpfte Actor konnte nicht gefunden werden.",
+      "INVALID_KEY_PLAYER_ROLE": "Diese Kampagnenrolle ist ungültig.",
+      "INVALID_KEY_PLAYER_STATE": "Dieser Zustand der Schlüsselperson ist ungültig."
     },
     "SessionChangeKinds": {
       "note": "Notiz",
@@ -206,6 +228,41 @@
       "event": "Ereignis",
       "decision": "Entscheidung",
       "other": "Sonstiges"
+    },
+    "KeyPlayers": {
+      "Title": "Schlüsselpersonen",
+      "Description": "Wichtige NPCs der Kampagne griffbereit halten und mit Kampagnenzustand, Rufwerten und Einträgen verknüpfen.",
+      "DropHint": "Actor aus der Actor-Sidebar hierher ziehen, um ihn als Schlüsselperson hinzuzufügen.",
+      "DropActorOnly": "Hier können nur Foundry-Actors abgelegt werden.",
+      "EmptyTitle": "Noch keine Schlüsselpersonen",
+      "EmptyText": "Ziehe einen wichtigen NPC aus der Actor-Sidebar in den Bereich oben.",
+      "UnknownActor": "Unbekannter Actor",
+      "ActorMissing": "Der verknüpfte Actor ist nicht mehr erreichbar. Die gespeicherte Referenz bleibt erhalten.",
+      "LastSeen": "Letzter Auftritt",
+      "NeverSeen": "noch nicht protokolliert",
+      "SessionNumber": "Sitzung #{number}",
+      "LinkedEntries": "Verknüpfte Einträge",
+      "LinkedEntriesHint": "Mehrfachauswahl mit Strg bzw. Cmd. Die Einträge werden nur referenziert, nicht kopiert.",
+      "NoRelationshipTracker": "Kein verknüpfter Ruf-/Beziehungswert"
+    },
+    "KeyPlayerRoles": {
+      "ally": "Verbündeter",
+      "patron": "Auftraggeber",
+      "informant": "Informant",
+      "rival": "Rivale",
+      "antagonist": "Gegenspieler",
+      "authority": "Autorität",
+      "neutral": "Neutral",
+      "other": "Sonstige Rolle"
+    },
+    "KeyPlayerStates": {
+      "active": "Aktiv",
+      "missing": "Vermisst",
+      "captured": "Gefangen",
+      "hiding": "Untergetaucht",
+      "dead": "Tot",
+      "inactive": "Aus der Handlung ausgeschieden",
+      "unknown": "Unbekannt"
     }
   }
 }

@@ -29,7 +29,7 @@ function exposeApi() {
   if (!module) return;
 
   module.api = {
-    version: "0.2.0",
+    version: "0.2.1",
     open: openCampaignForge,
     getState: () => engine.getState(),
     createGroup: data => {
@@ -67,6 +67,26 @@ function exposeApi() {
     adjustTracker: (id, delta, options) => {
       requireGM();
       return engine.adjustTracker(id, delta, options);
+    },
+    createKeyPlayer: data => {
+      requireGM();
+      return engine.createKeyPlayer(data);
+    },
+    updateKeyPlayer: (id, data) => {
+      requireGM();
+      return engine.updateKeyPlayer(id, data);
+    },
+    markKeyPlayerSeen: id => {
+      requireGM();
+      return engine.markKeyPlayerSeen(id);
+    },
+    deleteKeyPlayer: id => {
+      requireGM();
+      return engine.deleteKeyPlayer(id);
+    },
+    moveKeyPlayerByOffset: (id, offset) => {
+      requireGM();
+      return engine.moveKeyPlayerByOffset(id, offset);
     },
     setOverviewPinned: (targetType, targetId, pinned = true) => {
       requireGM();

@@ -1,4 +1,4 @@
-import { ENTRY_TYPES, SESSION_CHANGE_KINDS, SORT_STEP } from "../core/constants.js";
+import { ENTRY_TYPES, KEY_PLAYER_ROLES, KEY_PLAYER_STATES, SESSION_CHANGE_KINDS, SORT_STEP } from "../core/constants.js";
 import { cloneData, getChildren, nextSort, normalizeState } from "../data/state.js";
 
 export class CampaignEngineError extends Error {
@@ -95,11 +95,29 @@ export class CampaignEngine {
     return tracker;
   }
 
+  _findKeyPlayer(state, id) {
+    const keyPlayer = state.keyPlayers.find(k => k.id === id);
+    if (!keyPlayer) throw new CampaignEngineError("KEY_PLAYER_NOT_FOUND", { id });
+    return keyPlayer;
+  }
+
   _findOverviewTarget(state, targetType, targetId) {
     if (targetType === "entry") return this._findEntry(state, targetId);
     if (targetType === "group") return this._findGroup(state, targetId);
     if (targetType === "tracker") return this._findTracker(state, targetId);
+    if (targetType === "keyPlayer") return this._findKeyPlayer(state, targetId);
     throw new CampaignEngineError("INVALID_OVERVIEW_TARGET", { targetType, targetId });
+  }
+
+  _overviewTargetTitle(targetType, target) {
+    return targetType === "keyPlayer" ? (target.actorName || target.actorUuid) : target.title;
+  }
+
+  _validateKeyPlayerLinks(state, { relationshipTrackerId = null, entryLinks = [] } = {}) {
+    if (relationshipTrackerId) this._findTracker(state, relationshipTrackerId);
+    const normalized = [...new Set((Array.isArray(entryLinks) ? entryLinks : []).filter(Boolean).map(String))];
+    for (const entryId of normalized) this._findEntry(state, entryId);
+    return normalized;
   }
 
 
@@ -319,6 +337,9 @@ export class CampaignEngine {
       const before = cloneData(entry);
       state.entries = state.entries.filter(e => e.id !== id);
       state.overviewPins = state.overviewPins.filter(pin => !(pin.targetType === "entry" && pin.targetId === id));
+      for (const keyPlayer of state.keyPlayers) {
+        keyPlayer.entryLinks = keyPlayer.entryLinks.filter(entryId => entryId !== id);
+      }
       this._recordChange(state, {
         action: "entry.deleted",
         targetType: "entry",
@@ -608,11 +629,168 @@ export class CampaignEngine {
       const before = cloneData(tracker);
       state.trackers = state.trackers.filter(t => t.id !== id);
       state.overviewPins = state.overviewPins.filter(pin => !(pin.targetType === "tracker" && pin.targetId === id));
+      for (const keyPlayer of state.keyPlayers) {
+        if (keyPlayer.relationshipTrackerId === id) keyPlayer.relationshipTrackerId = null;
+      }
       this._recordChange(state, {
         action: "tracker.deleted",
         targetType: "tracker",
         targetId: id,
         targetTitle: tracker.title,
+        before,
+        structural: true
+      });
+      return before;
+    });
+  }
+
+  async createKeyPlayer({
+    actorUuid,
+    actorName = "",
+    actorImg = "",
+    role = "neutral",
+    state: keyPlayerState = "active",
+    note = "",
+    relationshipTrackerId = null,
+    entryLinks = []
+  } = {}) {
+    const cleanUuid = String(actorUuid ?? "").trim();
+    if (!cleanUuid) throw new CampaignEngineError("ACTOR_UUID_REQUIRED");
+    if (!KEY_PLAYER_ROLES[role]) throw new CampaignEngineError("INVALID_KEY_PLAYER_ROLE", { role });
+    if (!KEY_PLAYER_STATES[keyPlayerState]) throw new CampaignEngineError("INVALID_KEY_PLAYER_STATE", { state: keyPlayerState });
+
+    return this._mutate(state => {
+      if (state.keyPlayers.some(keyPlayer => keyPlayer.actorUuid === cleanUuid)) {
+        throw new CampaignEngineError("KEY_PLAYER_ALREADY_EXISTS", { actorUuid: cleanUuid });
+      }
+      const normalizedLinks = this._validateKeyPlayerLinks(state, { relationshipTrackerId, entryLinks });
+      const timestamp = new Date(this._now()).toISOString();
+      const keyPlayer = {
+        id: this._newId(),
+        actorUuid: cleanUuid,
+        actorName: String(actorName ?? ""),
+        actorImg: String(actorImg ?? ""),
+        role,
+        state: keyPlayerState,
+        note: String(note ?? ""),
+        relationshipTrackerId: relationshipTrackerId || null,
+        entryLinks: normalizedLinks,
+        lastSeenSessionId: null,
+        sort: state.keyPlayers.length
+          ? Math.max(...state.keyPlayers.map(item => Number(item.sort ?? 0))) + SORT_STEP
+          : SORT_STEP,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      };
+      state.keyPlayers.push(keyPlayer);
+      this._recordChange(state, {
+        action: "keyPlayer.created",
+        targetType: "keyPlayer",
+        targetId: keyPlayer.id,
+        targetTitle: keyPlayer.actorName || keyPlayer.actorUuid,
+        after: keyPlayer,
+        structural: true
+      });
+      return cloneData(keyPlayer);
+    });
+  }
+
+  async updateKeyPlayer(id, patch = {}) {
+    return this._mutate(state => {
+      const keyPlayer = this._findKeyPlayer(state, id);
+      const before = cloneData(keyPlayer);
+
+      if (patch.role !== undefined) {
+        if (!KEY_PLAYER_ROLES[patch.role]) throw new CampaignEngineError("INVALID_KEY_PLAYER_ROLE", { role: patch.role });
+        keyPlayer.role = patch.role;
+      }
+      if (patch.state !== undefined) {
+        if (!KEY_PLAYER_STATES[patch.state]) throw new CampaignEngineError("INVALID_KEY_PLAYER_STATE", { state: patch.state });
+        keyPlayer.state = patch.state;
+      }
+      if (patch.note !== undefined) keyPlayer.note = String(patch.note ?? "");
+      if (patch.actorName !== undefined) keyPlayer.actorName = String(patch.actorName ?? "");
+      if (patch.actorImg !== undefined) keyPlayer.actorImg = String(patch.actorImg ?? "");
+
+      const relationshipTrackerId = patch.relationshipTrackerId !== undefined
+        ? (patch.relationshipTrackerId || null)
+        : keyPlayer.relationshipTrackerId;
+      const entryLinks = patch.entryLinks !== undefined ? patch.entryLinks : keyPlayer.entryLinks;
+      keyPlayer.entryLinks = this._validateKeyPlayerLinks(state, { relationshipTrackerId, entryLinks });
+      keyPlayer.relationshipTrackerId = relationshipTrackerId;
+      keyPlayer.updatedAt = new Date(this._now()).toISOString();
+
+      this._recordChange(state, {
+        action: "keyPlayer.updated",
+        targetType: "keyPlayer",
+        targetId: keyPlayer.id,
+        targetTitle: keyPlayer.actorName || keyPlayer.actorUuid,
+        before,
+        after: keyPlayer,
+        structural: true
+      });
+      return cloneData(keyPlayer);
+    });
+  }
+
+  async markKeyPlayerSeen(id) {
+    return this._mutate(state => {
+      const session = this._activeSession(state);
+      if (!session) throw new CampaignEngineError("NO_ACTIVE_SESSION");
+      const keyPlayer = this._findKeyPlayer(state, id);
+      if (keyPlayer.lastSeenSessionId === session.id) return cloneData(keyPlayer);
+      const before = { lastSeenSessionId: keyPlayer.lastSeenSessionId };
+      keyPlayer.lastSeenSessionId = session.id;
+      keyPlayer.updatedAt = new Date(this._now()).toISOString();
+      this._recordChange(state, {
+        action: "keyPlayer.appeared",
+        targetType: "keyPlayer",
+        targetId: keyPlayer.id,
+        targetTitle: keyPlayer.actorName || keyPlayer.actorUuid,
+        before,
+        after: { lastSeenSessionId: session.id },
+        structural: false
+      });
+      return cloneData(keyPlayer);
+    });
+  }
+
+  async moveKeyPlayerByOffset(id, offset) {
+    return this._mutate(state => {
+      const keyPlayer = this._findKeyPlayer(state, id);
+      const siblings = [...state.keyPlayers].sort((a, b) => a.sort - b.sort);
+      const currentIndex = siblings.findIndex(item => item.id === id);
+      const targetIndex = Math.max(0, Math.min(siblings.length - 1, currentIndex + Number(offset)));
+      if (targetIndex === currentIndex) return cloneData(keyPlayer);
+      const beforeSort = keyPlayer.sort;
+      const [moved] = siblings.splice(currentIndex, 1);
+      siblings.splice(targetIndex, 0, moved);
+      siblings.forEach((item, index) => item.sort = (index + 1) * SORT_STEP);
+      state.keyPlayers = siblings;
+      this._recordChange(state, {
+        action: "keyPlayer.moved",
+        targetType: "keyPlayer",
+        targetId: keyPlayer.id,
+        targetTitle: keyPlayer.actorName || keyPlayer.actorUuid,
+        before: { sort: beforeSort },
+        after: { sort: keyPlayer.sort },
+        structural: true
+      });
+      return cloneData(keyPlayer);
+    });
+  }
+
+  async deleteKeyPlayer(id) {
+    return this._mutate(state => {
+      const keyPlayer = this._findKeyPlayer(state, id);
+      const before = cloneData(keyPlayer);
+      state.keyPlayers = state.keyPlayers.filter(item => item.id !== id);
+      state.overviewPins = state.overviewPins.filter(pin => !(pin.targetType === "keyPlayer" && pin.targetId === id));
+      this._recordChange(state, {
+        action: "keyPlayer.deleted",
+        targetType: "keyPlayer",
+        targetId: id,
+        targetTitle: keyPlayer.actorName || keyPlayer.actorUuid,
         before,
         structural: true
       });
@@ -642,7 +820,7 @@ export class CampaignEngine {
           action: "overview.pinned",
           targetType,
           targetId,
-          targetTitle: target.title,
+          targetTitle: this._overviewTargetTitle(targetType, target),
           after: pin,
           structural: true
         });
@@ -658,7 +836,7 @@ export class CampaignEngine {
         action: "overview.unpinned",
         targetType,
         targetId,
-        targetTitle: target.title,
+        targetTitle: this._overviewTargetTitle(targetType, target),
         before: existing,
         structural: true
       });
@@ -684,7 +862,7 @@ export class CampaignEngine {
         action: "overview.moved",
         targetType: moved.targetType,
         targetId: moved.targetId,
-        targetTitle: target.title,
+        targetTitle: this._overviewTargetTitle(moved.targetType, target),
         structural: true
       });
       return cloneData(moved);

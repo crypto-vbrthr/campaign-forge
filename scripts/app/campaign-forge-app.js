@@ -1,5 +1,7 @@
 import {
   ENTRY_TYPES,
+  KEY_PLAYER_ROLES,
+  KEY_PLAYER_STATES,
   MODULE_ID,
   SETTINGS,
   SESSION_CHANGE_KINDS,
@@ -63,6 +65,32 @@ function sessionChangeKindOptions(selected = "note") {
   }));
 }
 
+function keyPlayerRoleOptions(selected = "neutral") {
+  return Object.entries(KEY_PLAYER_ROLES).map(([id, def]) => ({
+    id,
+    label: localize(def.label),
+    selected: id === selected
+  }));
+}
+
+function keyPlayerStateOptions(selected = "active") {
+  return Object.entries(KEY_PLAYER_STATES).map(([id, def]) => ({
+    id,
+    label: localize(def.label),
+    selected: id === selected
+  }));
+}
+
+async function resolveActor(uuid) {
+  if (!uuid || typeof globalThis.fromUuid !== "function") return null;
+  try {
+    const document = await globalThis.fromUuid(uuid);
+    return document?.documentName === "Actor" ? document : null;
+  } catch {
+    return null;
+  }
+}
+
 function actionSummary(change) {
   switch (change.action) {
     case "entry.status":
@@ -105,6 +133,16 @@ function actionSummary(change) {
       return format("CAMPAIGN_FORGE.Changes.OverviewUnpinned", { title: change.targetTitle });
     case "overview.moved":
       return format("CAMPAIGN_FORGE.Changes.OverviewMoved", { title: change.targetTitle });
+    case "keyPlayer.created":
+      return format("CAMPAIGN_FORGE.Changes.KeyPlayerCreated", { title: change.targetTitle });
+    case "keyPlayer.updated":
+      return format("CAMPAIGN_FORGE.Changes.KeyPlayerUpdated", { title: change.targetTitle });
+    case "keyPlayer.deleted":
+      return format("CAMPAIGN_FORGE.Changes.KeyPlayerDeleted", { title: change.targetTitle });
+    case "keyPlayer.moved":
+      return format("CAMPAIGN_FORGE.Changes.KeyPlayerMoved", { title: change.targetTitle });
+    case "keyPlayer.appeared":
+      return format("CAMPAIGN_FORGE.Changes.KeyPlayerAppeared", { title: change.targetTitle });
     case "session.manual": {
       const kind = change.details?.kind ?? "note";
       const kindLabel = localize(SESSION_CHANGE_KINDS[kind]?.label ?? SESSION_CHANGE_KINDS.note.label);
@@ -157,7 +195,13 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       toggleOverviewPin: this._actionToggleOverviewPin,
       moveOverviewPinUp: this._actionMoveOverviewPinUp,
       moveOverviewPinDown: this._actionMoveOverviewPinDown,
-      openOverviewTarget: this._actionOpenOverviewTarget
+      openOverviewTarget: this._actionOpenOverviewTarget,
+      editKeyPlayer: this._actionEditKeyPlayer,
+      deleteKeyPlayer: this._actionDeleteKeyPlayer,
+      moveKeyPlayerUp: this._actionMoveKeyPlayerUp,
+      moveKeyPlayerDown: this._actionMoveKeyPlayerDown,
+      markKeyPlayerSeen: this._actionMarkKeyPlayerSeen,
+      openKeyPlayerActor: this._actionOpenKeyPlayerActor
     }
   };
 
@@ -286,6 +330,40 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         focusKey: `tracker:${tracker.id}`
       }));
 
+    const keyPlayers = await Promise.all([...state.keyPlayers]
+      .sort((a, b) => a.sort - b.sort)
+      .map(async keyPlayer => {
+        const actor = await resolveActor(keyPlayer.actorUuid);
+        const relationship = keyPlayer.relationshipTrackerId
+          ? state.trackers.find(tracker => tracker.id === keyPlayer.relationshipTrackerId) ?? null
+          : null;
+        const lastSeenSession = keyPlayer.lastSeenSessionId
+          ? state.sessions.find(session => session.id === keyPlayer.lastSeenSessionId) ?? null
+          : null;
+        const liveName = actor?.name ?? keyPlayer.actorName ?? "";
+        const liveImg = actor?.img ?? keyPlayer.actorImg ?? "icons/svg/mystery-man.svg";
+        return {
+          ...keyPlayer,
+          name: liveName || localize("CAMPAIGN_FORGE.KeyPlayers.UnknownActor"),
+          image: liveImg || "icons/svg/mystery-man.svg",
+          actorMissing: !actor,
+          roleLabel: localize(KEY_PLAYER_ROLES[keyPlayer.role]?.label ?? "CAMPAIGN_FORGE.KeyPlayerRoles.neutral"),
+          stateLabel: localize(KEY_PLAYER_STATES[keyPlayer.state]?.label ?? "CAMPAIGN_FORGE.KeyPlayerStates.active"),
+          relationshipTitle: relationship?.title ?? null,
+          relationshipValue: relationship?.value ?? null,
+          hasRelationship: Boolean(relationship),
+          linkedEntryCount: keyPlayer.entryLinks.filter(entryId => state.entries.some(entry => entry.id === entryId)).length,
+          lastSeenLabel: lastSeenSession
+            ? format("CAMPAIGN_FORGE.KeyPlayers.SessionNumber", { number: lastSeenSession.number })
+            : localize("CAMPAIGN_FORGE.KeyPlayers.NeverSeen"),
+          seenThisSession: Boolean(activeSession && keyPlayer.lastSeenSessionId === activeSession.id),
+          canMarkSeen: Boolean(activeSession),
+          overviewPinned: pinnedTargets.has(`keyPlayer:${keyPlayer.id}`),
+          focusKey: `keyPlayer:${keyPlayer.id}`
+        };
+      }));
+    const keyPlayerById = new Map(keyPlayers.map(keyPlayer => [keyPlayer.id, keyPlayer]));
+
     const overviewPins = [...state.overviewPins]
       .sort((a, b) => a.sort - b.sort)
       .map(pin => {
@@ -345,6 +423,24 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           };
         }
 
+        if (pin.targetType === "keyPlayer") {
+          const keyPlayer = keyPlayerById.get(pin.targetId);
+          if (!keyPlayer) return null;
+          const relationship = keyPlayer.hasRelationship
+            ? ` · ${keyPlayer.relationshipTitle}: ${keyPlayer.relationshipValue}`
+            : "";
+          return {
+            ...pin,
+            targetTitle: keyPlayer.name,
+            image: keyPlayer.image,
+            metaLabel: localize("CAMPAIGN_FORGE.Overview.KeyPlayer"),
+            detailLabel: `${keyPlayer.roleLabel} · ${keyPlayer.stateLabel}${relationship}`,
+            isKeyPlayer: true,
+            hasProgress: false,
+            progressPercent: null
+          };
+        }
+
         return null;
       })
       .filter(Boolean);
@@ -366,12 +462,14 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         { id: "campaign", label: localize("CAMPAIGN_FORGE.Tabs.Campaign"), icon: "fa-solid fa-folder-tree", active: this._activeTab === "campaign" },
         { id: "sessions", label: localize("CAMPAIGN_FORGE.Tabs.Sessions"), icon: "fa-solid fa-clock-rotate-left", active: this._activeTab === "sessions" },
         { id: "trackers", label: localize("CAMPAIGN_FORGE.Tabs.Trackers"), icon: "fa-solid fa-chart-simple", active: this._activeTab === "trackers" },
+        { id: "keyPlayers", label: localize("CAMPAIGN_FORGE.Tabs.KeyPlayers"), icon: "fa-solid fa-users", active: this._activeTab === "keyPlayers" },
         { id: "settings", label: localize("CAMPAIGN_FORGE.Tabs.Settings"), icon: "fa-solid fa-gear", active: this._activeTab === "settings" }
       ],
       state,
       campaignRows,
       sessions,
       trackers,
+      keyPlayers,
       overviewPins,
       countByType,
       activeSession: activeSession ? {
@@ -385,6 +483,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         groups: state.groups.length,
         chapters: state.groups.filter(g => g.kind === "chapter").length,
         trackers: state.trackers.length,
+        keyPlayers: state.keyPlayers.length,
         sessions: state.sessions.filter(s => s.status === "closed").length,
         activeEntries: state.entries.filter(e => e.active).length
       },
@@ -392,7 +491,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         showJournalButton: game.settings.get(MODULE_ID, SETTINGS.SHOW_JOURNAL_BUTTON),
         showStructuralChanges: game.settings.get(MODULE_ID, SETTINGS.SHOW_STRUCTURAL_CHANGES)
       },
-      version: game.modules.get(MODULE_ID)?.version ?? "0.2.0",
+      version: game.modules.get(MODULE_ID)?.version ?? "0.2.1",
       labels: {
         title: localize("CAMPAIGN_FORGE.Title"),
         noActiveSession: localize("CAMPAIGN_FORGE.Session.NoneActive")
@@ -460,6 +559,43 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         min: source?.min ?? "",
         max: source?.max ?? "",
         heading: localize(source ? "CAMPAIGN_FORGE.Editor.EditTracker" : "CAMPAIGN_FORGE.Editor.NewTracker")
+      };
+    }
+
+    if (this._editor.kind === "keyPlayer") {
+      const source = this._editor.id
+        ? state.keyPlayers.find(keyPlayer => keyPlayer.id === this._editor.id)
+        : null;
+      if (!source) return null;
+      return {
+        kind: "keyPlayer",
+        id: source.id,
+        actorName: source.actorName || source.actorUuid,
+        actorImg: source.actorImg || "icons/svg/mystery-man.svg",
+        actorUuid: source.actorUuid,
+        role: source.role,
+        state: source.state,
+        note: source.note ?? "",
+        roles: keyPlayerRoleOptions(source.role),
+        states: keyPlayerStateOptions(source.state),
+        trackers: [
+          { id: "", label: localize("CAMPAIGN_FORGE.KeyPlayers.NoRelationshipTracker"), selected: !source.relationshipTrackerId },
+          ...[...state.trackers]
+            .sort((a, b) => a.sort - b.sort)
+            .map(tracker => ({
+              id: tracker.id,
+              label: tracker.title,
+              selected: tracker.id === source.relationshipTrackerId
+            }))
+        ],
+        entries: [...state.entries]
+          .sort((a, b) => String(a.title).localeCompare(String(b.title)))
+          .map(entry => ({
+            id: entry.id,
+            label: `${entry.title} · ${localize(ENTRY_TYPES[entry.type]?.label ?? entry.type)}`,
+            selected: source.entryLinks.includes(entry.id)
+          })),
+        heading: localize("CAMPAIGN_FORGE.Editor.EditKeyPlayer")
       };
     }
 
@@ -543,6 +679,15 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       rootDrop.addEventListener("dragleave", () => rootDrop.classList.remove("cf-drop-target"));
       rootDrop.addEventListener("drop", event => this._onDropToRoot(event, rootDrop));
     }
+
+    root.querySelectorAll("[data-cf-keyplayer-drop]").forEach(dropZone => {
+      dropZone.addEventListener("dragover", event => {
+        event.preventDefault();
+        dropZone.classList.add("cf-drop-target");
+      });
+      dropZone.addEventListener("dragleave", () => dropZone.classList.remove("cf-drop-target"));
+      dropZone.addEventListener("drop", event => this._onKeyPlayerDrop(event, dropZone));
+    });
 
     if (this._focusKey) {
       const focusKey = this._focusKey;
@@ -629,6 +774,73 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     } catch (error) {
       this._handleError(error);
     }
+  }
+
+  async _onKeyPlayerDrop(event, dropZone) {
+    event.preventDefault();
+    dropZone.classList.remove("cf-drop-target");
+    const dragData = this._readFoundryDragData(event);
+    if (!dragData) {
+      ui.notifications.warn(localize("CAMPAIGN_FORGE.KeyPlayers.DropActorOnly"));
+      return;
+    }
+
+    const uuid = dragData.uuid
+      || (dragData.type === "Actor" && dragData.id ? `Actor.${dragData.id}` : null);
+    if (!uuid) {
+      ui.notifications.warn(localize("CAMPAIGN_FORGE.KeyPlayers.DropActorOnly"));
+      return;
+    }
+
+    const actor = await resolveActor(uuid);
+    if (!actor) {
+      ui.notifications.warn(localize("CAMPAIGN_FORGE.Errors.ACTOR_NOT_FOUND"));
+      return;
+    }
+
+    try {
+      const keyPlayer = await this.engine.createKeyPlayer({
+        actorUuid: actor.uuid,
+        actorName: actor.name ?? "",
+        actorImg: actor.img ?? ""
+      });
+      this._activeTab = "keyPlayers";
+      this._editor = { kind: "keyPlayer", id: keyPlayer.id };
+      this._focusKey = `keyPlayer:${keyPlayer.id}`;
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  _readFoundryDragData(event) {
+    const dragReaders = [
+      globalThis.TextEditor?.getDragEventData,
+      globalThis.TextEditor?.implementation?.getDragEventData,
+      foundry.applications?.ux?.TextEditor?.getDragEventData,
+      foundry.applications?.ux?.TextEditor?.implementation?.getDragEventData
+    ].filter(reader => typeof reader === "function");
+
+    for (const reader of dragReaders) {
+      try {
+        const data = reader.call(globalThis.TextEditor, event);
+        if (data && typeof data === "object") return data;
+      } catch {
+        // Try the next reader or the raw dataTransfer payload.
+      }
+    }
+
+    for (const type of ["application/json", "text/plain"]) {
+      const raw = event.dataTransfer?.getData(type);
+      if (!raw) continue;
+      try {
+        const data = JSON.parse(raw);
+        if (data && typeof data === "object") return data;
+      } catch {
+        // Try the next transfer format.
+      }
+    }
+    return null;
   }
 
   _readDragPayload(event) {
@@ -742,6 +954,22 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         };
         if (this._editor.id) await this.engine.updateTracker(this._editor.id, payload);
         else await this.engine.createTracker(payload);
+      } else if (this._editor.kind === "keyPlayer") {
+        const entryLinks = [...form.querySelectorAll('select[name="entryLinks"] option:checked')]
+          .map(option => option.value)
+          .filter(Boolean);
+        const currentState = await this.engine.getState();
+        const current = currentState.keyPlayers.find(keyPlayer => keyPlayer.id === this._editor.id);
+        const actor = current ? await resolveActor(current.actorUuid) : null;
+        await this.engine.updateKeyPlayer(this._editor.id, {
+          role: data.role ?? "neutral",
+          state: data.state ?? "active",
+          note: data.note ?? "",
+          relationshipTrackerId: data.relationshipTrackerId || null,
+          entryLinks,
+          actorName: actor?.name ?? current?.actorName ?? "",
+          actorImg: actor?.img ?? current?.actorImg ?? ""
+        });
       } else if (this._editor.kind === "sessionChange") {
         const payload = {
           title: data.title,
@@ -906,6 +1134,67 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     }
   }
 
+  static _actionEditKeyPlayer(event, target) {
+    this._editor = { kind: "keyPlayer", id: target.dataset.keyPlayerId };
+    this._activeTab = "keyPlayers";
+    return this.render();
+  }
+
+  static async _actionDeleteKeyPlayer(event, target) {
+    const state = await this.engine.getState();
+    const keyPlayer = state.keyPlayers.find(item => item.id === target.dataset.keyPlayerId);
+    if (!keyPlayer) return;
+    const title = keyPlayer.actorName || keyPlayer.actorUuid;
+    const confirmed = await this._confirm("CAMPAIGN_FORGE.Confirm.Delete", { title });
+    if (!confirmed) return;
+    try {
+      await this.engine.deleteKeyPlayer(keyPlayer.id);
+      this._editor = null;
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionMoveKeyPlayerUp(event, target) {
+    try {
+      await this.engine.moveKeyPlayerByOffset(target.dataset.keyPlayerId, -1);
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionMoveKeyPlayerDown(event, target) {
+    try {
+      await this.engine.moveKeyPlayerByOffset(target.dataset.keyPlayerId, 1);
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionMarkKeyPlayerSeen(event, target) {
+    try {
+      await this.engine.markKeyPlayerSeen(target.dataset.keyPlayerId);
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionOpenKeyPlayerActor(event, target) {
+    const state = await this.engine.getState();
+    const keyPlayer = state.keyPlayers.find(item => item.id === target.dataset.keyPlayerId);
+    if (!keyPlayer) return;
+    const actor = await resolveActor(keyPlayer.actorUuid);
+    if (!actor) {
+      ui.notifications.warn(localize("CAMPAIGN_FORGE.Errors.ACTOR_NOT_FOUND"));
+      return;
+    }
+    actor.sheet?.render?.({ force: true });
+  }
+
   static async _actionToggleOverviewPin(event, target) {
     try {
       const targetType = target.dataset.targetType;
@@ -940,6 +1229,13 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const targetType = target.dataset.targetType;
     const targetId = target.dataset.targetId;
     try {
+      if (targetType === "keyPlayer") {
+        this._activeTab = "keyPlayers";
+        this._focusKey = `keyPlayer:${targetId}`;
+        this._editor = null;
+        return this.render();
+      }
+
       if (targetType === "tracker") {
         this._activeTab = "trackers";
         this._focusKey = `tracker:${targetId}`;

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.1
+
+- Added the Key Players view for important campaign NPCs.
+- Foundry Actors can be added by drag & drop from the Actor sidebar.
+- Key players reference their Actor UUID and use live Actor name/portrait data when available, with snapshot fallbacks for missing Actors.
+- Added campaign roles, story states, GM notes, optional relationship/reputation tracker links, and Campaign Forge entry links.
+- Added manual Key Player ordering and direct Actor opening.
+- Key players can be pinned to the Overview and appear there with portrait, role, state, and optional relationship value.
+- Added explicit “appeared in current session” tracking with last-session display and session change logging.
+- Deleting linked entries or trackers cleans up Key Player references automatically.
+- Missing Actors are displayed safely without deleting the stored reference.
+- Public API expanded for Key Player create/update/delete/reorder/appearance operations.
+- Added German and English localization for the complete Key Player workflow.
+- Regression suite expanded from 16 to 20 engine tests.
+
 ## 0.2.0
 
 - Added the first curated Overview workflow.

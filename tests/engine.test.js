@@ -307,3 +307,85 @@ test("group progress includes nested entries and recognizes type-specific reache
   const state = await engine.getState();
   assert.deepEqual(getGroupProgress(state, chapter.id), { reached: 2, total: 3, percent: 67 });
 });
+
+test("key players can link actors, reputation values, and campaign entries", async () => {
+  const { engine } = engineWithRepo();
+
+  const reputation = await engine.createTracker({ title: "Mushka relationship", value: 2, min: -10, max: 10 });
+  const clue = await engine.createEntry({ title: "Mushka knows Codros", type: "knowledge" });
+  const keyPlayer = await engine.createKeyPlayer({
+    actorUuid: "Actor.mushka",
+    actorName: "Madame Mushka",
+    actorImg: "icons/mushka.webp"
+  });
+
+  const updated = await engine.updateKeyPlayer(keyPlayer.id, {
+    role: "informant",
+    state: "active",
+    note: "Knows more than she admits.",
+    relationshipTrackerId: reputation.id,
+    entryLinks: [clue.id]
+  });
+
+  assert.equal(updated.actorUuid, "Actor.mushka");
+  assert.equal(updated.role, "informant");
+  assert.equal(updated.relationshipTrackerId, reputation.id);
+  assert.deepEqual(updated.entryLinks, [clue.id]);
+});
+
+test("an actor can only be registered once as a key player", async () => {
+  const { engine } = engineWithRepo();
+
+  await engine.createKeyPlayer({ actorUuid: "Actor.unique", actorName: "Unique NPC" });
+  await assert.rejects(
+    () => engine.createKeyPlayer({ actorUuid: "Actor.unique", actorName: "Duplicate NPC" }),
+    error => error instanceof CampaignEngineError && error.code === "KEY_PLAYER_ALREADY_EXISTS"
+  );
+});
+
+test("key player appearances are tied to explicit sessions and logged once per session", async () => {
+  const { engine } = engineWithRepo();
+  const keyPlayer = await engine.createKeyPlayer({ actorUuid: "Actor.appearance", actorName: "Simmur" });
+
+  await assert.rejects(
+    () => engine.markKeyPlayerSeen(keyPlayer.id),
+    error => error instanceof CampaignEngineError && error.code === "NO_ACTIVE_SESSION"
+  );
+
+  const session = await engine.startSession();
+  await engine.markKeyPlayerSeen(keyPlayer.id);
+  await engine.markKeyPlayerSeen(keyPlayer.id);
+
+  const state = await engine.getState();
+  const stored = state.keyPlayers.find(item => item.id === keyPlayer.id);
+  const active = state.sessions.find(item => item.id === session.id);
+  assert.equal(stored.lastSeenSessionId, session.id);
+  assert.equal(active.changes.length, 1);
+  assert.equal(active.changes[0].action, "keyPlayer.appeared");
+});
+
+test("key players can be pinned, reordered, and cleaned up with deleted references", async () => {
+  const { engine } = engineWithRepo();
+
+  const tracker = await engine.createTracker({ title: "Relationship", value: 1 });
+  const entry = await engine.createEntry({ title: "Secret" });
+  const first = await engine.createKeyPlayer({ actorUuid: "Actor.first", actorName: "First" });
+  const second = await engine.createKeyPlayer({ actorUuid: "Actor.second", actorName: "Second" });
+  await engine.updateKeyPlayer(first.id, { relationshipTrackerId: tracker.id, entryLinks: [entry.id] });
+  await engine.setOverviewPinned("keyPlayer", first.id, true);
+
+  await engine.moveKeyPlayerByOffset(second.id, -1);
+  let state = await engine.getState();
+  assert.deepEqual([...state.keyPlayers].sort((a, b) => a.sort - b.sort).map(item => item.id), [second.id, first.id]);
+
+  await engine.deleteEntry(entry.id);
+  await engine.deleteTracker(tracker.id);
+  state = await engine.getState();
+  const storedFirst = state.keyPlayers.find(item => item.id === first.id);
+  assert.deepEqual(storedFirst.entryLinks, []);
+  assert.equal(storedFirst.relationshipTrackerId, null);
+
+  await engine.deleteKeyPlayer(first.id);
+  state = await engine.getState();
+  assert.equal(state.overviewPins.some(pin => pin.targetType === "keyPlayer" && pin.targetId === first.id), false);
+});

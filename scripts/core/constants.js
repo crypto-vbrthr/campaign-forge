@@ -47,6 +47,28 @@ export const ENTRY_TYPES = Object.freeze({
   }
 });
 
+
+export const KEY_PLAYER_ROLES = Object.freeze({
+  ally: { label: "CAMPAIGN_FORGE.KeyPlayerRoles.ally" },
+  patron: { label: "CAMPAIGN_FORGE.KeyPlayerRoles.patron" },
+  informant: { label: "CAMPAIGN_FORGE.KeyPlayerRoles.informant" },
+  rival: { label: "CAMPAIGN_FORGE.KeyPlayerRoles.rival" },
+  antagonist: { label: "CAMPAIGN_FORGE.KeyPlayerRoles.antagonist" },
+  authority: { label: "CAMPAIGN_FORGE.KeyPlayerRoles.authority" },
+  neutral: { label: "CAMPAIGN_FORGE.KeyPlayerRoles.neutral" },
+  other: { label: "CAMPAIGN_FORGE.KeyPlayerRoles.other" }
+});
+
+export const KEY_PLAYER_STATES = Object.freeze({
+  active: { label: "CAMPAIGN_FORGE.KeyPlayerStates.active" },
+  missing: { label: "CAMPAIGN_FORGE.KeyPlayerStates.missing" },
+  captured: { label: "CAMPAIGN_FORGE.KeyPlayerStates.captured" },
+  hiding: { label: "CAMPAIGN_FORGE.KeyPlayerStates.hiding" },
+  dead: { label: "CAMPAIGN_FORGE.KeyPlayerStates.dead" },
+  inactive: { label: "CAMPAIGN_FORGE.KeyPlayerStates.inactive" },
+  unknown: { label: "CAMPAIGN_FORGE.KeyPlayerStates.unknown" }
+});
+
 export const OVERVIEW_REACHED_STATUSES = Object.freeze({
   quest: Object.freeze(["completed"]),
   knowledge: Object.freeze(["discovered", "understood", "confirmed"]),
@@ -103,5 +125,9 @@ export const STRUCTURAL_ACTIONS = new Set([
   "tracker.deleted",
   "overview.pinned",
   "overview.unpinned",
-  "overview.moved"
+  "overview.moved",
+  "keyPlayer.created",
+  "keyPlayer.updated",
+  "keyPlayer.deleted",
+  "keyPlayer.moved"
 ]);
