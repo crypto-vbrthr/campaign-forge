@@ -13,7 +13,9 @@
       "Navigation": "Navigation",
       "Changes": "Änderungen",
       "Status": "Status",
-      "Hidden": "Verborgen"
+      "Hidden": "Verborgen",
+      "Yes": "Ja",
+      "No": "Nein"
     },
     "Actions": {
       "StartSession": "Sitzung beginnen",
@@ -186,13 +188,19 @@
       "KeyPlayerUpdated": "Schlüsselperson „{title}“ wurde bearbeitet.",
       "KeyPlayerDeleted": "Schlüsselperson „{title}“ wurde entfernt.",
       "KeyPlayerMoved": "Schlüsselperson „{title}“ wurde verschoben.",
-      "KeyPlayerAppeared": "„{title}“ wurde in dieser Sitzung als aufgetreten markiert."
+      "KeyPlayerAppeared": "„{title}“ wurde in dieser Sitzung als aufgetreten markiert.",
+      "EntryActive": "„{title}“ Aktiv wurde auf {value} gesetzt.",
+      "EntryVisible": "„{title}“ Sichtbar wurde auf {value} gesetzt.",
+      "RuleCreated": "Folgeregel für „{title}“ erstellt.",
+      "RuleUpdated": "Folgeregel für „{title}“ bearbeitet.",
+      "RuleDeleted": "Folgeregel für „{title}“ gelöscht."
     },
     "Confirm": {
       "Title": "Campaign Forge",
       "Delete": "„{title}“ wirklich löschen?",
       "EndSession": "Die laufende Sitzung wirklich beenden?",
-      "DeleteSessionChange": "Diese manuell hinzugefügte Sitzungsänderung wirklich löschen?"
+      "DeleteSessionChange": "Diese manuell hinzugefügte Sitzungsänderung wirklich löschen?",
+      "DeleteTransitionRule": "Diese Folgeregel wirklich löschen?"
     },
     "Errors": {
       "Generic": "Die Aktion konnte nicht ausgeführt werden. Details stehen in der Konsole.",
@@ -220,7 +228,17 @@
       "ACTOR_UUID_REQUIRED": "Für eine Schlüsselperson ist eine Actor-Referenz erforderlich.",
       "ACTOR_NOT_FOUND": "Der verknüpfte Actor konnte nicht gefunden werden.",
       "INVALID_KEY_PLAYER_ROLE": "Diese Kampagnenrolle ist ungültig.",
-      "INVALID_KEY_PLAYER_STATE": "Dieser Zustand der Schlüsselperson ist ungültig."
+      "INVALID_KEY_PLAYER_STATE": "Dieser Zustand der Schlüsselperson ist ungültig.",
+      "TRANSITION_ACTION_REQUIRED": "Die Folgeregel benötigt mindestens eine Folgeaktion.",
+      "INVALID_TRANSITION_ACTION": "Der gewählte Aktionstyp ist ungültig.",
+      "TRANSITION_TARGET_REQUIRED": "Für die Folgeaktion muss ein Ziel ausgewählt werden.",
+      "INVALID_TRANSITION_DELTA": "Die Änderung des Kampagnenwerts muss eine gültige Zahl sein.",
+      "INVALID_TRANSITION_TRIGGER": "Der gewählte Statusübergang ist für diesen Eintrag ungültig.",
+      "TRANSITION_TRIGGER_SAME_STATUS": "Ausgangs- und Zielstatus einer Folgeregel müssen unterschiedlich sein.",
+      "TRANSITION_RULE_NOT_FOUND": "Die Folgeregel wurde nicht gefunden.",
+      "TRANSITION_CYCLE": "Die Folgeregeln würden eine zyklische Kette erzeugen. Es wurden keine Änderungen ausgeführt.",
+      "TRANSITION_TOO_DEEP": "Die Kette der Folgeregeln ist zu tief und wurde aus Sicherheitsgründen abgebrochen.",
+      "TRANSITION_TOO_MANY_ACTIONS": "Die Folgeregeln würden zu viele Aktionen auslösen und wurden aus Sicherheitsgründen abgebrochen."
     },
     "SessionChangeKinds": {
       "note": "Notiz",
@@ -263,6 +281,39 @@
       "dead": "Tot",
       "inactive": "Aus der Handlung ausgeschieden",
       "unknown": "Unbekannt"
+    },
+    "Transitions": {
+      "Title": "Folgeregeln",
+      "Manage": "Folgeregeln verwalten",
+      "NewRule": "Neue Folgeregel",
+      "EditRule": "Folgeregel bearbeiten",
+      "NoRules": "Für diesen Eintrag sind noch keine Folgeregeln definiert.",
+      "Enabled": "Regel aktiviert",
+      "Disabled": "deaktiviert",
+      "FromStatus": "Von Status",
+      "ToStatus": "Zu Status",
+      "Consequences": "Folgeaktionen",
+      "AddAction": "Aktion hinzufügen",
+      "ActionType": "Aktionstyp",
+      "ActionsCount": "Aktionen",
+      "NoActions": "Noch keine Folgeaktion. Eine Regel benötigt mindestens eine Aktion.",
+      "TargetEntry": "Zieleintrag",
+      "TargetTracker": "Kampagnenwert",
+      "TargetStatus": "Zielstatus",
+      "Delta": "Änderung",
+      "ConfirmTitle": "Folgeänderungen bestätigen",
+      "PreviewIntro": "Die Statusänderung von „{title}“ löst zusätzlich folgende Änderungen aus:",
+      "PreviewHint": "Alle Änderungen werden gemeinsam ausgeführt und in einer aktiven Sitzung als zusammengehörige Transaktion protokolliert.",
+      "PreviewStatus": "„{title}“: {from} → {to}",
+      "PreviewActive": "„{title}“: Aktiv = {value}",
+      "PreviewVisible": "„{title}“: Sichtbar = {value}",
+      "PreviewTracker": "„{title}“: {delta} (neuer Wert: {value})"
+    },
+    "TransitionActions": {
+      "setEntryStatus": "Status eines Eintrags setzen",
+      "setEntryActive": "Eintrag aktivieren/deaktivieren",
+      "setEntryVisible": "Eintrag ein-/ausblenden",
+      "adjustTracker": "Kampagnenwert verändern"
     }
   }
 }

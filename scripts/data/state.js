@@ -1,4 +1,4 @@
-import { ENTRY_TYPES, KEY_PLAYER_ROLES, KEY_PLAYER_STATES, OVERVIEW_REACHED_STATUSES, SORT_STEP } from "../core/constants.js";
+import { ENTRY_TYPES, KEY_PLAYER_ROLES, KEY_PLAYER_STATES, OVERVIEW_REACHED_STATUSES, SORT_STEP, TRANSITION_ACTION_TYPES } from "../core/constants.js";
 
 function nowIso() {
   return new Date().toISOString();
@@ -66,6 +66,24 @@ export function normalizeState(raw) {
     entry.journalLinks = Array.isArray(entry.journalLinks) ? entry.journalLinks : [];
     entry.relations = Array.isArray(entry.relations) ? entry.relations : [];
     entry.transitionRules = Array.isArray(entry.transitionRules) ? entry.transitionRules : [];
+    entry.transitionRules = entry.transitionRules
+      .filter(rule => rule && typeof rule === "object")
+      .map((rule, ruleIndex) => ({
+        id: String(rule.id ?? `rule-${entry.id}-${ruleIndex + 1}`),
+        enabled: rule.enabled !== false,
+        fromStatus: String(rule.fromStatus ?? entry.status),
+        toStatus: String(rule.toStatus ?? entry.status),
+        actions: (Array.isArray(rule.actions) ? rule.actions : [])
+          .filter(action => action && TRANSITION_ACTION_TYPES[action.type])
+          .map((action, actionIndex) => ({
+            id: String(action.id ?? `action-${entry.id}-${ruleIndex + 1}-${actionIndex + 1}`),
+            type: String(action.type),
+            targetId: String(action.targetId ?? ""),
+            ...(action.status !== undefined ? { status: String(action.status) } : {}),
+            ...(action.value !== undefined ? { value: Boolean(action.value) } : {}),
+            ...(action.delta !== undefined ? { delta: Number(action.delta) } : {})
+          }))
+      }));
     entry.createdAt ??= state.meta.createdAt;
     entry.updatedAt ??= entry.createdAt;
   }

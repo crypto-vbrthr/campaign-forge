@@ -69,6 +69,17 @@ export const KEY_PLAYER_STATES = Object.freeze({
   unknown: { label: "CAMPAIGN_FORGE.KeyPlayerStates.unknown" }
 });
 
+
+export const TRANSITION_ACTION_TYPES = Object.freeze({
+  setEntryStatus: { label: "CAMPAIGN_FORGE.TransitionActions.setEntryStatus", icon: "fa-solid fa-arrow-right-arrow-left" },
+  setEntryActive: { label: "CAMPAIGN_FORGE.TransitionActions.setEntryActive", icon: "fa-solid fa-power-off" },
+  setEntryVisible: { label: "CAMPAIGN_FORGE.TransitionActions.setEntryVisible", icon: "fa-solid fa-eye" },
+  adjustTracker: { label: "CAMPAIGN_FORGE.TransitionActions.adjustTracker", icon: "fa-solid fa-chart-line" }
+});
+
+export const MAX_TRANSITION_DEPTH = 24;
+export const MAX_TRANSITION_ACTIONS = 100;
+
 export const OVERVIEW_REACHED_STATUSES = Object.freeze({
   quest: Object.freeze(["completed"]),
   knowledge: Object.freeze(["discovered", "understood", "confirmed"]),
@@ -120,6 +131,9 @@ export const STRUCTURAL_ACTIONS = new Set([
   "entry.created",
   "entry.updated",
   "entry.deleted",
+  "entry.rule.created",
+  "entry.rule.updated",
+  "entry.rule.deleted",
   "tracker.created",
   "tracker.updated",
   "tracker.deleted",

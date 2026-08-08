@@ -6,6 +6,7 @@ import {
   SETTINGS,
   SESSION_CHANGE_KINDS,
   STATUS_LABELS,
+  TRANSITION_ACTION_TYPES,
 } from "../core/constants.js";
 import { CampaignEngineError } from "../engine/campaign-engine.js";
 import { getGroupProgress } from "../data/state.js";
@@ -81,6 +82,22 @@ function keyPlayerStateOptions(selected = "active") {
   }));
 }
 
+function transitionActionTypeOptions(selected = "setEntryStatus") {
+  return Object.entries(TRANSITION_ACTION_TYPES).map(([id, def]) => ({
+    id,
+    label: localize(def.label),
+    selected: id === selected
+  }));
+}
+
+function booleanOptions(selected) {
+  return [
+    { id: "true", label: localize("CAMPAIGN_FORGE.Common.Yes"), selected: selected === true },
+    { id: "false", label: localize("CAMPAIGN_FORGE.Common.No"), selected: selected === false }
+  ];
+}
+
+
 async function resolveActor(uuid) {
   if (!uuid || typeof globalThis.fromUuid !== "function") return null;
   try {
@@ -143,6 +160,22 @@ function actionSummary(change) {
       return format("CAMPAIGN_FORGE.Changes.KeyPlayerMoved", { title: change.targetTitle });
     case "keyPlayer.appeared":
       return format("CAMPAIGN_FORGE.Changes.KeyPlayerAppeared", { title: change.targetTitle });
+    case "entry.active":
+      return format("CAMPAIGN_FORGE.Changes.EntryActive", {
+        title: change.targetTitle,
+        value: change.after?.active ? localize("CAMPAIGN_FORGE.Common.Yes") : localize("CAMPAIGN_FORGE.Common.No")
+      });
+    case "entry.visible":
+      return format("CAMPAIGN_FORGE.Changes.EntryVisible", {
+        title: change.targetTitle,
+        value: change.after?.visible ? localize("CAMPAIGN_FORGE.Common.Yes") : localize("CAMPAIGN_FORGE.Common.No")
+      });
+    case "entry.rule.created":
+      return format("CAMPAIGN_FORGE.Changes.RuleCreated", { title: change.targetTitle });
+    case "entry.rule.updated":
+      return format("CAMPAIGN_FORGE.Changes.RuleUpdated", { title: change.targetTitle });
+    case "entry.rule.deleted":
+      return format("CAMPAIGN_FORGE.Changes.RuleDeleted", { title: change.targetTitle });
     case "session.manual": {
       const kind = change.details?.kind ?? "note";
       const kindLabel = localize(SESSION_CHANGE_KINDS[kind]?.label ?? SESSION_CHANGE_KINDS.note.label);
@@ -154,6 +187,37 @@ function actionSummary(change) {
     default:
       return change.targetTitle || change.action;
   }
+}
+
+function transitionPlanActionLabel(action) {
+  if (action.kind === "entry.status") {
+    return format("CAMPAIGN_FORGE.Transitions.PreviewStatus", {
+      title: action.targetTitle,
+      from: localize(STATUS_LABELS[action.before?.status] ?? action.before?.status ?? ""),
+      to: localize(STATUS_LABELS[action.after?.status] ?? action.after?.status ?? "")
+    });
+  }
+  if (action.kind === "entry.active") {
+    return format("CAMPAIGN_FORGE.Transitions.PreviewActive", {
+      title: action.targetTitle,
+      value: action.after?.active ? localize("CAMPAIGN_FORGE.Common.Yes") : localize("CAMPAIGN_FORGE.Common.No")
+    });
+  }
+  if (action.kind === "entry.visible") {
+    return format("CAMPAIGN_FORGE.Transitions.PreviewVisible", {
+      title: action.targetTitle,
+      value: action.after?.visible ? localize("CAMPAIGN_FORGE.Common.Yes") : localize("CAMPAIGN_FORGE.Common.No")
+    });
+  }
+  if (action.kind === "tracker.adjusted") {
+    const delta = Number(action.details?.delta ?? 0);
+    return format("CAMPAIGN_FORGE.Transitions.PreviewTracker", {
+      title: action.targetTitle,
+      delta: delta >= 0 ? `+${delta}` : `${delta}`,
+      value: action.after?.value ?? ""
+    });
+  }
+  return action.targetTitle || action.kind;
 }
 
 export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
@@ -175,6 +239,14 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       createEntry: this._actionCreateEntry,
       editGroup: this._actionEditGroup,
       editEntry: this._actionEditEntry,
+      manageRules: this._actionManageRules,
+      addTransitionRule: this._actionAddTransitionRule,
+      editTransitionRule: this._actionEditTransitionRule,
+      deleteTransitionRule: this._actionDeleteTransitionRule,
+      cancelTransitionRule: this._actionCancelTransitionRule,
+      saveTransitionRule: this._actionSaveTransitionRule,
+      addTransitionAction: this._actionAddTransitionAction,
+      removeTransitionAction: this._actionRemoveTransitionAction,
       cancelEditor: this._actionCancelEditor,
       saveEditor: this._actionSaveEditor,
       toggleGroup: this._actionToggleGroup,
@@ -223,6 +295,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this.engine = engine;
     this._activeTab = "overview";
     this._editor = null;
+    this._ruleEditor = null;
     this._focusKey = null;
   }
 
@@ -285,6 +358,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
             status: entry.status,
             statuses: statusOptions(entry.type, entry.status),
             hasDescription: Boolean(entry.description),
+            ruleCount: (entry.transitionRules ?? []).length,
+            hasRules: (entry.transitionRules ?? []).length > 0,
             overviewPinned: pinnedTargets.has(`entry:${entry.id}`),
             focusKey: `entry:${entry.id}`
           });
@@ -297,18 +372,25 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const sessions = [...state.sessions]
       .sort((a, b) => b.number - a.number)
       .map(session => {
-        const changes = session.changes
-          .filter(change => showStructural || !change.structural)
-          .map(change => ({
+        const rawChanges = session.changes.filter(change => showStructural || !change.structural);
+        const transactionGroups = [];
+        for (const change of rawChanges) {
+          const previous = transactionGroups[transactionGroups.length - 1];
+          if (change.transactionId && previous?.transactionId === change.transactionId) previous.items.push(change);
+          else transactionGroups.push({ transactionId: change.transactionId ?? null, items: [change] });
+        }
+        const changes = transactionGroups
+          .reverse()
+          .flatMap(group => group.items.map((change, index) => ({
             ...change,
             timeLabel: localeTime(change.timestamp),
             summary: actionSummary(change),
             structural: Boolean(change.structural),
+            isConsequence: Boolean(group.transactionId && index > 0 && change.source === "transition"),
             detailsText: change.action === "session.manual" ? String(change.details?.description ?? "") : "",
             canEdit: session.status === "active" && change.action === "session.manual",
             canDelete: session.status === "active" && change.action === "session.manual"
-          }))
-          .reverse();
+          })));
         return {
           ...session,
           startedLabel: localeDate(session.startedAt),
@@ -491,7 +573,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         showJournalButton: game.settings.get(MODULE_ID, SETTINGS.SHOW_JOURNAL_BUTTON),
         showStructuralChanges: game.settings.get(MODULE_ID, SETTINGS.SHOW_STRUCTURAL_CHANGES)
       },
-      version: game.modules.get(MODULE_ID)?.version ?? "0.2.1",
+      version: game.modules.get(MODULE_ID)?.version ?? "0.3.0",
       labels: {
         title: localize("CAMPAIGN_FORGE.Title"),
         noActiveSession: localize("CAMPAIGN_FORGE.Session.NoneActive")
@@ -542,6 +624,82 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         types: entryTypeOptions(type),
         statuses: statusOptions(type, status),
         heading: localize(source ? "CAMPAIGN_FORGE.Editor.EditEntry" : "CAMPAIGN_FORGE.Editor.NewEntry")
+      };
+    }
+
+    if (this._editor.kind === "rules") {
+      const source = state.entries.find(entry => entry.id === this._editor.entryId);
+      if (!source) return null;
+
+      const rules = (source.transitionRules ?? []).map(rule => ({
+        ...rule,
+        fromLabel: localize(STATUS_LABELS[rule.fromStatus] ?? rule.fromStatus),
+        toLabel: localize(STATUS_LABELS[rule.toStatus] ?? rule.toStatus),
+        actionCount: (rule.actions ?? []).length
+      }));
+
+      let ruleEditor = null;
+      if (this._ruleEditor?.entryId === source.id) {
+        const existing = this._ruleEditor.ruleId
+          ? source.transitionRules.find(rule => rule.id === this._ruleEditor.ruleId)
+          : null;
+        if (!this._ruleEditor.draft) {
+          const statuses = ENTRY_TYPES[source.type].statuses;
+          this._ruleEditor.draft = existing ? JSON.parse(JSON.stringify(existing)) : {
+            enabled: true,
+            fromStatus: statuses[0],
+            toStatus: statuses[1] ?? statuses[0],
+            actions: []
+          };
+        }
+        const draft = this._ruleEditor.draft;
+        const sortedEntries = [...state.entries].sort((a, b) => String(a.title).localeCompare(String(b.title)));
+        const sortedTrackers = [...state.trackers].sort((a, b) => String(a.title).localeCompare(String(b.title)));
+        ruleEditor = {
+          id: existing?.id ?? "",
+          isNew: !existing,
+          enabled: draft.enabled !== false,
+          fromStatuses: statusOptions(source.type, draft.fromStatus),
+          toStatuses: statusOptions(source.type, draft.toStatus),
+          actions: (draft.actions ?? []).map((action, index) => {
+            const targetEntry = state.entries.find(entry => entry.id === action.targetId) ?? sortedEntries[0] ?? null;
+            const targetTracker = state.trackers.find(tracker => tracker.id === action.targetId) ?? sortedTrackers[0] ?? null;
+            return {
+              ...action,
+              index,
+              isStatus: action.type === "setEntryStatus",
+              isActive: action.type === "setEntryActive",
+              isVisible: action.type === "setEntryVisible",
+              isTracker: action.type === "adjustTracker",
+              types: transitionActionTypeOptions(action.type),
+              entryTargets: sortedEntries.map(entry => ({
+                id: entry.id,
+                label: `${entry.title} · ${localize(ENTRY_TYPES[entry.type]?.label ?? entry.type)}`,
+                selected: entry.id === action.targetId
+              })),
+              trackerTargets: sortedTrackers.map(tracker => ({
+                id: tracker.id,
+                label: tracker.title,
+                selected: tracker.id === action.targetId
+              })),
+              targetStatuses: targetEntry ? statusOptions(targetEntry.type, action.status ?? targetEntry.status) : [],
+              values: booleanOptions(Boolean(action.value)),
+              delta: action.delta ?? 0,
+              targetMissing: action.type === "adjustTracker" ? !targetTracker : !targetEntry
+            };
+          })
+        };
+      }
+
+      return {
+        kind: "rules",
+        entryId: source.id,
+        title: source.title,
+        typeLabel: localize(ENTRY_TYPES[source.type]?.label ?? source.type),
+        rules,
+        hasRules: rules.length > 0,
+        ruleEditor,
+        heading: localize("CAMPAIGN_FORGE.Transitions.Title")
       };
     }
 
@@ -630,10 +788,11 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         const entryId = event.currentTarget.dataset.entryId;
         const status = event.currentTarget.value;
         try {
-          await this.engine.setEntryStatus(entryId, status, { source: "manual" });
+          await this._requestStatusChange(entryId, status);
           await this.render();
         } catch (error) {
           this._handleError(error);
+          await this.render();
         }
       });
     });
@@ -655,6 +814,86 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         if (!statuses.includes(current) && statuses.length) statusSelect.value = statuses[0];
       });
     }
+
+    const ruleTriggerFrom = root.querySelector('[data-cf-rule-field="fromStatus"]');
+    if (ruleTriggerFrom) ruleTriggerFrom.addEventListener("change", event => {
+      if (this._ruleEditor?.draft) this._ruleEditor.draft.fromStatus = event.currentTarget.value;
+    });
+    const ruleTriggerTo = root.querySelector('[data-cf-rule-field="toStatus"]');
+    if (ruleTriggerTo) ruleTriggerTo.addEventListener("change", event => {
+      if (this._ruleEditor?.draft) this._ruleEditor.draft.toStatus = event.currentTarget.value;
+    });
+    const ruleEnabled = root.querySelector('[data-cf-rule-field="enabled"]');
+    if (ruleEnabled) ruleEnabled.addEventListener("change", event => {
+      if (this._ruleEditor?.draft) this._ruleEditor.draft.enabled = Boolean(event.currentTarget.checked);
+    });
+
+    root.querySelectorAll("[data-cf-rule-action-type]").forEach(select => {
+      select.addEventListener("change", async event => {
+        const index = Number(event.currentTarget.dataset.cfRuleActionType);
+        const draftAction = this._ruleEditor?.draft?.actions?.[index];
+        if (!draftAction) return;
+        const state = await this.engine.getState();
+        const type = event.currentTarget.value;
+        draftAction.type = type;
+        if (type === "adjustTracker") {
+          const tracker = state.trackers[0];
+          draftAction.targetId = tracker?.id ?? "";
+          draftAction.delta = Number.isFinite(Number(draftAction.delta)) ? Number(draftAction.delta) : 1;
+          delete draftAction.status;
+          delete draftAction.value;
+        } else {
+          const entry = state.entries[0];
+          draftAction.targetId = entry?.id ?? "";
+          if (type === "setEntryStatus") {
+            draftAction.status = entry?.status ?? "";
+            delete draftAction.value;
+          } else {
+            draftAction.value = true;
+            delete draftAction.status;
+          }
+          delete draftAction.delta;
+        }
+        await this.render();
+      });
+    });
+
+    root.querySelectorAll("[data-cf-rule-action-target]").forEach(select => {
+      select.addEventListener("change", async event => {
+        const index = Number(event.currentTarget.dataset.cfRuleActionTarget);
+        const draftAction = this._ruleEditor?.draft?.actions?.[index];
+        if (!draftAction) return;
+        draftAction.targetId = event.currentTarget.value;
+        if (draftAction.type === "setEntryStatus") {
+          const state = await this.engine.getState();
+          const entry = state.entries.find(candidate => candidate.id === draftAction.targetId);
+          draftAction.status = entry?.status ?? ENTRY_TYPES[entry?.type]?.statuses?.[0] ?? "";
+        }
+        await this.render();
+      });
+    });
+
+    root.querySelectorAll("[data-cf-rule-action-status]").forEach(select => {
+      select.addEventListener("change", event => {
+        const index = Number(event.currentTarget.dataset.cfRuleActionStatus);
+        const draftAction = this._ruleEditor?.draft?.actions?.[index];
+        if (draftAction) draftAction.status = event.currentTarget.value;
+      });
+    });
+    root.querySelectorAll("[data-cf-rule-action-value]").forEach(select => {
+      select.addEventListener("change", event => {
+        const index = Number(event.currentTarget.dataset.cfRuleActionValue);
+        const draftAction = this._ruleEditor?.draft?.actions?.[index];
+        if (draftAction) draftAction.value = event.currentTarget.value === "true";
+      });
+    });
+    root.querySelectorAll("[data-cf-rule-action-delta]").forEach(input => {
+      input.addEventListener("input", event => {
+        const index = Number(event.currentTarget.dataset.cfRuleActionDelta);
+        const draftAction = this._ruleEditor?.draft?.actions?.[index];
+        if (draftAction) draftAction.delta = Number(event.currentTarget.value);
+      });
+    });
 
     root.querySelectorAll("[data-cf-draggable]").forEach(row => {
       row.draggable = true;
@@ -876,9 +1115,38 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     });
   }
 
+  async _requestStatusChange(entryId, status) {
+    const plan = await this.engine.previewEntryStatusTransition(entryId, status);
+    if (!plan.actions.length) return false;
+    if (plan.blocked) throw new CampaignEngineError("TRANSITION_CYCLE");
+
+    if (plan.consequences.length) {
+      const items = plan.consequences
+        .map(action => `<li>${escapeHTML(transitionPlanActionLabel(action))}</li>`)
+        .join("");
+      const content = `
+        <div class="cf-transition-preview-dialog">
+          <p>${escapeHTML(format("CAMPAIGN_FORGE.Transitions.PreviewIntro", { title: plan.root.title }))}</p>
+          <ul>${items}</ul>
+          <p class="hint">${escapeHTML(localize("CAMPAIGN_FORGE.Transitions.PreviewHint"))}</p>
+        </div>`;
+      const confirmed = await DialogV2.confirm({
+        window: { title: localize("CAMPAIGN_FORGE.Transitions.ConfirmTitle") },
+        content,
+        modal: true,
+        rejectClose: false
+      });
+      if (!confirmed) return false;
+    }
+
+    await this.engine.setEntryStatus(entryId, status, { source: "manual" });
+    return true;
+  }
+
   static _actionSetTab(event, target) {
     this._activeTab = target.dataset.tab;
     this._editor = null;
+    this._ruleEditor = null;
     return this.render();
   }
 
@@ -912,8 +1180,94 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     return this.render();
   }
 
+  static _actionManageRules(event, target) {
+    this._editor = { kind: "rules", entryId: target.dataset.nodeId };
+    this._ruleEditor = null;
+    this._activeTab = "campaign";
+    return this.render();
+  }
+
+  static _actionAddTransitionRule() {
+    if (this._editor?.kind !== "rules") return;
+    this._ruleEditor = { entryId: this._editor.entryId, ruleId: null, draft: null };
+    return this.render();
+  }
+
+  static async _actionEditTransitionRule(event, target) {
+    if (this._editor?.kind !== "rules") return;
+    this._ruleEditor = {
+      entryId: this._editor.entryId,
+      ruleId: target.dataset.ruleId,
+      draft: null
+    };
+    return this.render();
+  }
+
+  static async _actionDeleteTransitionRule(event, target) {
+    if (this._editor?.kind !== "rules") return;
+    const confirmed = await this._confirm("CAMPAIGN_FORGE.Confirm.DeleteTransitionRule");
+    if (!confirmed) return;
+    try {
+      await this.engine.deleteTransitionRule(this._editor.entryId, target.dataset.ruleId);
+      if (this._ruleEditor?.ruleId === target.dataset.ruleId) this._ruleEditor = null;
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static _actionCancelTransitionRule() {
+    this._ruleEditor = null;
+    return this.render();
+  }
+
+  static async _actionSaveTransitionRule() {
+    if (this._editor?.kind !== "rules" || !this._ruleEditor?.draft) return;
+    const draft = this._ruleEditor.draft;
+    try {
+      const payload = {
+        enabled: draft.enabled !== false,
+        fromStatus: draft.fromStatus,
+        toStatus: draft.toStatus,
+        actions: draft.actions ?? []
+      };
+      if (this._ruleEditor.ruleId) {
+        await this.engine.updateTransitionRule(this._editor.entryId, this._ruleEditor.ruleId, payload);
+      } else {
+        await this.engine.createTransitionRule(this._editor.entryId, payload);
+      }
+      this._ruleEditor = null;
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionAddTransitionAction() {
+    if (this._editor?.kind !== "rules" || !this._ruleEditor?.draft) return;
+    const state = await this.engine.getState();
+    const entry = state.entries.find(candidate => candidate.id !== this._editor.entryId) ?? state.entries[0] ?? null;
+    this._ruleEditor.draft.actions ??= [];
+    this._ruleEditor.draft.actions.push({
+      id: `draft-${Date.now()}-${this._ruleEditor.draft.actions.length}`,
+      type: "setEntryStatus",
+      targetId: entry?.id ?? "",
+      status: entry?.status ?? ""
+    });
+    return this.render();
+  }
+
+  static _actionRemoveTransitionAction(event, target) {
+    if (!this._ruleEditor?.draft?.actions) return;
+    const index = Number(target.dataset.actionIndex);
+    if (!Number.isInteger(index) || index < 0 || index >= this._ruleEditor.draft.actions.length) return;
+    this._ruleEditor.draft.actions.splice(index, 1);
+    return this.render();
+  }
+
   static _actionCancelEditor() {
     this._editor = null;
+    this._ruleEditor = null;
     return this.render();
   }
 
@@ -942,8 +1296,20 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           active: form.querySelector('[name="active"]')?.checked ?? false,
           visible: form.querySelector('[name="visible"]')?.checked ?? false
         };
-        if (this._editor.id) await this.engine.updateEntry(this._editor.id, payload);
-        else await this.engine.createEntry(payload);
+        if (this._editor.id) {
+          const currentState = await this.engine.getState();
+          const current = currentState.entries.find(entry => entry.id === this._editor.id);
+          if (!current) return;
+          if (current.type === payload.type) {
+            const desiredStatus = payload.status;
+            const structuralPayload = { ...payload };
+            delete structuralPayload.status;
+            await this.engine.updateEntry(this._editor.id, structuralPayload);
+            if (current.status !== desiredStatus) await this._requestStatusChange(this._editor.id, desiredStatus);
+          } else {
+            await this.engine.updateEntry(this._editor.id, payload);
+          }
+        } else await this.engine.createEntry(payload);
       } else if (this._editor.kind === "tracker") {
         const payload = {
           title: data.title,

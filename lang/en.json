@@ -13,7 +13,9 @@
       "Navigation": "Navigation",
       "Changes": "changes",
       "Status": "Status",
-      "Hidden": "Hidden"
+      "Hidden": "Hidden",
+      "Yes": "Yes",
+      "No": "No"
     },
     "Actions": {
       "StartSession": "Start session",
@@ -186,13 +188,19 @@
       "KeyPlayerUpdated": "Key player “{title}” was edited.",
       "KeyPlayerDeleted": "Key player “{title}” was removed.",
       "KeyPlayerMoved": "Key player “{title}” was moved.",
-      "KeyPlayerAppeared": "“{title}” was marked as appearing in this session."
+      "KeyPlayerAppeared": "“{title}” was marked as appearing in this session.",
+      "EntryActive": "“{title}” Active was set to {value}.",
+      "EntryVisible": "“{title}” Visible was set to {value}.",
+      "RuleCreated": "Transition rule for “{title}” created.",
+      "RuleUpdated": "Transition rule for “{title}” updated.",
+      "RuleDeleted": "Transition rule for “{title}” deleted."
     },
     "Confirm": {
       "Title": "Campaign Forge",
       "Delete": "Really delete “{title}”?",
       "EndSession": "Really end the current session?",
-      "DeleteSessionChange": "Really delete this manually added session change?"
+      "DeleteSessionChange": "Really delete this manually added session change?",
+      "DeleteTransitionRule": "Delete this transition rule?"
     },
     "Errors": {
       "Generic": "The action could not be completed. Details are available in the console.",
@@ -220,7 +228,17 @@
       "ACTOR_UUID_REQUIRED": "A key player requires an Actor reference.",
       "ACTOR_NOT_FOUND": "The linked Actor could not be found.",
       "INVALID_KEY_PLAYER_ROLE": "This campaign role is invalid.",
-      "INVALID_KEY_PLAYER_STATE": "This key player state is invalid."
+      "INVALID_KEY_PLAYER_STATE": "This key player state is invalid.",
+      "TRANSITION_ACTION_REQUIRED": "The transition rule requires at least one follow-up action.",
+      "INVALID_TRANSITION_ACTION": "The selected action type is invalid.",
+      "TRANSITION_TARGET_REQUIRED": "A target must be selected for the follow-up action.",
+      "INVALID_TRANSITION_DELTA": "The campaign value adjustment must be a valid number.",
+      "INVALID_TRANSITION_TRIGGER": "The selected status transition is invalid for this entry.",
+      "TRANSITION_TRIGGER_SAME_STATUS": "The source and target status of a transition rule must be different.",
+      "TRANSITION_RULE_NOT_FOUND": "The transition rule could not be found.",
+      "TRANSITION_CYCLE": "The transition rules would create a cyclic chain. No changes were applied.",
+      "TRANSITION_TOO_DEEP": "The transition chain is too deep and was stopped for safety.",
+      "TRANSITION_TOO_MANY_ACTIONS": "The transition rules would trigger too many actions and were stopped for safety."
     },
     "SessionChangeKinds": {
       "note": "Note",
@@ -263,6 +281,39 @@
       "dead": "Dead",
       "inactive": "Out of the story",
       "unknown": "Unknown"
+    },
+    "Transitions": {
+      "Title": "Transition Rules",
+      "Manage": "Manage transition rules",
+      "NewRule": "New transition rule",
+      "EditRule": "Edit transition rule",
+      "NoRules": "No transition rules have been defined for this entry yet.",
+      "Enabled": "Rule enabled",
+      "Disabled": "disabled",
+      "FromStatus": "From status",
+      "ToStatus": "To status",
+      "Consequences": "Follow-up actions",
+      "AddAction": "Add action",
+      "ActionType": "Action type",
+      "ActionsCount": "actions",
+      "NoActions": "No follow-up action yet. A rule requires at least one action.",
+      "TargetEntry": "Target entry",
+      "TargetTracker": "Campaign value",
+      "TargetStatus": "Target status",
+      "Delta": "Change",
+      "ConfirmTitle": "Confirm follow-up changes",
+      "PreviewIntro": "Changing the status of “{title}” will also trigger the following changes:",
+      "PreviewHint": "All changes are applied together and, during an active session, logged as one related transaction.",
+      "PreviewStatus": "“{title}”: {from} → {to}",
+      "PreviewActive": "“{title}”: Active = {value}",
+      "PreviewVisible": "“{title}”: Visible = {value}",
+      "PreviewTracker": "“{title}”: {delta} (new value: {value})"
+    },
+    "TransitionActions": {
+      "setEntryStatus": "Set entry status",
+      "setEntryActive": "Activate/deactivate entry",
+      "setEntryVisible": "Show/hide entry",
+      "adjustTracker": "Adjust campaign value"
     }
   }
 }

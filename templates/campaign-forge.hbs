@@ -160,7 +160,7 @@
     {{/if}}
 
     {{#if (eq activeTab "campaign")}}
-      <section class="cf-tab-panel cf-campaign-layout">
+      <section class="cf-tab-panel cf-campaign-layout {{#if (eq editor.kind "rules")}}has-rule-editor{{/if}}">
         <div class="cf-campaign-tree-panel">
           <div class="cf-section-heading">
             <div>
@@ -266,6 +266,10 @@
                       <button type="button" class="icon" data-action="moveDown" data-node-type="entry" data-node-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.MoveDown"}}">
                         <i class="fa-solid fa-arrow-down"></i>
                       </button>
+                      <button type="button" class="icon cf-rule-button {{#if hasRules}}has-rules{{/if}}" data-action="manageRules" data-node-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Transitions.Manage"}}">
+                        <i class="fa-solid fa-code-branch"></i>
+                        {{#if hasRules}}<span class="cf-rule-count">{{ruleCount}}</span>{{/if}}
+                      </button>
                       <button type="button" class="icon" data-action="editEntry" data-node-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Edit"}}">
                         <i class="fa-solid fa-pen"></i>
                       </button>
@@ -345,6 +349,160 @@
                 </label>
               {{/if}}
 
+              {{#if (eq editor.kind "rules")}}
+                <div class="cf-rules-header">
+                  <div>
+                    <strong>{{editor.title}}</strong>
+                    <small>{{editor.typeLabel}}</small>
+                  </div>
+                  <button type="button" data-action="addTransitionRule">
+                    <i class="fa-solid fa-plus"></i>
+                    {{localize "CAMPAIGN_FORGE.Transitions.NewRule"}}
+                  </button>
+                </div>
+
+                {{#if editor.hasRules}}
+                  <div class="cf-rule-list">
+                    {{#each editor.rules}}
+                      <article class="cf-rule-summary {{#unless enabled}}is-disabled{{/unless}}">
+                        <div class="cf-rule-trigger-summary">
+                          <i class="fa-solid fa-code-branch"></i>
+                          <span><strong>{{fromLabel}}</strong> <i class="fa-solid fa-arrow-right"></i> <strong>{{toLabel}}</strong></span>
+                        </div>
+                        <small>{{actionCount}} {{localize "CAMPAIGN_FORGE.Transitions.ActionsCount"}}{{#unless enabled}} · {{localize "CAMPAIGN_FORGE.Transitions.Disabled"}}{{/unless}}</small>
+                        <div class="cf-rule-summary-actions">
+                          <button type="button" class="icon" data-action="editTransitionRule" data-rule-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Edit"}}">
+                            <i class="fa-solid fa-pen"></i>
+                          </button>
+                          <button type="button" class="icon" data-action="deleteTransitionRule" data-rule-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Delete"}}">
+                            <i class="fa-solid fa-trash"></i>
+                          </button>
+                        </div>
+                      </article>
+                    {{/each}}
+                  </div>
+                {{else}}
+                  {{#unless editor.ruleEditor}}
+                    <div class="cf-rule-empty">
+                      <i class="fa-solid fa-code-branch"></i>
+                      <span>{{localize "CAMPAIGN_FORGE.Transitions.NoRules"}}</span>
+                    </div>
+                  {{/unless}}
+                {{/if}}
+
+                {{#if editor.ruleEditor}}
+                  <section class="cf-rule-editor">
+                    <h4>{{#if editor.ruleEditor.isNew}}{{localize "CAMPAIGN_FORGE.Transitions.NewRule"}}{{else}}{{localize "CAMPAIGN_FORGE.Transitions.EditRule"}}{{/if}}</h4>
+                    <label class="cf-checkbox-row">
+                      <input type="checkbox" data-cf-rule-field="enabled" {{#if editor.ruleEditor.enabled}}checked{{/if}}>
+                      <span>{{localize "CAMPAIGN_FORGE.Transitions.Enabled"}}</span>
+                    </label>
+                    <div class="cf-rule-trigger-fields">
+                      <label>
+                        <span>{{localize "CAMPAIGN_FORGE.Transitions.FromStatus"}}</span>
+                        <select data-cf-rule-field="fromStatus">
+                          {{#each editor.ruleEditor.fromStatuses}}
+                            <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                          {{/each}}
+                        </select>
+                      </label>
+                      <i class="fa-solid fa-arrow-right"></i>
+                      <label>
+                        <span>{{localize "CAMPAIGN_FORGE.Transitions.ToStatus"}}</span>
+                        <select data-cf-rule-field="toStatus">
+                          {{#each editor.ruleEditor.toStatuses}}
+                            <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                          {{/each}}
+                        </select>
+                      </label>
+                    </div>
+
+                    <div class="cf-rule-actions-heading">
+                      <strong>{{localize "CAMPAIGN_FORGE.Transitions.Consequences"}}</strong>
+                      <button type="button" data-action="addTransitionAction">
+                        <i class="fa-solid fa-plus"></i>
+                        {{localize "CAMPAIGN_FORGE.Transitions.AddAction"}}
+                      </button>
+                    </div>
+
+                    <div class="cf-rule-action-list">
+                      {{#each editor.ruleEditor.actions}}
+                        <article class="cf-rule-action-row">
+                          <div class="cf-rule-action-top">
+                            <select data-cf-rule-action-type="{{index}}" aria-label="{{localize "CAMPAIGN_FORGE.Transitions.ActionType"}}">
+                              {{#each types}}
+                                <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                              {{/each}}
+                            </select>
+                            <button type="button" class="icon" data-action="removeTransitionAction" data-action-index="{{index}}" title="{{localize "CAMPAIGN_FORGE.Actions.Delete"}}">
+                              <i class="fa-solid fa-trash"></i>
+                            </button>
+                          </div>
+
+                          {{#if isTracker}}
+                            <label>
+                              <span>{{localize "CAMPAIGN_FORGE.Transitions.TargetTracker"}}</span>
+                              <select data-cf-rule-action-target="{{index}}">
+                                {{#each trackerTargets}}
+                                  <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                                {{/each}}
+                              </select>
+                            </label>
+                            <label>
+                              <span>{{localize "CAMPAIGN_FORGE.Transitions.Delta"}}</span>
+                              <input type="number" step="any" value="{{delta}}" data-cf-rule-action-delta="{{index}}">
+                            </label>
+                          {{else}}
+                            <label>
+                              <span>{{localize "CAMPAIGN_FORGE.Transitions.TargetEntry"}}</span>
+                              <select data-cf-rule-action-target="{{index}}">
+                                {{#each entryTargets}}
+                                  <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                                {{/each}}
+                              </select>
+                            </label>
+                            {{#if isStatus}}
+                              <label>
+                                <span>{{localize "CAMPAIGN_FORGE.Transitions.TargetStatus"}}</span>
+                                <select data-cf-rule-action-status="{{index}}">
+                                  {{#each targetStatuses}}
+                                    <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                                  {{/each}}
+                                </select>
+                              </label>
+                            {{else}}
+                              <label>
+                                <span>{{#if isActive}}{{localize "CAMPAIGN_FORGE.Fields.Active"}}{{else}}{{localize "CAMPAIGN_FORGE.Fields.Visible"}}{{/if}}</span>
+                                <select data-cf-rule-action-value="{{index}}">
+                                  {{#each values}}
+                                    <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                                  {{/each}}
+                                </select>
+                              </label>
+                            {{/if}}
+                          {{/if}}
+                        </article>
+                      {{/each}}
+                    </div>
+
+                    {{#unless editor.ruleEditor.actions.length}}
+                      <div class="cf-rule-empty compact">
+                        <span>{{localize "CAMPAIGN_FORGE.Transitions.NoActions"}}</span>
+                      </div>
+                    {{/unless}}
+
+                    <div class="cf-editor-footer">
+                      <button type="button" data-action="cancelTransitionRule">{{localize "CAMPAIGN_FORGE.Actions.Cancel"}}</button>
+                      <button type="button" class="cf-primary-action" data-action="saveTransitionRule">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        {{localize "CAMPAIGN_FORGE.Actions.Save"}}
+                      </button>
+                    </div>
+                  </section>
+                {{/if}}
+              {{/if}}
+
+              {{#unless (eq editor.kind "rules")}}
               <div class="cf-editor-footer">
                 <button type="button" data-action="cancelEditor">{{localize "CAMPAIGN_FORGE.Actions.Cancel"}}</button>
                 <button type="button" class="cf-primary-action" data-action="saveEditor">
@@ -352,6 +510,7 @@
                   {{localize "CAMPAIGN_FORGE.Actions.Save"}}
                 </button>
               </div>
+              {{/unless}}
             </form>
           </aside>
         {{/if}}
@@ -413,7 +572,7 @@
                   <div class="cf-change-list">
                     {{#if changes.length}}
                       {{#each changes}}
-                        <div class="cf-change-row {{#if structural}}is-structural{{/if}}">
+                        <div class="cf-change-row {{#if structural}}is-structural{{/if}} {{#if isConsequence}}is-consequence{{/if}}">
                           <time>{{timeLabel}}</time>
                           <span class="cf-change-content">
                             <span>{{summary}}</span>

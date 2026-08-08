@@ -389,3 +389,141 @@ test("key players can be pinned, reordered, and cleaned up with deleted referenc
   state = await engine.getState();
   assert.equal(state.overviewPins.some(pin => pin.targetType === "keyPlayer" && pin.targetId === first.id), false);
 });
+
+test("transition rules can change status, activity, visibility, and trackers in one transaction", async () => {
+  const { engine } = engineWithRepo();
+
+  const source = await engine.createEntry({ title: "Mine", type: "quest", status: "active" });
+  const knowledge = await engine.createEntry({ title: "Codros", type: "knowledge", status: "unknown", active: false, visible: false });
+  const followup = await engine.createEntry({ title: "Mushka", type: "quest", status: "available", active: false });
+  const reputation = await engine.createTracker({ title: "Ostwall", value: 0, min: -10, max: 10 });
+
+  await engine.createTransitionRule(source.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    actions: [
+      { type: "setEntryStatus", targetId: knowledge.id, status: "discovered" },
+      { type: "setEntryVisible", targetId: knowledge.id, value: true },
+      { type: "setEntryActive", targetId: followup.id, value: true },
+      { type: "adjustTracker", targetId: reputation.id, delta: 2 }
+    ]
+  });
+
+  const preview = await engine.previewEntryStatusTransition(source.id, "completed");
+  assert.equal(preview.consequences.length, 4);
+  assert.equal(preview.blocked, false);
+
+  await engine.startSession();
+  await engine.setEntryStatus(source.id, "completed");
+
+  const state = await engine.getState();
+  assert.equal(state.entries.find(entry => entry.id === source.id).status, "completed");
+  assert.equal(state.entries.find(entry => entry.id === knowledge.id).status, "discovered");
+  assert.equal(state.entries.find(entry => entry.id === knowledge.id).visible, true);
+  assert.equal(state.entries.find(entry => entry.id === followup.id).active, true);
+  assert.equal(state.trackers.find(tracker => tracker.id === reputation.id).value, 2);
+
+  const session = state.sessions.find(item => item.status === "active");
+  assert.equal(session.changes.length, 5);
+  assert.ok(session.changes.every(change => change.transactionId === session.changes[0].transactionId));
+  assert.equal(session.changes[0].source, "manual");
+  assert.ok(session.changes.slice(1).every(change => change.source === "transition"));
+});
+
+test("status consequences can trigger further transition rules", async () => {
+  const { engine } = engineWithRepo();
+
+  const a = await engine.createEntry({ title: "A", type: "quest", status: "active" });
+  const b = await engine.createEntry({ title: "B", type: "knowledge", status: "unknown" });
+  const c = await engine.createEntry({ title: "C", type: "event", status: "pending" });
+
+  await engine.createTransitionRule(a.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    actions: [{ type: "setEntryStatus", targetId: b.id, status: "discovered" }]
+  });
+  await engine.createTransitionRule(b.id, {
+    fromStatus: "unknown",
+    toStatus: "discovered",
+    actions: [{ type: "setEntryStatus", targetId: c.id, status: "occurred" }]
+  });
+
+  const preview = await engine.previewEntryStatusTransition(a.id, "completed");
+  assert.deepEqual(preview.actions.map(action => action.targetTitle), ["A", "B", "C"]);
+
+  await engine.setEntryStatus(a.id, "completed");
+  const state = await engine.getState();
+  assert.equal(state.entries.find(entry => entry.id === c.id).status, "occurred");
+});
+
+test("transition cycles are detected before data is changed", async () => {
+  const { engine } = engineWithRepo();
+
+  const a = await engine.createEntry({ title: "A", type: "note", status: "active" });
+  const b = await engine.createEntry({ title: "B", type: "note", status: "active" });
+
+  await engine.createTransitionRule(a.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    actions: [{ type: "setEntryStatus", targetId: b.id, status: "completed" }]
+  });
+  await engine.createTransitionRule(b.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    actions: [{ type: "setEntryStatus", targetId: a.id, status: "active" }]
+  });
+  await engine.createTransitionRule(a.id, {
+    fromStatus: "completed",
+    toStatus: "active",
+    actions: [{ type: "setEntryStatus", targetId: b.id, status: "active" }]
+  });
+  await engine.createTransitionRule(b.id, {
+    fromStatus: "completed",
+    toStatus: "active",
+    actions: [{ type: "setEntryStatus", targetId: a.id, status: "completed" }]
+  });
+
+  const preview = await engine.previewEntryStatusTransition(a.id, "completed");
+  assert.equal(preview.blocked, true);
+  assert.ok(preview.warnings.some(warning => warning.code === "TRANSITION_CYCLE"));
+
+  await assert.rejects(
+    () => engine.setEntryStatus(a.id, "completed"),
+    error => error instanceof CampaignEngineError && error.code === "TRANSITION_CYCLE"
+  );
+  const state = await engine.getState();
+  assert.equal(state.entries.find(entry => entry.id === a.id).status, "active");
+  assert.equal(state.entries.find(entry => entry.id === b.id).status, "active");
+});
+
+test("transition rules are validated, editable, removable, and cleaned when targets are deleted", async () => {
+  const { engine } = engineWithRepo();
+  const source = await engine.createEntry({ title: "Source", type: "quest", status: "active" });
+  const target = await engine.createEntry({ title: "Target", type: "knowledge" });
+
+  const rule = await engine.createTransitionRule(source.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    actions: [{ type: "setEntryStatus", targetId: target.id, status: "discovered" }]
+  });
+  const updated = await engine.updateTransitionRule(source.id, rule.id, {
+    enabled: false,
+    actions: [{ type: "setEntryVisible", targetId: target.id, value: false }]
+  });
+  assert.equal(updated.enabled, false);
+  assert.equal(updated.actions[0].type, "setEntryVisible");
+
+  await engine.deleteEntry(target.id);
+  let state = await engine.getState();
+  assert.equal(state.entries.find(entry => entry.id === source.id).transitionRules.length, 0);
+
+  const other = await engine.createEntry({ title: "Other", type: "knowledge" });
+  const second = await engine.createTransitionRule(source.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    actions: [{ type: "setEntryStatus", targetId: other.id, status: "discovered" }]
+  });
+  await engine.deleteTransitionRule(source.id, second.id);
+  state = await engine.getState();
+  assert.equal(state.entries.find(entry => entry.id === source.id).transitionRules.length, 0);
+});

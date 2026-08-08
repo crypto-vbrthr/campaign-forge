@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0
+
+- Added status-transition rules to Campaign Forge entries.
+- Rules trigger on a specific `from status -> to status` change.
+- Added follow-up actions for setting another entry status, activating/deactivating an entry, showing/hiding an entry, and adjusting a campaign value.
+- Added chained rule execution when an automatic status change triggers another rule.
+- Added a GM preview dialog listing all consequences before a status transition is applied.
+- Added cycle detection plus depth/action safety limits so invalid rule chains are blocked atomically.
+- Session logs now group a root status change and all automatic consequences through a shared transaction ID.
+- Added a dedicated transition-rule editor in the Campaign view.
+- Deleting entries or campaign values cleans obsolete rule actions and removes empty rules.
+- Public API expanded with transition preview and rule CRUD methods.
+- Added complete German and English localization for transition rules and consequence previews.
+- Regression suite expanded from 20 to 24 engine tests.
+
 ## 0.2.1
 
 - Added the Key Players view for important campaign NPCs.

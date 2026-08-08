@@ -991,3 +991,196 @@ button.icon,
     justify-content: flex-end;
   }
 }
+
+/* Transition rules */
+.cf-campaign-layout.has-rule-editor {
+  grid-template-columns: minmax(0, 1fr) minmax(390px, 440px);
+}
+
+.cf-rule-button {
+  position: relative;
+}
+
+.cf-rule-button.has-rules {
+  opacity: 1;
+}
+
+.cf-rule-count {
+  position: absolute;
+  top: -5px;
+  right: -4px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  line-height: 1;
+  background: var(--cf-panel-soft);
+  border: 1px solid var(--cf-border-strong);
+}
+
+.cf-rules-header,
+.cf-rule-actions-heading,
+.cf-rule-action-top,
+.cf-rule-trigger-summary,
+.cf-rule-summary-actions {
+  display: flex;
+  align-items: center;
+}
+
+.cf-rules-header,
+.cf-rule-actions-heading {
+  justify-content: space-between;
+  gap: .5rem;
+}
+
+.cf-rules-header > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cf-rules-header small,
+.cf-rule-summary small {
+  color: var(--cf-muted);
+}
+
+.cf-rule-list,
+.cf-rule-action-list {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+
+.cf-rule-summary,
+.cf-rule-action-row,
+.cf-rule-editor {
+  border: 1px solid var(--cf-border);
+  border-radius: .4rem;
+  background: var(--cf-panel-soft);
+}
+
+.cf-rule-summary {
+  position: relative;
+  padding: .55rem 4.2rem .55rem .6rem;
+}
+
+.cf-rule-summary.is-disabled {
+  opacity: .6;
+}
+
+.cf-rule-trigger-summary {
+  gap: .45rem;
+}
+
+.cf-rule-trigger-summary > span {
+  display: inline-flex;
+  gap: .35rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.cf-rule-summary-actions {
+  position: absolute;
+  top: .35rem;
+  right: .35rem;
+  gap: .15rem;
+}
+
+.cf-rule-editor {
+  padding: .65rem;
+  display: flex;
+  flex-direction: column;
+  gap: .65rem;
+}
+
+.cf-rule-editor h4 {
+  margin: 0;
+}
+
+.cf-rule-trigger-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: .4rem;
+  align-items: end;
+}
+
+.cf-rule-trigger-fields > i {
+  padding-bottom: .55rem;
+  opacity: .6;
+}
+
+.cf-rule-action-top {
+  gap: .35rem;
+}
+
+.cf-rule-action-top select {
+  flex: 1;
+  min-width: 0;
+}
+
+.cf-rule-action-row {
+  padding: .5rem;
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+}
+
+.cf-rule-empty {
+  min-height: 74px;
+  padding: .7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  text-align: center;
+  color: var(--cf-muted);
+  border: 1px dashed var(--cf-border);
+  border-radius: .4rem;
+}
+
+.cf-rule-empty.compact {
+  min-height: 44px;
+}
+
+.cf-transition-preview-dialog ul {
+  margin: .5rem 0 .75rem 1.1rem;
+  padding: 0;
+}
+
+.cf-transition-preview-dialog .hint {
+  color: var(--cf-muted);
+  font-size: .9em;
+}
+
+.cf-change-row.is-consequence {
+  padding-left: 1.35rem;
+  position: relative;
+}
+
+.cf-change-row.is-consequence::before {
+  content: "↳";
+  position: absolute;
+  left: .45rem;
+  top: .42rem;
+  opacity: .55;
+}
+
+@media (max-width: 900px) {
+  .cf-campaign-layout.has-rule-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cf-rule-trigger-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .cf-rule-trigger-fields > i {
+    transform: rotate(90deg);
+    justify-self: center;
+    padding: 0;
+  }
+}

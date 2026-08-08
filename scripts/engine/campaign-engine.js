@@ -1,4 +1,13 @@
-import { ENTRY_TYPES, KEY_PLAYER_ROLES, KEY_PLAYER_STATES, SESSION_CHANGE_KINDS, SORT_STEP } from "../core/constants.js";
+import {
+  ENTRY_TYPES,
+  KEY_PLAYER_ROLES,
+  KEY_PLAYER_STATES,
+  MAX_TRANSITION_ACTIONS,
+  MAX_TRANSITION_DEPTH,
+  SESSION_CHANGE_KINDS,
+  SORT_STEP,
+  TRANSITION_ACTION_TYPES
+} from "../core/constants.js";
 import { cloneData, getChildren, nextSort, normalizeState } from "../data/state.js";
 
 export class CampaignEngineError extends Error {
@@ -53,6 +62,7 @@ export class CampaignEngine {
     after = null,
     source = "manual",
     structural = false,
+    transactionId = null,
     details = {}
   }) {
     const session = this._activeSession(state);
@@ -71,6 +81,7 @@ export class CampaignEngine {
       after: cloneData(after),
       source,
       structural,
+      transactionId,
       details: cloneData(details)
     };
     session.changes.push(change);
@@ -120,6 +131,294 @@ export class CampaignEngine {
     return normalized;
   }
 
+
+
+  _normalizeTransitionActions(state, actions = []) {
+    if (!Array.isArray(actions) || !actions.length) {
+      throw new CampaignEngineError("TRANSITION_ACTION_REQUIRED");
+    }
+
+    return actions.map(raw => {
+      const type = String(raw?.type ?? "");
+      if (!TRANSITION_ACTION_TYPES[type]) {
+        throw new CampaignEngineError("INVALID_TRANSITION_ACTION", { type });
+      }
+
+      const targetId = String(raw?.targetId ?? "").trim();
+      if (!targetId) throw new CampaignEngineError("TRANSITION_TARGET_REQUIRED", { type });
+
+      if (type === "adjustTracker") {
+        this._findTracker(state, targetId);
+        const delta = Number(raw?.delta);
+        if (!Number.isFinite(delta)) throw new CampaignEngineError("INVALID_TRANSITION_DELTA", { delta: raw?.delta });
+        return {
+          id: String(raw?.id ?? this._newId()),
+          type,
+          targetId,
+          delta
+        };
+      }
+
+      const target = this._findEntry(state, targetId);
+      if (type === "setEntryStatus") {
+        const status = String(raw?.status ?? "");
+        if (!ENTRY_TYPES[target.type].statuses.includes(status)) {
+          throw new CampaignEngineError("INVALID_STATUS", { type: target.type, status });
+        }
+        return {
+          id: String(raw?.id ?? this._newId()),
+          type,
+          targetId,
+          status
+        };
+      }
+
+      return {
+        id: String(raw?.id ?? this._newId()),
+        type,
+        targetId,
+        value: raw?.value === true || raw?.value === "true" || raw?.value === 1 || raw?.value === "1"
+      };
+    });
+  }
+
+  _validateTransitionRule(state, entry, data = {}, existingRule = null) {
+    const statuses = ENTRY_TYPES[entry.type].statuses;
+    const fromStatus = String(data.fromStatus ?? existingRule?.fromStatus ?? entry.status);
+    const toStatus = String(data.toStatus ?? existingRule?.toStatus ?? entry.status);
+    if (!statuses.includes(fromStatus) || !statuses.includes(toStatus)) {
+      throw new CampaignEngineError("INVALID_TRANSITION_TRIGGER", { fromStatus, toStatus, type: entry.type });
+    }
+    if (fromStatus === toStatus) {
+      throw new CampaignEngineError("TRANSITION_TRIGGER_SAME_STATUS", { status: fromStatus });
+    }
+
+    const actions = this._normalizeTransitionActions(state, data.actions ?? existingRule?.actions ?? []);
+    return {
+      id: String(existingRule?.id ?? data.id ?? this._newId()),
+      enabled: data.enabled !== undefined ? Boolean(data.enabled) : (existingRule?.enabled !== false),
+      fromStatus,
+      toStatus,
+      actions
+    };
+  }
+
+  _buildTransitionPlan(state, entryId, status) {
+    const scratch = cloneData(state);
+    const root = this._findEntry(scratch, entryId);
+    const allowed = ENTRY_TYPES[root.type].statuses;
+    if (!allowed.includes(status)) {
+      throw new CampaignEngineError("INVALID_STATUS", { type: root.type, status });
+    }
+
+    const transactionId = this._newId();
+    const actions = [];
+    const warnings = [];
+    const transitionStack = [];
+    const executedRules = new Set();
+    let actionCount = 0;
+
+    const pushAction = action => {
+      actionCount += 1;
+      if (actionCount > MAX_TRANSITION_ACTIONS) {
+        throw new CampaignEngineError("TRANSITION_TOO_MANY_ACTIONS", { max: MAX_TRANSITION_ACTIONS });
+      }
+      actions.push(action);
+    };
+
+    const applyStatus = (targetId, nextStatus, { depth = 0, ruleId = null, causedByEntryId = null, rootAction = false } = {}) => {
+      if (depth > MAX_TRANSITION_DEPTH) {
+        throw new CampaignEngineError("TRANSITION_TOO_DEEP", { max: MAX_TRANSITION_DEPTH });
+      }
+      const target = this._findEntry(scratch, targetId);
+      const statuses = ENTRY_TYPES[target.type].statuses;
+      if (!statuses.includes(nextStatus)) {
+        throw new CampaignEngineError("INVALID_STATUS", { type: target.type, status: nextStatus });
+      }
+      const previousStatus = target.status;
+      if (previousStatus === nextStatus) return;
+
+      const transitionKey = `${targetId}:${previousStatus}->${nextStatus}`;
+      if (transitionStack.includes(transitionKey)) {
+        warnings.push({ code: "TRANSITION_CYCLE", entryId: targetId, fromStatus: previousStatus, toStatus: nextStatus });
+        return;
+      }
+
+      pushAction({
+        kind: "entry.status",
+        targetType: "entry",
+        targetId,
+        targetTitle: target.title,
+        before: { status: previousStatus },
+        after: { status: nextStatus },
+        ruleId,
+        causedByEntryId,
+        depth,
+        root: rootAction
+      });
+      target.status = nextStatus;
+      target.updatedAt = new Date(this._now()).toISOString();
+
+      transitionStack.push(transitionKey);
+      const matchingRules = (target.transitionRules ?? []).filter(rule =>
+        rule.enabled !== false && rule.fromStatus === previousStatus && rule.toStatus === nextStatus
+      );
+
+      for (const rule of matchingRules) {
+        const executionKey = `${targetId}:${rule.id}:${previousStatus}->${nextStatus}`;
+        if (executedRules.has(executionKey)) continue;
+        executedRules.add(executionKey);
+
+        for (const ruleAction of rule.actions ?? []) {
+          if (ruleAction.type === "setEntryStatus") {
+            applyStatus(ruleAction.targetId, ruleAction.status, {
+              depth: depth + 1,
+              ruleId: rule.id,
+              causedByEntryId: targetId
+            });
+            continue;
+          }
+
+          if (ruleAction.type === "setEntryActive" || ruleAction.type === "setEntryVisible") {
+            const actionTarget = this._findEntry(scratch, ruleAction.targetId);
+            const field = ruleAction.type === "setEntryActive" ? "active" : "visible";
+            const nextValue = Boolean(ruleAction.value);
+            const previousValue = Boolean(actionTarget[field]);
+            if (previousValue === nextValue) continue;
+            pushAction({
+              kind: `entry.${field}`,
+              targetType: "entry",
+              targetId: actionTarget.id,
+              targetTitle: actionTarget.title,
+              before: { [field]: previousValue },
+              after: { [field]: nextValue },
+              ruleId: rule.id,
+              causedByEntryId: targetId,
+              depth: depth + 1
+            });
+            actionTarget[field] = nextValue;
+            actionTarget.updatedAt = new Date(this._now()).toISOString();
+            continue;
+          }
+
+          if (ruleAction.type === "adjustTracker") {
+            const tracker = this._findTracker(scratch, ruleAction.targetId);
+            const previousValue = Number(tracker.value ?? 0);
+            let nextValue = previousValue + Number(ruleAction.delta);
+            if (Number.isFinite(tracker.min)) nextValue = Math.max(tracker.min, nextValue);
+            if (Number.isFinite(tracker.max)) nextValue = Math.min(tracker.max, nextValue);
+            if (nextValue === previousValue) continue;
+            pushAction({
+              kind: "tracker.adjusted",
+              targetType: "tracker",
+              targetId: tracker.id,
+              targetTitle: tracker.title,
+              before: { value: previousValue },
+              after: { value: nextValue },
+              details: {
+                delta: nextValue - previousValue,
+                requestedDelta: Number(ruleAction.delta)
+              },
+              ruleId: rule.id,
+              causedByEntryId: targetId,
+              depth: depth + 1
+            });
+            tracker.value = nextValue;
+            tracker.updatedAt = new Date(this._now()).toISOString();
+          }
+        }
+      }
+      transitionStack.pop();
+    };
+
+    applyStatus(entryId, status, { rootAction: true });
+
+    return {
+      transactionId,
+      root: {
+        entryId: root.id,
+        title: root.title,
+        fromStatus: state.entries.find(entry => entry.id === entryId)?.status ?? root.status,
+        toStatus: status
+      },
+      actions,
+      consequences: actions.filter(action => !action.root),
+      warnings,
+      blocked: warnings.some(warning => warning.code === "TRANSITION_CYCLE")
+    };
+  }
+
+  _applyTransitionPlan(state, plan, { source = "manual" } = {}) {
+    if (plan.blocked) throw new CampaignEngineError("TRANSITION_CYCLE");
+    const timestamp = new Date(this._now()).toISOString();
+
+    for (const action of plan.actions) {
+      if (action.kind === "entry.status") {
+        const entry = this._findEntry(state, action.targetId);
+        entry.status = action.after.status;
+        entry.updatedAt = timestamp;
+        this._recordChange(state, {
+          action: "entry.status",
+          targetType: "entry",
+          targetId: entry.id,
+          targetTitle: entry.title,
+          before: action.before,
+          after: action.after,
+          source: action.root ? source : "transition",
+          structural: false,
+          transactionId: plan.transactionId,
+          details: {
+            ruleId: action.ruleId,
+            causedByEntryId: action.causedByEntryId,
+            depth: action.depth
+          }
+        });
+        continue;
+      }
+
+      if (action.kind === "entry.active" || action.kind === "entry.visible") {
+        const entry = this._findEntry(state, action.targetId);
+        const field = action.kind === "entry.active" ? "active" : "visible";
+        entry[field] = action.after[field];
+        entry.updatedAt = timestamp;
+        this._recordChange(state, {
+          action: action.kind,
+          targetType: "entry",
+          targetId: entry.id,
+          targetTitle: entry.title,
+          before: action.before,
+          after: action.after,
+          source: "transition",
+          structural: false,
+          transactionId: plan.transactionId,
+          details: {
+            ruleId: action.ruleId,
+            causedByEntryId: action.causedByEntryId,
+            depth: action.depth
+          }
+        });
+        continue;
+      }
+
+      if (action.kind === "tracker.adjusted") {
+        const tracker = this._findTracker(state, action.targetId);
+        tracker.value = action.after.value;
+        tracker.updatedAt = timestamp;
+        this._recordChange(state, {
+          action: "tracker.adjusted",
+          targetType: "tracker",
+          targetId: tracker.id,
+          targetTitle: tracker.title,
+          before: action.before,
+          after: action.after,
+          source: "transition",
+          structural: false,
+          transactionId: plan.transactionId,
+          details: action.details ?? {}
+        });
+      }
+    }
+  }
 
   _assertValidParent(state, parentId) {
     if (parentId === null || parentId === undefined || parentId === "") return null;
@@ -281,6 +580,9 @@ export class CampaignEngine {
         entry.type = patch.type;
         const statuses = ENTRY_TYPES[entry.type].statuses;
         if (!statuses.includes(patch.status) && !statuses.includes(entry.status)) entry.status = statuses[0];
+        entry.transitionRules = (entry.transitionRules ?? []).filter(rule =>
+          statuses.includes(rule.fromStatus) && statuses.includes(rule.toStatus)
+        );
       }
 
       if (patch.status !== undefined) {
@@ -305,7 +607,12 @@ export class CampaignEngine {
     });
   }
 
-  async setEntryStatus(id, status, { source = "manual" } = {}) {
+  async previewEntryStatusTransition(id, status) {
+    const state = await this.getState();
+    return cloneData(this._buildTransitionPlan(state, id, status));
+  }
+
+  async setEntryStatus(id, status, { source = "manual", applyRules = true } = {}) {
     return this._mutate(state => {
       const entry = this._findEntry(state, id);
       const statuses = ENTRY_TYPES[entry.type].statuses;
@@ -314,20 +621,86 @@ export class CampaignEngine {
       }
       if (entry.status === status) return cloneData(entry);
 
-      const before = { status: entry.status };
-      entry.status = status;
+      if (!applyRules) {
+        const before = { status: entry.status };
+        entry.status = status;
+        entry.updatedAt = new Date(this._now()).toISOString();
+        this._recordChange(state, {
+          action: "entry.status",
+          targetType: "entry",
+          targetId: entry.id,
+          targetTitle: entry.title,
+          before,
+          after: { status },
+          source,
+          structural: false
+        });
+        return cloneData(entry);
+      }
+
+      const plan = this._buildTransitionPlan(state, id, status);
+      if (plan.blocked) throw new CampaignEngineError("TRANSITION_CYCLE");
+      this._applyTransitionPlan(state, plan, { source });
+      return cloneData(this._findEntry(state, id));
+    });
+  }
+
+  async createTransitionRule(entryId, data = {}) {
+    return this._mutate(state => {
+      const entry = this._findEntry(state, entryId);
+      const rule = this._validateTransitionRule(state, entry, data);
+      entry.transitionRules.push(rule);
       entry.updatedAt = new Date(this._now()).toISOString();
       this._recordChange(state, {
-        action: "entry.status",
+        action: "entry.rule.created",
+        targetType: "entry",
+        targetId: entry.id,
+        targetTitle: entry.title,
+        after: rule,
+        structural: true
+      });
+      return cloneData(rule);
+    });
+  }
+
+  async updateTransitionRule(entryId, ruleId, patch = {}) {
+    return this._mutate(state => {
+      const entry = this._findEntry(state, entryId);
+      const index = entry.transitionRules.findIndex(rule => rule.id === ruleId);
+      if (index < 0) throw new CampaignEngineError("TRANSITION_RULE_NOT_FOUND", { entryId, ruleId });
+      const before = cloneData(entry.transitionRules[index]);
+      const rule = this._validateTransitionRule(state, entry, patch, entry.transitionRules[index]);
+      entry.transitionRules[index] = rule;
+      entry.updatedAt = new Date(this._now()).toISOString();
+      this._recordChange(state, {
+        action: "entry.rule.updated",
         targetType: "entry",
         targetId: entry.id,
         targetTitle: entry.title,
         before,
-        after: { status },
-        source,
-        structural: false
+        after: rule,
+        structural: true
       });
-      return cloneData(entry);
+      return cloneData(rule);
+    });
+  }
+
+  async deleteTransitionRule(entryId, ruleId) {
+    return this._mutate(state => {
+      const entry = this._findEntry(state, entryId);
+      const index = entry.transitionRules.findIndex(rule => rule.id === ruleId);
+      if (index < 0) throw new CampaignEngineError("TRANSITION_RULE_NOT_FOUND", { entryId, ruleId });
+      const [rule] = entry.transitionRules.splice(index, 1);
+      entry.updatedAt = new Date(this._now()).toISOString();
+      this._recordChange(state, {
+        action: "entry.rule.deleted",
+        targetType: "entry",
+        targetId: entry.id,
+        targetTitle: entry.title,
+        before: rule,
+        structural: true
+      });
+      return cloneData(rule);
     });
   }
 
@@ -337,6 +710,14 @@ export class CampaignEngine {
       const before = cloneData(entry);
       state.entries = state.entries.filter(e => e.id !== id);
       state.overviewPins = state.overviewPins.filter(pin => !(pin.targetType === "entry" && pin.targetId === id));
+      for (const remainingEntry of state.entries) {
+        for (const rule of remainingEntry.transitionRules ?? []) {
+          rule.actions = (rule.actions ?? []).filter(action => !(
+            ["setEntryStatus", "setEntryActive", "setEntryVisible"].includes(action.type) && action.targetId === id
+          ));
+        }
+        remainingEntry.transitionRules = (remainingEntry.transitionRules ?? []).filter(rule => (rule.actions ?? []).length > 0);
+      }
       for (const keyPlayer of state.keyPlayers) {
         keyPlayer.entryLinks = keyPlayer.entryLinks.filter(entryId => entryId !== id);
       }
@@ -629,6 +1010,12 @@ export class CampaignEngine {
       const before = cloneData(tracker);
       state.trackers = state.trackers.filter(t => t.id !== id);
       state.overviewPins = state.overviewPins.filter(pin => !(pin.targetType === "tracker" && pin.targetId === id));
+      for (const entry of state.entries) {
+        for (const rule of entry.transitionRules ?? []) {
+          rule.actions = (rule.actions ?? []).filter(action => !(action.type === "adjustTracker" && action.targetId === id));
+        }
+        entry.transitionRules = (entry.transitionRules ?? []).filter(rule => (rule.actions ?? []).length > 0);
+      }
       for (const keyPlayer of state.keyPlayers) {
         if (keyPlayer.relationshipTrackerId === id) keyPlayer.relationshipTrackerId = null;
       }

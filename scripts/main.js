@@ -29,7 +29,7 @@ function exposeApi() {
   if (!module) return;
 
   module.api = {
-    version: "0.2.1",
+    version: "0.3.0",
     open: openCampaignForge,
     getState: () => engine.getState(),
     createGroup: data => {
@@ -51,6 +51,19 @@ function exposeApi() {
     setEntryStatus: (id, status, options) => {
       requireGM();
       return engine.setEntryStatus(id, status, options);
+    },
+    previewEntryStatusTransition: (id, status) => engine.previewEntryStatusTransition(id, status),
+    createTransitionRule: (entryId, data) => {
+      requireGM();
+      return engine.createTransitionRule(entryId, data);
+    },
+    updateTransitionRule: (entryId, ruleId, data) => {
+      requireGM();
+      return engine.updateTransitionRule(entryId, ruleId, data);
+    },
+    deleteTransitionRule: (entryId, ruleId) => {
+      requireGM();
+      return engine.deleteTransitionRule(entryId, ruleId);
     },
     startSession: () => {
       requireGM();
