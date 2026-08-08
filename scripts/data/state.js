@@ -1,4 +1,4 @@
-import { ENTRY_TYPES, KEY_PLAYER_ROLES, KEY_PLAYER_STATES, OVERVIEW_REACHED_STATUSES, SORT_STEP, TRANSITION_ACTION_TYPES } from "../core/constants.js";
+import { ENTRY_TYPES, JOURNAL_LINK_ROLES, KEY_PLAYER_ROLES, KEY_PLAYER_STATES, OVERVIEW_REACHED_STATUSES, SORT_STEP, TRANSITION_ACTION_TYPES } from "../core/constants.js";
 
 function nowIso() {
   return new Date().toISOString();
@@ -63,7 +63,33 @@ export function normalizeState(raw) {
     entry.active = entry.active !== false;
     entry.visible = entry.visible !== false;
     entry.tags = Array.isArray(entry.tags) ? entry.tags : [];
-    entry.journalLinks = Array.isArray(entry.journalLinks) ? entry.journalLinks : [];
+    entry.journalLinks = (Array.isArray(entry.journalLinks) ? entry.journalLinks : [])
+      .map((link, index) => {
+        if (typeof link === "string") {
+          return {
+            id: `journal-${entry.id}-${index + 1}`,
+            uuid: link,
+            role: "details",
+            primary: index === 0,
+            label: ""
+          };
+        }
+        if (!link || typeof link !== "object" || !link.uuid) return null;
+        return {
+          id: String(link.id ?? `journal-${entry.id}-${index + 1}`),
+          uuid: String(link.uuid),
+          role: JOURNAL_LINK_ROLES[link.role] ? link.role : "details",
+          primary: Boolean(link.primary),
+          label: String(link.label ?? "")
+        };
+      })
+      .filter(Boolean);
+    let primarySeen = false;
+    for (const link of entry.journalLinks) {
+      if (!link.primary) continue;
+      if (primarySeen) link.primary = false;
+      else primarySeen = true;
+    }
     entry.relations = Array.isArray(entry.relations) ? entry.relations : [];
     entry.transitionRules = Array.isArray(entry.transitionRules) ? entry.transitionRules : [];
     entry.transitionRules = entry.transitionRules

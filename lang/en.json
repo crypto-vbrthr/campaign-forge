@@ -193,14 +193,18 @@
       "EntryVisible": "“{title}” Visible was set to {value}.",
       "RuleCreated": "Transition rule for “{title}” created.",
       "RuleUpdated": "Transition rule for “{title}” updated.",
-      "RuleDeleted": "Transition rule for “{title}” deleted."
+      "RuleDeleted": "Transition rule for “{title}” deleted.",
+      "JournalLinkAdded": "Added a Journal link to “{title}”.",
+      "JournalLinkUpdated": "Updated a Journal link for “{title}”.",
+      "JournalLinkRemoved": "Removed a Journal link from “{title}”."
     },
     "Confirm": {
       "Title": "Campaign Forge",
       "Delete": "Really delete “{title}”?",
       "EndSession": "Really end the current session?",
       "DeleteSessionChange": "Really delete this manually added session change?",
-      "DeleteTransitionRule": "Delete this transition rule?"
+      "DeleteTransitionRule": "Delete this transition rule?",
+      "DeleteJournalLink": "Remove this Journal link?"
     },
     "Errors": {
       "Generic": "The action could not be completed. Details are available in the console.",
@@ -238,7 +242,12 @@
       "TRANSITION_RULE_NOT_FOUND": "The transition rule could not be found.",
       "TRANSITION_CYCLE": "The transition rules would create a cyclic chain. No changes were applied.",
       "TRANSITION_TOO_DEEP": "The transition chain is too deep and was stopped for safety.",
-      "TRANSITION_TOO_MANY_ACTIONS": "The transition rules would trigger too many actions and were stopped for safety."
+      "TRANSITION_TOO_MANY_ACTIONS": "The transition rules would trigger too many actions and were stopped for safety.",
+      "JOURNAL_UUID_REQUIRED": "A document reference is required for a Journal link.",
+      "INVALID_JOURNAL_LINK_ROLE": "This Journal link role is invalid.",
+      "JOURNAL_LINK_EXISTS": "This Journal is already linked to the entry.",
+      "JOURNAL_LINK_NOT_FOUND": "The Journal link could not be found.",
+      "JOURNAL_NOT_FOUND": "The linked Journal or Journal page could not be found."
     },
     "SessionChangeKinds": {
       "note": "Note",
@@ -314,6 +323,35 @@
       "setEntryActive": "Activate/deactivate entry",
       "setEntryVisible": "Show/hide entry",
       "adjustTracker": "Adjust campaign value"
+    },
+    "JournalLinks": {
+      "Title": "Linked Journals",
+      "Description": "Detailed information can live in Foundry Journals or individual Journal pages.",
+      "DropHint": "Drop a Journal or Journal page here to create a reference.",
+      "DropOnly": "Only Journals or Journal pages can be dropped here.",
+      "None": "No Journal linked yet.",
+      "SaveFirst": "Save the new campaign entry before linking Journals.",
+      "Journal": "Journal",
+      "Page": "Journal page",
+      "Role": "Link role",
+      "Missing": "unavailable",
+      "SetPrimary": "Set as primary Journal",
+      "Open": "Open Journal",
+      "OpenPrimary": "Open primary Journal",
+      "Remove": "Remove Journal link",
+      "EmbedHint": "Tip: Drag the campaign entry by its handle from the Campaign list into ProseMirror Journal text. After saving, it is rendered as an interactive live block.",
+      "Roles": {
+        "details": "Details",
+        "source": "Source",
+        "notes": "GM notes",
+        "handout": "Handout",
+        "additional": "Additional information"
+      }
+    },
+    "JournalEmbed": {
+      "Missing": "This Campaign Forge entry no longer exists.",
+      "Loading": "Loading Campaign Forge entry…",
+      "OpenInForge": "Open in Campaign Forge"
     }
   }
 }

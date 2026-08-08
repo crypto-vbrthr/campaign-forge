@@ -527,3 +527,99 @@ test("transition rules are validated, editable, removable, and cleaned when targ
   state = await engine.getState();
   assert.equal(state.entries.find(entry => entry.id === source.id).transitionRules.length, 0);
 });
+
+test("entries can manage multiple Journal references with one primary link", async () => {
+  const { engine } = engineWithRepo();
+  const entry = await engine.createEntry({ title: "Ritual", type: "knowledge" });
+
+  const first = await engine.addJournalLink(entry.id, {
+    uuid: "JournalEntry.ritual",
+    role: "details",
+    label: "Ritual Notes"
+  });
+  const second = await engine.addJournalLink(entry.id, {
+    uuid: "JournalEntry.ritual.JournalEntryPage.sources",
+    role: "source",
+    label: "Sources"
+  });
+
+  let state = await engine.getState();
+  let stored = state.entries.find(candidate => candidate.id === entry.id);
+  assert.equal(stored.journalLinks.length, 2);
+  assert.equal(stored.journalLinks.find(link => link.id === first.id).primary, true);
+  assert.equal(stored.journalLinks.find(link => link.id === second.id).primary, false);
+
+  await engine.updateJournalLink(entry.id, second.id, { primary: true, role: "handout" });
+  state = await engine.getState();
+  stored = state.entries.find(candidate => candidate.id === entry.id);
+  assert.equal(stored.journalLinks.find(link => link.id === first.id).primary, false);
+  assert.equal(stored.journalLinks.find(link => link.id === second.id).primary, true);
+  assert.equal(stored.journalLinks.find(link => link.id === second.id).role, "handout");
+});
+
+test("duplicate and invalid Journal links are rejected", async () => {
+  const { engine } = engineWithRepo();
+  const entry = await engine.createEntry({ title: "Journal test" });
+  await engine.addJournalLink(entry.id, { uuid: "JournalEntry.one" });
+
+  await assert.rejects(
+    () => engine.addJournalLink(entry.id, { uuid: "JournalEntry.one" }),
+    error => error instanceof CampaignEngineError && error.code === "JOURNAL_LINK_EXISTS"
+  );
+  await assert.rejects(
+    () => engine.addJournalLink(entry.id, { uuid: "JournalEntry.two", role: "banana" }),
+    error => error instanceof CampaignEngineError && error.code === "INVALID_JOURNAL_LINK_ROLE"
+  );
+});
+
+test("removing a primary Journal link promotes the next reference", async () => {
+  const { engine } = engineWithRepo();
+  const entry = await engine.createEntry({ title: "Journal cleanup" });
+  const first = await engine.addJournalLink(entry.id, { uuid: "JournalEntry.first" });
+  const second = await engine.addJournalLink(entry.id, { uuid: "JournalEntry.second" });
+
+  await engine.removeJournalLink(entry.id, first.id);
+  const state = await engine.getState();
+  const stored = state.entries.find(candidate => candidate.id === entry.id);
+  assert.equal(stored.journalLinks.length, 1);
+  assert.equal(stored.journalLinks[0].id, second.id);
+  assert.equal(stored.journalLinks[0].primary, true);
+});
+
+test("Journal reference changes are recorded as structural session changes", async () => {
+  const { engine } = engineWithRepo();
+  const entry = await engine.createEntry({ title: "Journal logging" });
+  await engine.startSession();
+  const link = await engine.addJournalLink(entry.id, { uuid: "JournalEntry.log" });
+  await engine.updateJournalLink(entry.id, link.id, { role: "source" });
+  await engine.removeJournalLink(entry.id, link.id);
+
+  const state = await engine.getState();
+  const session = state.sessions.find(candidate => candidate.status === "active");
+  assert.deepEqual(session.changes.map(change => change.action), [
+    "entry.journal.added",
+    "entry.journal.updated",
+    "entry.journal.removed"
+  ]);
+  assert.ok(session.changes.every(change => change.structural));
+});
+
+test("status changes originating from Journals use the normal transition transaction", async () => {
+  const { engine } = engineWithRepo();
+  const source = await engine.createEntry({ title: "Journal quest", type: "quest", status: "active" });
+  const target = await engine.createEntry({ title: "Journal clue", type: "knowledge", status: "unknown" });
+  await engine.createTransitionRule(source.id, {
+    fromStatus: "active",
+    toStatus: "completed",
+    actions: [{ type: "setEntryStatus", targetId: target.id, status: "discovered" }]
+  });
+
+  await engine.startSession();
+  await engine.setEntryStatus(source.id, "completed", { source: "journal" });
+  const state = await engine.getState();
+  const session = state.sessions.find(candidate => candidate.status === "active");
+  assert.equal(session.changes[0].source, "journal");
+  assert.equal(session.changes[1].source, "transition");
+  assert.equal(session.changes[0].transactionId, session.changes[1].transactionId);
+  assert.equal(state.entries.find(candidate => candidate.id === target.id).status, "discovered");
+});

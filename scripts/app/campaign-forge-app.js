@@ -1,5 +1,6 @@
 import {
   ENTRY_TYPES,
+  JOURNAL_LINK_ROLES,
   KEY_PLAYER_ROLES,
   KEY_PLAYER_STATES,
   MODULE_ID,
@@ -10,6 +11,7 @@ import {
 } from "../core/constants.js";
 import { CampaignEngineError } from "../engine/campaign-engine.js";
 import { getGroupProgress } from "../data/state.js";
+import { campaignEntryEmbedSyntax, EMBED_MIME } from "../integrations/journal-entries.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 
@@ -80,6 +82,24 @@ function keyPlayerStateOptions(selected = "active") {
     label: localize(def.label),
     selected: id === selected
   }));
+}
+
+function journalLinkRoleOptions(selected = "details") {
+  return Object.entries(JOURNAL_LINK_ROLES).map(([id, def]) => ({
+    id,
+    label: localize(def.label),
+    selected: id === selected
+  }));
+}
+
+async function resolveJournalTarget(uuid) {
+  if (!uuid || typeof globalThis.fromUuid !== "function") return null;
+  try {
+    const document = await globalThis.fromUuid(uuid);
+    return ["JournalEntry", "JournalEntryPage"].includes(document?.documentName) ? document : null;
+  } catch {
+    return null;
+  }
 }
 
 function transitionActionTypeOptions(selected = "setEntryStatus") {
@@ -176,6 +196,12 @@ function actionSummary(change) {
       return format("CAMPAIGN_FORGE.Changes.RuleUpdated", { title: change.targetTitle });
     case "entry.rule.deleted":
       return format("CAMPAIGN_FORGE.Changes.RuleDeleted", { title: change.targetTitle });
+    case "entry.journal.added":
+      return format("CAMPAIGN_FORGE.Changes.JournalLinkAdded", { title: change.targetTitle });
+    case "entry.journal.updated":
+      return format("CAMPAIGN_FORGE.Changes.JournalLinkUpdated", { title: change.targetTitle });
+    case "entry.journal.removed":
+      return format("CAMPAIGN_FORGE.Changes.JournalLinkRemoved", { title: change.targetTitle });
     case "session.manual": {
       const kind = change.details?.kind ?? "note";
       const kindLabel = localize(SESSION_CHANGE_KINDS[kind]?.label ?? SESSION_CHANGE_KINDS.note.label);
@@ -273,7 +299,11 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       moveKeyPlayerUp: this._actionMoveKeyPlayerUp,
       moveKeyPlayerDown: this._actionMoveKeyPlayerDown,
       markKeyPlayerSeen: this._actionMarkKeyPlayerSeen,
-      openKeyPlayerActor: this._actionOpenKeyPlayerActor
+      openKeyPlayerActor: this._actionOpenKeyPlayerActor,
+      openJournalLink: this._actionOpenJournalLink,
+      removeJournalLink: this._actionRemoveJournalLink,
+      setJournalPrimary: this._actionSetJournalPrimary,
+      openPrimaryJournal: this._actionOpenPrimaryJournal
     }
   };
 
@@ -358,6 +388,9 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
             status: entry.status,
             statuses: statusOptions(entry.type, entry.status),
             hasDescription: Boolean(entry.description),
+            journalLinkCount: (entry.journalLinks ?? []).length,
+            hasJournalLinks: (entry.journalLinks ?? []).length > 0,
+            hasPrimaryJournal: (entry.journalLinks ?? []).some(link => link.primary),
             ruleCount: (entry.transitionRules ?? []).length,
             hasRules: (entry.transitionRules ?? []).length > 0,
             overviewPinned: pinnedTargets.has(`entry:${entry.id}`),
@@ -534,7 +567,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       icon: ENTRY_TYPES[type].icon
     })).filter(x => x.count > 0);
 
-    const contextEditor = this._buildEditor(state);
+    const contextEditor = await this._buildEditor(state);
 
     return {
       ...context,
@@ -573,7 +606,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         showJournalButton: game.settings.get(MODULE_ID, SETTINGS.SHOW_JOURNAL_BUTTON),
         showStructuralChanges: game.settings.get(MODULE_ID, SETTINGS.SHOW_STRUCTURAL_CHANGES)
       },
-      version: game.modules.get(MODULE_ID)?.version ?? "0.3.0",
+      version: game.modules.get(MODULE_ID)?.version ?? "0.4.0",
       labels: {
         title: localize("CAMPAIGN_FORGE.Title"),
         noActiveSession: localize("CAMPAIGN_FORGE.Session.NoneActive")
@@ -581,7 +614,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     };
   }
 
-  _buildEditor(state) {
+  async _buildEditor(state) {
     if (!this._editor) return null;
 
     if (this._editor.kind === "group") {
@@ -623,6 +656,21 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         visible: source?.visible ?? true,
         types: entryTypeOptions(type),
         statuses: statusOptions(type, status),
+        canManageJournalLinks: Boolean(source),
+        journalLinks: source ? await Promise.all((source.journalLinks ?? []).map(async link => {
+          const target = await resolveJournalTarget(link.uuid);
+          const liveLabel = target?.name ?? link.label ?? link.uuid;
+          return {
+            ...link,
+            label: liveLabel,
+            missing: !target,
+            targetTypeLabel: target?.documentName === "JournalEntryPage"
+              ? localize("CAMPAIGN_FORGE.JournalLinks.Page")
+              : localize("CAMPAIGN_FORGE.JournalLinks.Journal"),
+            roles: journalLinkRoleOptions(link.role)
+          };
+        })) : [],
+        hasJournalLinks: Boolean(source?.journalLinks?.length),
         heading: localize(source ? "CAMPAIGN_FORGE.Editor.EditEntry" : "CAMPAIGN_FORGE.Editor.NewEntry")
       };
     }
@@ -895,6 +943,29 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       });
     });
 
+    root.querySelectorAll("[data-cf-journal-link-role]").forEach(select => {
+      select.addEventListener("change", async event => {
+        if (this._editor?.kind !== "entry" || !this._editor.id) return;
+        try {
+          await this.engine.updateJournalLink(this._editor.id, event.currentTarget.dataset.cfJournalLinkRole, {
+            role: event.currentTarget.value
+          });
+          await this.render();
+        } catch (error) {
+          this._handleError(error);
+        }
+      });
+    });
+
+    root.querySelectorAll("[data-cf-journal-link-drop]").forEach(dropZone => {
+      dropZone.addEventListener("dragover", event => {
+        event.preventDefault();
+        dropZone.classList.add("cf-drop-target");
+      });
+      dropZone.addEventListener("dragleave", () => dropZone.classList.remove("cf-drop-target"));
+      dropZone.addEventListener("drop", event => this._onJournalLinkDrop(event, dropZone));
+    });
+
     root.querySelectorAll("[data-cf-draggable]").forEach(row => {
       row.draggable = true;
       row.addEventListener("dragstart", event => this._onDragStart(event, row));
@@ -957,9 +1028,16 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       nodeType: row.dataset.nodeType,
       nodeId: row.dataset.nodeId
     };
-    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.effectAllowed = "copyMove";
     event.dataTransfer.setData("application/x-campaign-forge-node", JSON.stringify(payload));
-    event.dataTransfer.setData("text/plain", JSON.stringify(payload));
+    if (payload.nodeType === "entry") {
+      const syntax = campaignEntryEmbedSyntax(payload.nodeId, "card");
+      event.dataTransfer.setData(EMBED_MIME, JSON.stringify({ entryId: payload.nodeId, mode: "card" }));
+      event.dataTransfer.setData("text/plain", syntax);
+      event.dataTransfer.setData("text/html", `<p>${syntax}</p>`);
+    } else {
+      event.dataTransfer.setData("text/plain", JSON.stringify(payload));
+    }
   }
 
   async _onDrop(event, targetRow) {
@@ -1052,6 +1130,38 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     }
   }
 
+  async _onJournalLinkDrop(event, dropZone) {
+    event.preventDefault();
+    event.stopPropagation();
+    dropZone.classList.remove("cf-drop-target");
+    if (this._editor?.kind !== "entry" || !this._editor.id) return;
+    const dragData = this._readFoundryDragData(event);
+    const uuid = dragData?.uuid
+      || (dragData?.type === "JournalEntry" && dragData?.id ? `JournalEntry.${dragData.id}` : null)
+      || (dragData?.type === "JournalEntryPage" && dragData?.id && dragData?.parentId
+        ? `JournalEntry.${dragData.parentId}.JournalEntryPage.${dragData.id}`
+        : null);
+    if (!uuid) {
+      ui.notifications.warn(localize("CAMPAIGN_FORGE.JournalLinks.DropOnly"));
+      return;
+    }
+    const target = await resolveJournalTarget(uuid);
+    if (!target) {
+      ui.notifications.warn(localize("CAMPAIGN_FORGE.JournalLinks.DropOnly"));
+      return;
+    }
+    try {
+      await this.engine.addJournalLink(this._editor.id, {
+        uuid: target.uuid,
+        label: target.name ?? "",
+        role: "details"
+      });
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
   _readFoundryDragData(event) {
     const dragReaders = [
       globalThis.TextEditor?.getDragEventData,
@@ -1092,6 +1202,30 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       return payload;
     } catch {
       return null;
+    }
+  }
+
+  async focusTarget(targetType, targetId) {
+    if (targetType !== "entry") return;
+    try {
+      const state = await this.engine.getState();
+      const entry = state.entries.find(candidate => candidate.id === targetId);
+      if (!entry) return;
+      const collapsed = new Set(game.settings.get(MODULE_ID, SETTINGS.COLLAPSED_GROUPS) ?? []);
+      let currentId = entry.parentId;
+      const seen = new Set();
+      while (currentId && !seen.has(currentId)) {
+        seen.add(currentId);
+        collapsed.delete(currentId);
+        currentId = state.groups.find(group => group.id === currentId)?.parentId ?? null;
+      }
+      await game.settings.set(MODULE_ID, SETTINGS.COLLAPSED_GROUPS, [...collapsed]);
+      this._activeTab = "campaign";
+      this._focusKey = `entry:${targetId}`;
+      this._editor = { kind: "entry", id: targetId };
+      await this.render({ force: true });
+    } catch (error) {
+      this._handleError(error);
     }
   }
 
@@ -1559,6 +1693,50 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       return;
     }
     actor.sheet?.render?.({ force: true });
+  }
+
+  static async _actionOpenJournalLink(event, target) {
+    const journal = await resolveJournalTarget(target.dataset.uuid);
+    if (!journal) {
+      ui.notifications.warn(localize("CAMPAIGN_FORGE.Errors.JOURNAL_NOT_FOUND"));
+      return;
+    }
+    journal.sheet?.render?.({ force: true });
+  }
+
+  static async _actionOpenPrimaryJournal(event, target) {
+    const state = await this.engine.getState();
+    const entry = state.entries.find(candidate => candidate.id === target.dataset.entryId);
+    const link = entry?.journalLinks?.find(candidate => candidate.primary) ?? entry?.journalLinks?.[0];
+    if (!link) return;
+    const journal = await resolveJournalTarget(link.uuid);
+    if (!journal) {
+      ui.notifications.warn(localize("CAMPAIGN_FORGE.Errors.JOURNAL_NOT_FOUND"));
+      return;
+    }
+    journal.sheet?.render?.({ force: true });
+  }
+
+  static async _actionRemoveJournalLink(event, target) {
+    if (this._editor?.kind !== "entry" || !this._editor.id) return;
+    const confirmed = await this._confirm("CAMPAIGN_FORGE.Confirm.DeleteJournalLink");
+    if (!confirmed) return;
+    try {
+      await this.engine.removeJournalLink(this._editor.id, target.dataset.linkId);
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionSetJournalPrimary(event, target) {
+    if (this._editor?.kind !== "entry" || !this._editor.id) return;
+    try {
+      await this.engine.updateJournalLink(this._editor.id, target.dataset.linkId, { primary: true });
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
   }
 
   static async _actionToggleOverviewPin(event, target) {

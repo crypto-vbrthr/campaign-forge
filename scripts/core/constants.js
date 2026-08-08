@@ -9,6 +9,14 @@ export const SETTINGS = Object.freeze({
 
 export const SORT_STEP = 1000;
 
+export const JOURNAL_LINK_ROLES = Object.freeze({
+  details: { label: "CAMPAIGN_FORGE.JournalLinks.Roles.details" },
+  source: { label: "CAMPAIGN_FORGE.JournalLinks.Roles.source" },
+  notes: { label: "CAMPAIGN_FORGE.JournalLinks.Roles.notes" },
+  handout: { label: "CAMPAIGN_FORGE.JournalLinks.Roles.handout" },
+  additional: { label: "CAMPAIGN_FORGE.JournalLinks.Roles.additional" }
+});
+
 export const ENTRY_TYPES = Object.freeze({
   quest: {
     label: "CAMPAIGN_FORGE.EntryTypes.quest",
@@ -134,6 +142,9 @@ export const STRUCTURAL_ACTIONS = new Set([
   "entry.rule.created",
   "entry.rule.updated",
   "entry.rule.deleted",
+  "entry.journal.added",
+  "entry.journal.updated",
+  "entry.journal.removed",
   "tracker.created",
   "tracker.updated",
   "tracker.deleted",

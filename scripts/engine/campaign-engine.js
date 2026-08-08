@@ -1,5 +1,6 @@
 import {
   ENTRY_TYPES,
+  JOURNAL_LINK_ROLES,
   KEY_PLAYER_ROLES,
   KEY_PLAYER_STATES,
   MAX_TRANSITION_ACTIONS,
@@ -604,6 +605,94 @@ export class CampaignEngine {
         structural: true
       });
       return cloneData(entry);
+    });
+  }
+
+  async addJournalLink(entryId, { uuid, role = "details", primary = false, label = "" } = {}) {
+    const cleanUuid = String(uuid ?? "").trim();
+    if (!cleanUuid) throw new CampaignEngineError("JOURNAL_UUID_REQUIRED");
+    if (!JOURNAL_LINK_ROLES[role]) throw new CampaignEngineError("INVALID_JOURNAL_LINK_ROLE", { role });
+
+    return this._mutate(state => {
+      const entry = this._findEntry(state, entryId);
+      if ((entry.journalLinks ?? []).some(link => link.uuid === cleanUuid)) {
+        throw new CampaignEngineError("JOURNAL_LINK_EXISTS", { uuid: cleanUuid });
+      }
+      const link = {
+        id: this._newId(),
+        uuid: cleanUuid,
+        role,
+        primary: Boolean(primary) || !(entry.journalLinks ?? []).some(existing => existing.primary),
+        label: String(label ?? "")
+      };
+      if (link.primary) {
+        for (const existing of entry.journalLinks ?? []) existing.primary = false;
+      }
+      entry.journalLinks ??= [];
+      entry.journalLinks.push(link);
+      entry.updatedAt = new Date(this._now()).toISOString();
+      this._recordChange(state, {
+        action: "entry.journal.added",
+        targetType: "entry",
+        targetId: entry.id,
+        targetTitle: entry.title,
+        after: link,
+        structural: true
+      });
+      return cloneData(link);
+    });
+  }
+
+  async updateJournalLink(entryId, linkId, patch = {}) {
+    return this._mutate(state => {
+      const entry = this._findEntry(state, entryId);
+      const link = (entry.journalLinks ?? []).find(candidate => candidate.id === linkId);
+      if (!link) throw new CampaignEngineError("JOURNAL_LINK_NOT_FOUND", { entryId, linkId });
+      const before = cloneData(link);
+      if (patch.role !== undefined) {
+        if (!JOURNAL_LINK_ROLES[patch.role]) throw new CampaignEngineError("INVALID_JOURNAL_LINK_ROLE", { role: patch.role });
+        link.role = patch.role;
+      }
+      if (patch.label !== undefined) link.label = String(patch.label ?? "");
+      if (patch.primary !== undefined) {
+        link.primary = Boolean(patch.primary);
+        if (link.primary) {
+          for (const other of entry.journalLinks ?? []) {
+            if (other.id !== link.id) other.primary = false;
+          }
+        }
+      }
+      entry.updatedAt = new Date(this._now()).toISOString();
+      this._recordChange(state, {
+        action: "entry.journal.updated",
+        targetType: "entry",
+        targetId: entry.id,
+        targetTitle: entry.title,
+        before,
+        after: link,
+        structural: true
+      });
+      return cloneData(link);
+    });
+  }
+
+  async removeJournalLink(entryId, linkId) {
+    return this._mutate(state => {
+      const entry = this._findEntry(state, entryId);
+      const index = (entry.journalLinks ?? []).findIndex(candidate => candidate.id === linkId);
+      if (index < 0) throw new CampaignEngineError("JOURNAL_LINK_NOT_FOUND", { entryId, linkId });
+      const [link] = entry.journalLinks.splice(index, 1);
+      if (link.primary && entry.journalLinks.length) entry.journalLinks[0].primary = true;
+      entry.updatedAt = new Date(this._now()).toISOString();
+      this._recordChange(state, {
+        action: "entry.journal.removed",
+        targetType: "entry",
+        targetId: entry.id,
+        targetTitle: entry.title,
+        before: link,
+        structural: true
+      });
+      return cloneData(link);
     });
   }
 

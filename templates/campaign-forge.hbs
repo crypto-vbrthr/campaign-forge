@@ -257,6 +257,11 @@
                       {{/each}}
                     </select>
                     <div class="cf-row-actions">
+                      {{#if hasJournalLinks}}
+                        <button type="button" class="icon" data-action="openPrimaryJournal" data-entry-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.JournalLinks.OpenPrimary"}}">
+                          <i class="fa-solid fa-book-open"></i>
+                        </button>
+                      {{/if}}
                       <button type="button" class="icon {{#if overviewPinned}}is-pinned{{/if}}" data-action="toggleOverviewPin" data-target-type="entry" data-target-id="{{id}}" data-pinned="{{overviewPinned}}" title="{{#if overviewPinned}}{{localize "CAMPAIGN_FORGE.Actions.UnpinFromOverview"}}{{else}}{{localize "CAMPAIGN_FORGE.Actions.PinToOverview"}}{{/if}}">
                         <i class="fa-solid fa-thumbtack"></i>
                       </button>
@@ -347,6 +352,54 @@
                   <input type="checkbox" name="visible" {{#if editor.visible}}checked{{/if}}>
                   <span>{{localize "CAMPAIGN_FORGE.Fields.Visible"}}</span>
                 </label>
+
+                <section class="cf-journal-links-editor">
+                  <div class="cf-journal-links-heading">
+                    <div>
+                      <strong>{{localize "CAMPAIGN_FORGE.JournalLinks.Title"}}</strong>
+                      <small>{{localize "CAMPAIGN_FORGE.JournalLinks.Description"}}</small>
+                    </div>
+                  </div>
+                  {{#if editor.canManageJournalLinks}}
+                    <div class="cf-journal-link-drop" data-cf-journal-link-drop>
+                      <i class="fa-solid fa-book-medical"></i>
+                      <span>{{localize "CAMPAIGN_FORGE.JournalLinks.DropHint"}}</span>
+                    </div>
+                    {{#if editor.hasJournalLinks}}
+                      <div class="cf-journal-link-list">
+                        {{#each editor.journalLinks}}
+                          <article class="cf-journal-link-row {{#if missing}}is-missing{{/if}}">
+                            <div class="cf-journal-link-main">
+                              <strong>{{label}}</strong>
+                              <small>{{targetTypeLabel}}{{#if missing}} · {{localize "CAMPAIGN_FORGE.JournalLinks.Missing"}}{{/if}}</small>
+                            </div>
+                            <select data-cf-journal-link-role="{{id}}" aria-label="{{localize "CAMPAIGN_FORGE.JournalLinks.Role"}}">
+                              {{#each roles}}
+                                <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                              {{/each}}
+                            </select>
+                            <div class="cf-journal-link-actions">
+                              <button type="button" class="icon {{#if primary}}is-primary{{/if}}" data-action="setJournalPrimary" data-link-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.JournalLinks.SetPrimary"}}">
+                                <i class="fa-solid fa-star"></i>
+                              </button>
+                              <button type="button" class="icon" data-action="openJournalLink" data-uuid="{{uuid}}" title="{{localize "CAMPAIGN_FORGE.JournalLinks.Open"}}">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                              </button>
+                              <button type="button" class="icon" data-action="removeJournalLink" data-link-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.JournalLinks.Remove"}}">
+                                <i class="fa-solid fa-trash"></i>
+                              </button>
+                            </div>
+                          </article>
+                        {{/each}}
+                      </div>
+                    {{else}}
+                      <small class="cf-journal-links-empty">{{localize "CAMPAIGN_FORGE.JournalLinks.None"}}</small>
+                    {{/if}}
+                    <p class="cf-journal-embed-hint"><i class="fa-solid fa-grip-vertical"></i> {{localize "CAMPAIGN_FORGE.JournalLinks.EmbedHint"}}</p>
+                  {{else}}
+                    <small>{{localize "CAMPAIGN_FORGE.JournalLinks.SaveFirst"}}</small>
+                  {{/if}}
+                </section>
               {{/if}}
 
               {{#if (eq editor.kind "rules")}}

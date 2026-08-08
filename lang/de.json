@@ -193,14 +193,18 @@
       "EntryVisible": "„{title}“ Sichtbar wurde auf {value} gesetzt.",
       "RuleCreated": "Folgeregel für „{title}“ erstellt.",
       "RuleUpdated": "Folgeregel für „{title}“ bearbeitet.",
-      "RuleDeleted": "Folgeregel für „{title}“ gelöscht."
+      "RuleDeleted": "Folgeregel für „{title}“ gelöscht.",
+      "JournalLinkAdded": "Journal-Verknüpfung für „{title}“ hinzugefügt.",
+      "JournalLinkUpdated": "Journal-Verknüpfung für „{title}“ bearbeitet.",
+      "JournalLinkRemoved": "Journal-Verknüpfung für „{title}“ entfernt."
     },
     "Confirm": {
       "Title": "Campaign Forge",
       "Delete": "„{title}“ wirklich löschen?",
       "EndSession": "Die laufende Sitzung wirklich beenden?",
       "DeleteSessionChange": "Diese manuell hinzugefügte Sitzungsänderung wirklich löschen?",
-      "DeleteTransitionRule": "Diese Folgeregel wirklich löschen?"
+      "DeleteTransitionRule": "Diese Folgeregel wirklich löschen?",
+      "DeleteJournalLink": "Diese Journal-Verknüpfung wirklich entfernen?"
     },
     "Errors": {
       "Generic": "Die Aktion konnte nicht ausgeführt werden. Details stehen in der Konsole.",
@@ -238,7 +242,12 @@
       "TRANSITION_RULE_NOT_FOUND": "Die Folgeregel wurde nicht gefunden.",
       "TRANSITION_CYCLE": "Die Folgeregeln würden eine zyklische Kette erzeugen. Es wurden keine Änderungen ausgeführt.",
       "TRANSITION_TOO_DEEP": "Die Kette der Folgeregeln ist zu tief und wurde aus Sicherheitsgründen abgebrochen.",
-      "TRANSITION_TOO_MANY_ACTIONS": "Die Folgeregeln würden zu viele Aktionen auslösen und wurden aus Sicherheitsgründen abgebrochen."
+      "TRANSITION_TOO_MANY_ACTIONS": "Die Folgeregeln würden zu viele Aktionen auslösen und wurden aus Sicherheitsgründen abgebrochen.",
+      "JOURNAL_UUID_REQUIRED": "Für eine Journal-Verknüpfung ist eine Dokumentreferenz erforderlich.",
+      "INVALID_JOURNAL_LINK_ROLE": "Diese Rolle für eine Journal-Verknüpfung ist ungültig.",
+      "JOURNAL_LINK_EXISTS": "Dieses Journal ist mit dem Eintrag bereits verknüpft.",
+      "JOURNAL_LINK_NOT_FOUND": "Die Journal-Verknüpfung wurde nicht gefunden.",
+      "JOURNAL_NOT_FOUND": "Das verknüpfte Journal oder die Journalseite konnte nicht gefunden werden."
     },
     "SessionChangeKinds": {
       "note": "Notiz",
@@ -314,6 +323,35 @@
       "setEntryActive": "Eintrag aktivieren/deaktivieren",
       "setEntryVisible": "Eintrag ein-/ausblenden",
       "adjustTracker": "Kampagnenwert verändern"
+    },
+    "JournalLinks": {
+      "Title": "Verknüpfte Journale",
+      "Description": "Ausführliche Details können in Foundry-Journals oder einzelnen Journalseiten liegen.",
+      "DropHint": "Journal oder Journalseite hierher ziehen, um eine Referenz anzulegen.",
+      "DropOnly": "Hier können nur Journale oder Journalseiten abgelegt werden.",
+      "None": "Noch kein Journal verknüpft.",
+      "SaveFirst": "Speichere den neuen Kampagneneintrag zuerst, bevor Journale verknüpft werden.",
+      "Journal": "Journal",
+      "Page": "Journalseite",
+      "Role": "Rolle der Verknüpfung",
+      "Missing": "nicht erreichbar",
+      "SetPrimary": "Als Hauptjournal festlegen",
+      "Open": "Journal öffnen",
+      "OpenPrimary": "Hauptjournal öffnen",
+      "Remove": "Journal-Verknüpfung entfernen",
+      "EmbedHint": "Tipp: Ziehe den Kampagneneintrag am Griff aus der Kampagnenliste in einen ProseMirror-Journaltext. Dort erscheint er nach dem Speichern als interaktiver Live-Block.",
+      "Roles": {
+        "details": "Details",
+        "source": "Quelle",
+        "notes": "SL-Notizen",
+        "handout": "Handout",
+        "additional": "Zusatzinformation"
+      }
+    },
+    "JournalEmbed": {
+      "Missing": "Dieser Campaign-Forge-Eintrag existiert nicht mehr.",
+      "Loading": "Campaign-Forge-Eintrag wird geladen …",
+      "OpenInForge": "In Campaign Forge öffnen"
     }
   }
 }

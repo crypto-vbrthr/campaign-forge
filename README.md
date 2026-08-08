@@ -1,8 +1,8 @@
-# Campaign Forge v0.3.0
+# Campaign Forge v0.4.0
 
 Campaign Forge is a GM-facing Foundry VTT module for tracking campaign structure, knowledge, quests, events, sessions, long-term campaign values, important NPCs, and rule-driven campaign state changes.
 
-## v0.3.0 status-transition milestone
+## v0.4.0 Journal integration milestone
 
 - Journal sidebar launcher and ApplicationV2 campaign workspace.
 - Campaign tree with chapters, nested groups, typed entries, manual ordering, and drag & drop.
@@ -19,6 +19,10 @@ Campaign Forge is a GM-facing Foundry VTT module for tracking campaign structure
 - Cyclic transition chains are detected and blocked before data is changed.
 - All changes in one chain share a transaction identifier and are grouped visually in the session history.
 - Transition-rule editing and rule-maintenance changes are treated as structural session changes.
+- Campaign entries can reference multiple Foundry Journals or individual Journal pages, with semantic roles and one primary Journal.
+- Existing Campaign Forge entries can be dragged into ProseMirror Journal text and are enriched into live blocks after saving.
+- GMs can change entry status directly from a Journal live block; the central transition engine, consequence preview, and session logging remain in effect.
+- Non-GM users receive read-only live blocks and entries marked hidden are not exposed through Journal embeds.
 - German and English localization for all application text.
 
 ## Storage
@@ -27,4 +31,11 @@ Campaign data is stored in a hidden world setting. UI collapse state and display
 
 ## Next planned blocks
 
-Deeper Journal integration, Journal references/embedded controls, and later reward/provider integrations.
+Further Journal polish, richer player-facing permissions, and later reward/provider integrations.
+
+
+## Journal integration
+
+Campaign entries can reference one or more Foundry Journals or individual Journal pages. A primary Journal can be opened directly from the Campaign tree. Existing entries can also be dragged into ProseMirror Journal text; after the Journal is saved, Campaign Forge enriches the lightweight reference into a live block. GM users can change the entry status from that block, and all transition rules continue to apply through the central Campaign Engine.
+
+Journal embeds are references rather than copies. Renamed entries, status changes, descriptions, and visibility therefore remain synchronized with Campaign Forge data.

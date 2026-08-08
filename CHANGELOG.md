@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0
+
+- Added Journal references to Campaign Forge entries with drag & drop support for both `JournalEntry` and `JournalEntryPage` documents.
+- Entries can link multiple Journals, assign semantic link roles, choose one primary Journal, open links directly, and retain broken references visibly for repair.
+- Added a direct primary-Journal button to campaign rows that have Journal references.
+- Campaign Forge entries can now be dragged from the Campaign tree into ProseMirror Journal text. They are stored as lightweight `@CampaignForge[...]` references and enriched into live Journal blocks after saving.
+- Live Journal blocks show entry type, current status, and optionally the entry description. GMs can change status directly from the Journal while players receive a read-only view.
+- Journal-originated status changes use the same transition engine, preview consequences, run dependent status rules, and are logged with `source: journal`.
+- Entries marked not visible are not exposed through Journal embeds to non-GM users.
+- Open Journal blocks can jump directly back to the referenced Campaign Forge entry.
+- Journal blocks refresh when Campaign Forge data changes, avoiding stale status displays in already-open Journal views.
+- Added German and English localization for the complete Journal-reference and Journal-embed workflow.
+- Regression suite expanded from 24 to 29 engine tests.
+
 ## 0.3.0
 
 - Added status-transition rules to Campaign Forge entries.

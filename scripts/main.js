@@ -4,6 +4,7 @@ import { FoundryCampaignRepository } from "./data/foundry-repository.js";
 import { CampaignEngine } from "./engine/campaign-engine.js";
 import { CampaignForgeApp } from "./app/campaign-forge-app.js";
 import { injectJournalButton, registerJournalIntegration } from "./integrations/journal-sidebar.js";
+import { campaignEntryEmbedSyntax, refreshJournalEmbeds, registerJournalEntryIntegration } from "./integrations/journal-entries.js";
 
 let engine = null;
 let app = null;
@@ -14,13 +15,14 @@ function requireGM() {
   }
 }
 
-export function openCampaignForge() {
+export function openCampaignForge(target = null) {
   if (!game.user?.isGM) {
     ui.notifications.warn(game.i18n.localize("CAMPAIGN_FORGE.Errors.GMOnly"));
     return null;
   }
   if (!app) app = new CampaignForgeApp(engine);
   app.render({ force: true });
+  if (target?.targetType && target?.targetId) app.focusTarget?.(target.targetType, target.targetId);
   return app;
 }
 
@@ -29,9 +31,10 @@ function exposeApi() {
   if (!module) return;
 
   module.api = {
-    version: "0.3.0",
+    version: "0.4.0",
     open: openCampaignForge,
     getState: () => engine.getState(),
+    getJournalEmbedSyntax: (entryId, mode = "card") => campaignEntryEmbedSyntax(entryId, mode),
     createGroup: data => {
       requireGM();
       return engine.createGroup(data);
@@ -47,6 +50,18 @@ function exposeApi() {
     updateEntry: (id, data) => {
       requireGM();
       return engine.updateEntry(id, data);
+    },
+    addJournalLink: (entryId, data) => {
+      requireGM();
+      return engine.addJournalLink(entryId, data);
+    },
+    updateJournalLink: (entryId, linkId, data) => {
+      requireGM();
+      return engine.updateJournalLink(entryId, linkId, data);
+    },
+    removeJournalLink: (entryId, linkId) => {
+      requireGM();
+      return engine.removeJournalLink(entryId, linkId);
     },
     setEntryStatus: (id, status, options) => {
       requireGM();
@@ -117,6 +132,7 @@ Hooks.once("init", () => {
   // Register the JournalDirectory render hook during init so it is already
   // listening when Foundry performs the sidebar's initial render.
   registerJournalIntegration(openCampaignForge);
+  registerJournalEntryIntegration({ getEngine: () => engine, openCampaignForge });
 });
 
 Hooks.once("ready", async () => {
@@ -138,6 +154,7 @@ Hooks.once("ready", async () => {
     if (!game.user?.isGM) return;
     if (setting?.key !== `${MODULE_ID}.${SETTINGS.DATA}`) return;
     if (app?.rendered) app.render();
+    refreshJournalEmbeds().catch(error => console.warn(`${MODULE_ID} | Could not refresh Journal embeds`, error));
   });
 
   console.info(`${MODULE_ID} | Ready`);
