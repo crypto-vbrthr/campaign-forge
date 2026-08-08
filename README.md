@@ -1,8 +1,8 @@
-# Campaign Forge v0.1.0
+# Campaign Forge v0.1.1
 
 Campaign Forge is a system-agnostic Foundry VTT module for tracking campaign state: chapters, groups, quests, knowledge, events, mysteries, locations, items, notes, sessions, and numeric trackers.
 
-## v0.1.0 foundation
+## v0.1.1 foundation
 
 - GM-only Campaign Forge button in the Journal sidebar.
 - ApplicationV2 interface with Overview, Campaign, Sessions, Trackers, and Settings tabs.
@@ -19,7 +19,7 @@ Campaign Forge is a system-agnostic Foundry VTT module for tracking campaign sta
 
 ## Data storage
 
-v0.1.0 stores Campaign Forge world data in a hidden world setting. UI collapse state and display preferences are client-scoped.
+v0.1.1 stores Campaign Forge world data in a hidden world setting. UI collapse state and display preferences are client-scoped.
 
 ## Intentionally deferred
 

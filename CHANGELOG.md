@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+### Fixed
+- Register the Journal-directory render hook during Foundry `init`, so the Campaign Forge launcher is present on the Journal tab immediately after world load instead of only appearing after the Journal directory is re-rendered.
+- Keep a defensive `ready`-time injection for already-rendered sidebars without creating duplicate buttons.
+
 ## 0.1.0
 
 Initial foundation release.

@@ -29,7 +29,7 @@ function exposeApi() {
   if (!module) return;
 
   module.api = {
-    version: "0.1.0",
+    version: "0.1.1",
     open: openCampaignForge,
     getState: () => engine.getState(),
     createGroup: data => {
@@ -73,6 +73,9 @@ function exposeApi() {
 
 Hooks.once("init", () => {
   registerSettings();
+  // Register the JournalDirectory render hook during init so it is already
+  // listening when Foundry performs the sidebar's initial render.
+  registerJournalIntegration(openCampaignForge);
 });
 
 Hooks.once("ready", async () => {
@@ -82,8 +85,9 @@ Hooks.once("ready", async () => {
   });
 
   exposeApi();
-  registerJournalIntegration(openCampaignForge);
 
+  // Defensive fallback for worlds where the Journal directory was rendered
+  // before ready. The injector is idempotent, so this cannot create a duplicate.
   if (game.user?.isGM) {
     const journal = ui.sidebar?.tabs?.journal;
     if (journal) injectJournalButton(journal, journal.element, openCampaignForge);

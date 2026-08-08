@@ -1,5 +1,7 @@
 import { MODULE_ID, SETTINGS } from "../core/constants.js";
 
+let journalIntegrationRegistered = false;
+
 function rootElement(html) {
   if (html instanceof HTMLElement) return html;
   if (html?.[0] instanceof HTMLElement) return html[0];
@@ -38,6 +40,9 @@ export function injectJournalButton(app, html, openCampaignForge) {
 }
 
 export function registerJournalIntegration(openCampaignForge) {
+  if (journalIntegrationRegistered) return;
+  journalIntegrationRegistered = true;
+
   Hooks.on("renderJournalDirectory", (app, html) => {
     injectJournalButton(app, html, openCampaignForge);
   });
