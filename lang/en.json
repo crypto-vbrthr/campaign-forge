@@ -30,7 +30,10 @@
       "MoveUp": "Move up",
       "MoveDown": "Move down",
       "Drag": "Drag to move",
-      "AddSessionChange": "Add change"
+      "AddSessionChange": "Add change",
+      "PinToOverview": "Show in overview",
+      "UnpinFromOverview": "Remove from overview",
+      "OpenOverviewTarget": "Jump to element"
     },
     "Session": {
       "Session": "Session",
@@ -41,7 +44,7 @@
     },
     "Overview": {
       "Title": "Overview",
-      "Description": "A calm snapshot of the current campaign data.",
+      "Description": "Keep long-term important entries, groups, and campaign values in view.",
       "Entries": "Entries",
       "ActiveEntries": "Active entries",
       "Chapters": "Chapters",
@@ -49,7 +52,15 @@
       "Trackers": "Trackers",
       "EntryTypes": "Entries by type",
       "CurrentSession": "Current session",
-      "NoEntries": "No entries yet."
+      "NoEntries": "No entries yet.",
+      "PinnedTitle": "Pinned campaign points",
+      "PinnedDescription": "Mark entries, groups, or values in their respective views to keep them visible here.",
+      "NoPinnedTitle": "Nothing pinned yet",
+      "NoPinnedText": "Pin important entries, groups, or values to the overview using the thumbtack button.",
+      "ProgressCount": "{reached} / {total} reached",
+      "NoProgressEntries": "No contained entries",
+      "CampaignValue": "Campaign value",
+      "UnboundedValue": "no fixed bounds"
     },
     "Campaign": {
       "Title": "Campaign",
@@ -156,7 +167,10 @@
       "TrackerUpdated": "Tracker “{title}” was edited.",
       "TrackerDeleted": "Tracker “{title}” was deleted.",
       "TrackerAdjusted": "“{title}” changed by {delta} to {value}.",
-      "ManualSessionChange": "{kind}: “{title}”"
+      "ManualSessionChange": "{kind}: “{title}”",
+      "OverviewPinned": "“{title}” was pinned to the overview.",
+      "OverviewUnpinned": "“{title}” was removed from the overview.",
+      "OverviewMoved": "“{title}” was moved in the overview."
     },
     "Confirm": {
       "Title": "Campaign Forge",
@@ -182,7 +196,9 @@
       "INVALID_TRACKER_RANGE": "Minimum cannot be greater than maximum.",
       "INVALID_SESSION_CHANGE_KIND": "This session change type is invalid.",
       "SESSION_CHANGE_NOT_FOUND": "The session change could not be found.",
-      "SESSION_CHANGE_NOT_MANUAL": "Only manually added session changes can be deleted here."
+      "SESSION_CHANGE_NOT_MANUAL": "Only manually added session changes can be deleted here.",
+      "INVALID_OVERVIEW_TARGET": "This element type cannot be used in the overview.",
+      "OVERVIEW_PIN_NOT_FOUND": "The overview item could not be found."
     },
     "SessionChangeKinds": {
       "note": "Note",

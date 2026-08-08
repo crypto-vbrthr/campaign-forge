@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import { CampaignEngine, CampaignEngineError } from "../scripts/engine/campaign-engine.js";
 import { MemoryRepository, deterministicOptions } from "./helpers.js";
+import { getGroupProgress } from "../scripts/data/state.js";
 
 function engineWithRepo() {
   const repository = new MemoryRepository();
@@ -232,4 +233,77 @@ test("manual session changes require an active session and a valid kind", async 
     () => engine.addManualSessionChange({ title: "Bad kind", kind: "banana" }),
     error => error instanceof CampaignEngineError && error.code === "INVALID_SESSION_CHANGE_KIND"
   );
+});
+
+
+test("overview pins can reference entries, groups, and trackers without duplicates", async () => {
+  const { engine } = engineWithRepo();
+
+  const chapter = await engine.createGroup({ title: "Arc", kind: "chapter" });
+  const entry = await engine.createEntry({ title: "Clue", type: "knowledge", parentId: chapter.id });
+  const tracker = await engine.createTracker({ title: "Reputation", value: 2, min: 0, max: 10 });
+
+  const one = await engine.setOverviewPinned("group", chapter.id, true);
+  const two = await engine.setOverviewPinned("entry", entry.id, true);
+  const three = await engine.setOverviewPinned("tracker", tracker.id, true);
+  const duplicate = await engine.setOverviewPinned("entry", entry.id, true);
+
+  const state = await engine.getState();
+  assert.equal(state.overviewPins.length, 3);
+  assert.equal(duplicate.id, two.id);
+  assert.deepEqual(state.overviewPins.map(pin => pin.id), [one.id, two.id, three.id]);
+});
+
+test("overview pins can be reordered and unpinned", async () => {
+  const { engine } = engineWithRepo();
+
+  const one = await engine.createEntry({ title: "One" });
+  const two = await engine.createEntry({ title: "Two" });
+  const three = await engine.createEntry({ title: "Three" });
+  const p1 = await engine.setOverviewPinned("entry", one.id, true);
+  const p2 = await engine.setOverviewPinned("entry", two.id, true);
+  const p3 = await engine.setOverviewPinned("entry", three.id, true);
+
+  await engine.moveOverviewPinByOffset(p3.id, -2);
+  let state = await engine.getState();
+  assert.deepEqual(
+    [...state.overviewPins].sort((a, b) => a.sort - b.sort).map(pin => pin.targetId),
+    [three.id, one.id, two.id]
+  );
+
+  await engine.setOverviewPinned("entry", one.id, false);
+  state = await engine.getState();
+  assert.deepEqual(
+    [...state.overviewPins].sort((a, b) => a.sort - b.sort).map(pin => pin.targetId),
+    [three.id, two.id]
+  );
+  assert.ok(p1.id);
+  assert.ok(p2.id);
+});
+
+test("deleting a target also removes its overview pin", async () => {
+  const { engine } = engineWithRepo();
+
+  const entry = await engine.createEntry({ title: "Temporary" });
+  await engine.setOverviewPinned("entry", entry.id, true);
+  await engine.deleteEntry(entry.id);
+
+  const state = await engine.getState();
+  assert.equal(state.overviewPins.length, 0);
+});
+
+test("group progress includes nested entries and recognizes type-specific reached states", async () => {
+  const { engine } = engineWithRepo();
+
+  const chapter = await engine.createGroup({ title: "Ritual", kind: "chapter" });
+  const clues = await engine.createGroup({ title: "Clues", parentId: chapter.id });
+  const knowledge = await engine.createEntry({ title: "Formula", type: "knowledge", parentId: clues.id });
+  const item = await engine.createEntry({ title: "Focus", type: "item", parentId: chapter.id });
+  await engine.createEntry({ title: "Final question", type: "mystery", parentId: chapter.id });
+
+  await engine.setEntryStatus(knowledge.id, "discovered");
+  await engine.setEntryStatus(item.id, "acquired");
+
+  const state = await engine.getState();
+  assert.deepEqual(getGroupProgress(state, chapter.id), { reached: 2, total: 3, percent: 67 });
 });

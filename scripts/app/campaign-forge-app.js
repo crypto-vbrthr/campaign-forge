@@ -4,9 +4,9 @@ import {
   SETTINGS,
   SESSION_CHANGE_KINDS,
   STATUS_LABELS,
-  STRUCTURAL_ACTIONS
 } from "../core/constants.js";
 import { CampaignEngineError } from "../engine/campaign-engine.js";
+import { getGroupProgress } from "../data/state.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 
@@ -99,6 +99,12 @@ function actionSummary(change) {
         value: change.after?.value ?? ""
       });
     }
+    case "overview.pinned":
+      return format("CAMPAIGN_FORGE.Changes.OverviewPinned", { title: change.targetTitle });
+    case "overview.unpinned":
+      return format("CAMPAIGN_FORGE.Changes.OverviewUnpinned", { title: change.targetTitle });
+    case "overview.moved":
+      return format("CAMPAIGN_FORGE.Changes.OverviewMoved", { title: change.targetTitle });
     case "session.manual": {
       const kind = change.details?.kind ?? "note";
       const kindLabel = localize(SESSION_CHANGE_KINDS[kind]?.label ?? SESSION_CHANGE_KINDS.note.label);
@@ -147,7 +153,11 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       adjustTracker: this._actionAdjustTracker,
       moveTrackerUp: this._actionMoveTrackerUp,
       moveTrackerDown: this._actionMoveTrackerDown,
-      deleteTracker: this._actionDeleteTracker
+      deleteTracker: this._actionDeleteTracker,
+      toggleOverviewPin: this._actionToggleOverviewPin,
+      moveOverviewPinUp: this._actionMoveOverviewPinUp,
+      moveOverviewPinDown: this._actionMoveOverviewPinDown,
+      openOverviewTarget: this._actionOpenOverviewTarget
     }
   };
 
@@ -169,6 +179,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this.engine = engine;
     this._activeTab = "overview";
     this._editor = null;
+    this._focusKey = null;
   }
 
   async _prepareContext(options) {
@@ -177,6 +188,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const collapsed = new Set(game.settings.get(MODULE_ID, SETTINGS.COLLAPSED_GROUPS) ?? []);
     const activeSession = state.sessions.find(s => s.status === "active") ?? null;
     const showStructural = game.settings.get(MODULE_ID, SETTINGS.SHOW_STRUCTURAL_CHANGES);
+    const pinnedTargets = new Set(state.overviewPins.map(pin => `${pin.targetType}:${pin.targetId}`));
 
     const campaignRows = [];
     const seen = new Set();
@@ -209,7 +221,9 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
             depth,
             collapsed: isCollapsed,
             icon: group.kind === "chapter" ? "fa-solid fa-bookmark" : "fa-solid fa-folder",
-            hasDescription: Boolean(group.description)
+            hasDescription: Boolean(group.description),
+            overviewPinned: pinnedTargets.has(`group:${group.id}`),
+            focusKey: `group:${group.id}`
           });
           if (!isCollapsed) pushChildren(group.id, depth + 1);
         } else {
@@ -226,7 +240,9 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
             visible: entry.visible,
             status: entry.status,
             statuses: statusOptions(entry.type, entry.status),
-            hasDescription: Boolean(entry.description)
+            hasDescription: Boolean(entry.description),
+            overviewPinned: pinnedTargets.has(`entry:${entry.id}`),
+            focusKey: `entry:${entry.id}`
           });
         }
       }
@@ -265,8 +281,73 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         hasMax: Number.isFinite(tracker.max),
         rangeLabel: Number.isFinite(tracker.min) || Number.isFinite(tracker.max)
           ? `${Number.isFinite(tracker.min) ? tracker.min : "−∞"} … ${Number.isFinite(tracker.max) ? tracker.max : "∞"}`
-          : null
+          : null,
+        overviewPinned: pinnedTargets.has(`tracker:${tracker.id}`),
+        focusKey: `tracker:${tracker.id}`
       }));
+
+    const overviewPins = [...state.overviewPins]
+      .sort((a, b) => a.sort - b.sort)
+      .map(pin => {
+        if (pin.targetType === "entry") {
+          const entry = state.entries.find(candidate => candidate.id === pin.targetId);
+          if (!entry) return null;
+          return {
+            ...pin,
+            targetTitle: entry.title,
+            icon: ENTRY_TYPES[entry.type]?.icon ?? "fa-solid fa-note-sticky",
+            metaLabel: localize(ENTRY_TYPES[entry.type]?.label ?? entry.type),
+            detailLabel: localize(STATUS_LABELS[entry.status] ?? entry.status),
+            isEntry: true,
+            progressPercent: null
+          };
+        }
+
+        if (pin.targetType === "group") {
+          const group = state.groups.find(candidate => candidate.id === pin.targetId);
+          if (!group) return null;
+          const progress = getGroupProgress(state, group.id);
+          return {
+            ...pin,
+            targetTitle: group.title,
+            icon: group.kind === "chapter" ? "fa-solid fa-bookmark" : "fa-solid fa-folder",
+            metaLabel: localize(group.kind === "chapter"
+              ? "CAMPAIGN_FORGE.GroupKinds.chapter"
+              : "CAMPAIGN_FORGE.GroupKinds.group"),
+            detailLabel: progress.total
+              ? format("CAMPAIGN_FORGE.Overview.ProgressCount", { reached: progress.reached, total: progress.total })
+              : localize("CAMPAIGN_FORGE.Overview.NoProgressEntries"),
+            isGroup: true,
+            hasProgress: progress.total > 0,
+            progressPercent: progress.percent
+          };
+        }
+
+        if (pin.targetType === "tracker") {
+          const tracker = state.trackers.find(candidate => candidate.id === pin.targetId);
+          if (!tracker) return null;
+          const hasFiniteRange = Number.isFinite(tracker.min) && Number.isFinite(tracker.max) && tracker.max > tracker.min;
+          const progressPercent = hasFiniteRange
+            ? Math.max(0, Math.min(100, Math.round(((tracker.value - tracker.min) / (tracker.max - tracker.min)) * 100)))
+            : null;
+          const rangeLabel = Number.isFinite(tracker.min) || Number.isFinite(tracker.max)
+            ? `${Number.isFinite(tracker.min) ? tracker.min : "−∞"} … ${Number.isFinite(tracker.max) ? tracker.max : "∞"}`
+            : localize("CAMPAIGN_FORGE.Overview.UnboundedValue");
+          return {
+            ...pin,
+            targetTitle: tracker.title,
+            icon: "fa-solid fa-chart-simple",
+            metaLabel: localize("CAMPAIGN_FORGE.Overview.CampaignValue"),
+            detailLabel: `${tracker.value} · ${rangeLabel}`,
+            isTracker: true,
+            hasProgress: hasFiniteRange,
+            progressPercent
+          };
+        }
+
+        return null;
+      })
+      .filter(Boolean);
 
     const countByType = Object.keys(ENTRY_TYPES).map(type => ({
       type,
@@ -291,6 +372,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       campaignRows,
       sessions,
       trackers,
+      overviewPins,
       countByType,
       activeSession: activeSession ? {
         ...activeSession,
@@ -310,7 +392,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         showJournalButton: game.settings.get(MODULE_ID, SETTINGS.SHOW_JOURNAL_BUTTON),
         showStructuralChanges: game.settings.get(MODULE_ID, SETTINGS.SHOW_STRUCTURAL_CHANGES)
       },
-      version: game.modules.get(MODULE_ID)?.version ?? "0.1.0",
+      version: game.modules.get(MODULE_ID)?.version ?? "0.2.0",
       labels: {
         title: localize("CAMPAIGN_FORGE.Title"),
         noActiveSession: localize("CAMPAIGN_FORGE.Session.NoneActive")
@@ -460,6 +542,18 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       });
       rootDrop.addEventListener("dragleave", () => rootDrop.classList.remove("cf-drop-target"));
       rootDrop.addEventListener("drop", event => this._onDropToRoot(event, rootDrop));
+    }
+
+    if (this._focusKey) {
+      const focusKey = this._focusKey;
+      this._focusKey = null;
+      const focusElement = [...root.querySelectorAll("[data-cf-focus-key]")]
+        .find(element => element.dataset.cfFocusKey === focusKey);
+      if (focusElement) {
+        focusElement.scrollIntoView({ block: "center", behavior: "smooth" });
+        focusElement.classList.add("cf-focus-flash");
+        globalThis.setTimeout?.(() => focusElement.classList.remove("cf-focus-flash"), 1400);
+      }
     }
 
     root.querySelectorAll("[data-cf-setting]").forEach(input => {
@@ -807,6 +901,68 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       await this.engine.deleteTracker(tracker.id);
       this._editor = null;
       await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionToggleOverviewPin(event, target) {
+    try {
+      const targetType = target.dataset.targetType;
+      const targetId = target.dataset.targetId;
+      const pinned = target.dataset.pinned !== "true";
+      await this.engine.setOverviewPinned(targetType, targetId, pinned);
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionMoveOverviewPinUp(event, target) {
+    try {
+      await this.engine.moveOverviewPinByOffset(target.dataset.pinId, -1);
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionMoveOverviewPinDown(event, target) {
+    try {
+      await this.engine.moveOverviewPinByOffset(target.dataset.pinId, 1);
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionOpenOverviewTarget(event, target) {
+    const targetType = target.dataset.targetType;
+    const targetId = target.dataset.targetId;
+    try {
+      if (targetType === "tracker") {
+        this._activeTab = "trackers";
+        this._focusKey = `tracker:${targetId}`;
+        this._editor = null;
+        return this.render();
+      }
+
+      const state = await this.engine.getState();
+      const collapsed = new Set(game.settings.get(MODULE_ID, SETTINGS.COLLAPSED_GROUPS) ?? []);
+      let currentId = targetType === "group"
+        ? targetId
+        : state.entries.find(entry => entry.id === targetId)?.parentId;
+      const seen = new Set();
+      while (currentId && !seen.has(currentId)) {
+        seen.add(currentId);
+        collapsed.delete(currentId);
+        currentId = state.groups.find(group => group.id === currentId)?.parentId ?? null;
+      }
+      await game.settings.set(MODULE_ID, SETTINGS.COLLAPSED_GROUPS, [...collapsed]);
+      this._activeTab = "campaign";
+      this._focusKey = `${targetType}:${targetId}`;
+      this._editor = null;
+      return this.render();
     } catch (error) {
       this._handleError(error);
     }

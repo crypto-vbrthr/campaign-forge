@@ -656,3 +656,154 @@ button.icon,
     justify-content: flex-start;
   }
 }
+
+.cf-subsection-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: .55rem;
+}
+
+.cf-subsection-heading h3 {
+  margin: 0;
+}
+
+.cf-subsection-heading p {
+  margin: .15rem 0 0;
+  color: var(--cf-muted);
+  font-size: .9em;
+}
+
+.cf-overview-pinned {
+  margin-bottom: .8rem;
+}
+
+.cf-overview-pin-list {
+  border: 1px solid var(--cf-border);
+  border-radius: .45rem;
+  overflow: hidden;
+  background: var(--cf-panel-soft);
+  margin-bottom: .75rem;
+}
+
+.cf-overview-pin {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  gap: .6rem;
+  align-items: center;
+  min-height: 58px;
+  padding: .55rem .65rem;
+  border-top: 1px solid var(--cf-border);
+}
+
+.cf-overview-pin:first-child {
+  border-top: 0;
+}
+
+.cf-overview-pin:hover {
+  background: var(--cf-hover);
+}
+
+.cf-overview-pin-icon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  opacity: .72;
+}
+
+.cf-overview-pin-main {
+  min-width: 0;
+}
+
+.cf-overview-pin-heading {
+  display: flex;
+  align-items: baseline;
+  gap: .55rem;
+  min-width: 0;
+}
+
+.cf-overview-pin-heading strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cf-overview-pin-heading small,
+.cf-overview-pin-detail {
+  color: var(--cf-muted);
+}
+
+.cf-overview-pin-heading small {
+  white-space: nowrap;
+}
+
+.cf-overview-pin-detail {
+  margin-top: .12rem;
+  font-size: .88em;
+}
+
+.cf-overview-pin-actions {
+  opacity: .65;
+}
+
+.cf-overview-pin:hover .cf-overview-pin-actions {
+  opacity: 1;
+}
+
+.cf-progress-track {
+  height: 4px;
+  margin-top: .4rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+}
+
+.cf-progress-track > span {
+  display: block;
+  height: 100%;
+  background: currentColor;
+  opacity: .45;
+  border-radius: inherit;
+}
+
+.cf-overview-empty {
+  min-height: 110px;
+  border: 1px dashed var(--cf-border);
+  border-radius: .45rem;
+  margin-bottom: .75rem;
+}
+
+.cf-row-actions .is-pinned,
+.cf-overview-pin-actions .is-pinned {
+  opacity: 1;
+}
+
+.cf-focus-flash {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+  animation: cf-focus-fade 1.35s ease-out;
+}
+
+@keyframes cf-focus-fade {
+  0% { background: var(--cf-hover); }
+  100% { background: transparent; }
+}
+
+@media (max-width: 700px) {
+  .cf-overview-pin {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .cf-overview-pin-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+
+  .cf-overview-pin-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: .05rem;
+  }
+}

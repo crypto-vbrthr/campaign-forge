@@ -45,6 +45,57 @@
           </div>
         </div>
 
+        <section class="cf-overview-pinned">
+          <div class="cf-subsection-heading">
+            <div>
+              <h3>{{localize "CAMPAIGN_FORGE.Overview.PinnedTitle"}}</h3>
+              <p>{{localize "CAMPAIGN_FORGE.Overview.PinnedDescription"}}</p>
+            </div>
+          </div>
+
+          {{#if overviewPins.length}}
+            <div class="cf-overview-pin-list">
+              {{#each overviewPins}}
+                <article class="cf-overview-pin">
+                  <span class="cf-overview-pin-icon"><i class="{{icon}}"></i></span>
+                  <div class="cf-overview-pin-main">
+                    <div class="cf-overview-pin-heading">
+                      <strong>{{targetTitle}}</strong>
+                      <small>{{metaLabel}}</small>
+                    </div>
+                    <div class="cf-overview-pin-detail">{{detailLabel}}</div>
+                    {{#if hasProgress}}
+                      <div class="cf-progress-track" title="{{progressPercent}}%">
+                        <span style="width: {{progressPercent}}%"></span>
+                      </div>
+                    {{/if}}
+                  </div>
+                  <div class="cf-row-actions cf-overview-pin-actions">
+                    <button type="button" class="icon" data-action="moveOverviewPinUp" data-pin-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.MoveUp"}}">
+                      <i class="fa-solid fa-arrow-up"></i>
+                    </button>
+                    <button type="button" class="icon" data-action="moveOverviewPinDown" data-pin-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.MoveDown"}}">
+                      <i class="fa-solid fa-arrow-down"></i>
+                    </button>
+                    <button type="button" class="icon" data-action="openOverviewTarget" data-target-type="{{targetType}}" data-target-id="{{targetId}}" title="{{localize "CAMPAIGN_FORGE.Actions.OpenOverviewTarget"}}">
+                      <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </button>
+                    <button type="button" class="icon is-pinned" data-action="toggleOverviewPin" data-target-type="{{targetType}}" data-target-id="{{targetId}}" data-pinned="true" title="{{localize "CAMPAIGN_FORGE.Actions.UnpinFromOverview"}}">
+                      <i class="fa-solid fa-thumbtack"></i>
+                    </button>
+                  </div>
+                </article>
+              {{/each}}
+            </div>
+          {{else}}
+            <div class="cf-empty-state cf-overview-empty">
+              <i class="fa-solid fa-thumbtack"></i>
+              <strong>{{localize "CAMPAIGN_FORGE.Overview.NoPinnedTitle"}}</strong>
+              <span>{{localize "CAMPAIGN_FORGE.Overview.NoPinnedText"}}</span>
+            </div>
+          {{/if}}
+        </section>
+
         <div class="cf-stat-grid">
           <article class="cf-stat-card">
             <span>{{localize "CAMPAIGN_FORGE.Overview.Entries"}}</span>
@@ -138,6 +189,7 @@
                     data-cf-draggable
                     data-node-type="group"
                     data-node-id="{{id}}"
+                    data-cf-focus-key="{{focusKey}}"
                   >
                     <span class="cf-drag-handle" title="{{localize "CAMPAIGN_FORGE.Actions.Drag"}}">
                       <i class="fa-solid fa-grip-vertical"></i>
@@ -156,6 +208,9 @@
                       </button>
                       <button type="button" class="icon" data-action="createEntry" data-parent-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.NewEntry"}}">
                         <i class="fa-solid fa-file-circle-plus"></i>
+                      </button>
+                      <button type="button" class="icon {{#if overviewPinned}}is-pinned{{/if}}" data-action="toggleOverviewPin" data-target-type="group" data-target-id="{{id}}" data-pinned="{{overviewPinned}}" title="{{#if overviewPinned}}{{localize "CAMPAIGN_FORGE.Actions.UnpinFromOverview"}}{{else}}{{localize "CAMPAIGN_FORGE.Actions.PinToOverview"}}{{/if}}">
+                        <i class="fa-solid fa-thumbtack"></i>
                       </button>
                       <button type="button" class="icon" data-action="moveUp" data-node-type="group" data-node-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.MoveUp"}}">
                         <i class="fa-solid fa-arrow-up"></i>
@@ -179,6 +234,7 @@
                     data-cf-draggable
                     data-node-type="entry"
                     data-node-id="{{id}}"
+                    data-cf-focus-key="{{focusKey}}"
                   >
                     <span class="cf-drag-handle" title="{{localize "CAMPAIGN_FORGE.Actions.Drag"}}">
                       <i class="fa-solid fa-grip-vertical"></i>
@@ -195,6 +251,9 @@
                       {{/each}}
                     </select>
                     <div class="cf-row-actions">
+                      <button type="button" class="icon {{#if overviewPinned}}is-pinned{{/if}}" data-action="toggleOverviewPin" data-target-type="entry" data-target-id="{{id}}" data-pinned="{{overviewPinned}}" title="{{#if overviewPinned}}{{localize "CAMPAIGN_FORGE.Actions.UnpinFromOverview"}}{{else}}{{localize "CAMPAIGN_FORGE.Actions.PinToOverview"}}{{/if}}">
+                        <i class="fa-solid fa-thumbtack"></i>
+                      </button>
                       <button type="button" class="icon" data-action="moveUp" data-node-type="entry" data-node-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.MoveUp"}}">
                         <i class="fa-solid fa-arrow-up"></i>
                       </button>
@@ -447,7 +506,7 @@
           <div class="cf-tracker-list">
             {{#if trackers.length}}
               {{#each trackers}}
-                <article class="cf-tracker-row">
+                <article class="cf-tracker-row" data-cf-focus-key="{{focusKey}}">
                   <div class="cf-tracker-main">
                     <strong>{{title}}</strong>
                     {{#if rangeLabel}}<small>{{rangeLabel}}</small>{{/if}}
@@ -463,6 +522,9 @@
                     </button>
                   </div>
                   <div class="cf-row-actions">
+                    <button type="button" class="icon {{#if overviewPinned}}is-pinned{{/if}}" data-action="toggleOverviewPin" data-target-type="tracker" data-target-id="{{id}}" data-pinned="{{overviewPinned}}" title="{{#if overviewPinned}}{{localize "CAMPAIGN_FORGE.Actions.UnpinFromOverview"}}{{else}}{{localize "CAMPAIGN_FORGE.Actions.PinToOverview"}}{{/if}}">
+                      <i class="fa-solid fa-thumbtack"></i>
+                    </button>
                     <button type="button" class="icon" data-action="moveTrackerUp" data-tracker-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.MoveUp"}}">
                       <i class="fa-solid fa-arrow-up"></i>
                     </button>

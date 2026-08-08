@@ -1,45 +1,26 @@
-# Campaign Forge v0.1.1
+# Campaign Forge v0.2.0
 
-Campaign Forge is a system-agnostic Foundry VTT module for tracking campaign state: chapters, groups, quests, knowledge, events, mysteries, locations, items, notes, sessions, and numeric trackers.
+Campaign Forge is a GM-facing Foundry VTT module for tracking campaign structure, knowledge, quests, events, sessions, and long-term campaign values.
 
-## v0.1.1 foundation
+## v0.2.0 overview milestone
 
-- GM-only Campaign Forge button in the Journal sidebar.
-- ApplicationV2 interface with Overview, Campaign, Sessions, Trackers, and Settings tabs.
-- Chapters and nested groups.
-- Entry types with type-specific status sets.
-- Collapsible campaign tree.
-- Manual ordering with drag-and-drop and up/down controls.
-- Explicit session start/end.
-- Session logging for managed Campaign Forge changes.
-- Numeric trackers with manual +/- adjustment.
-- Full German and English localization of application text.
-- Small public API exposed at `game.modules.get("campaign-forge").api`.
-- Foundry VTT v13 minimum, v14 verified target.
+- Journal sidebar button opens the Campaign Forge immediately after world load.
+- Campaign tree with chapters, nested groups, and typed entries.
+- Manual ordering and drag & drop within the campaign tree.
+- Explicit session start/end with automatic change logging.
+- Manual session changes can be added, edited, and removed during the active session.
+- Numeric campaign values for reputation, progress, collections, and similar long-running values.
+- Entries, groups/chapters, and campaign values can be pinned to the Overview.
+- Pinned overview items can be reordered with up/down controls.
+- Pinned groups calculate progress across all descendant entries using entry-type-aware reached states.
+- Bounded campaign values show a compact progress indicator in the Overview.
+- Overview items jump directly to their source entry, group, or campaign value.
+- German and English localization for all application text.
 
-## Data storage
+## Storage
 
-v0.1.1 stores Campaign Forge world data in a hidden world setting. UI collapse state and display preferences are client-scoped.
+Campaign data is stored in a hidden world setting. UI collapse state and display preferences are client-scoped. Overview pins store references to Campaign Forge objects rather than copies of their content.
 
-## Intentionally deferred
+## Next planned blocks
 
-The data model is prepared for later phases, but v0.1.0 does not yet implement:
-
-- Journal-embedded live Campaign Forge entries.
-- Journal links on entries.
-- Overview pinning and custom dashboard sections.
-- Key players / Actor references.
-- Transition rules and chained status changes.
-- Rewards and external Forge integrations.
-- Calendar-provider formatting for in-game timestamps.
-- Player-facing views.
-
-## Development
-
-Run the engine tests with:
-
-```bash
-npm test
-```
-
-- Active sessions can also receive manual log entries for discoveries, events, decisions, and notes.
+Key players / important NPC references, status transition rules, deeper Journal integration, and later reward/provider integrations.

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0
+
+- Added the first curated Overview workflow.
+- Entries, groups/chapters, and campaign values can be pinned and unpinned from their normal views.
+- Added manual ordering for pinned Overview items.
+- Added automatic nested group progress calculation with entry-type-aware reached states.
+- Added compact progress bars for groups and bounded campaign values.
+- Added direct navigation from Overview items back to their source.
+- Deleting a source object now removes its Overview reference automatically.
+- Overview management changes are recorded as structural session changes when a session is active.
+- Added German and English localization for the Overview controls and messages.
+- Expanded regression coverage for pins, ordering, cleanup, and group progress.
+
 ## 0.1.4
 
 - Sitzungsansicht nutzt ohne geöffneten Änderungseditor nun die volle verfügbare Fensterbreite.

@@ -29,7 +29,7 @@ function exposeApi() {
   if (!module) return;
 
   module.api = {
-    version: "0.1.1",
+    version: "0.2.0",
     open: openCampaignForge,
     getState: () => engine.getState(),
     createGroup: data => {
@@ -67,6 +67,14 @@ function exposeApi() {
     adjustTracker: (id, delta, options) => {
       requireGM();
       return engine.adjustTracker(id, delta, options);
+    },
+    setOverviewPinned: (targetType, targetId, pinned = true) => {
+      requireGM();
+      return engine.setOverviewPinned(targetType, targetId, pinned);
+    },
+    moveOverviewPinByOffset: (pinId, offset) => {
+      requireGM();
+      return engine.moveOverviewPinByOffset(pinId, offset);
     }
   };
 }

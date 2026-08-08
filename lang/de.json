@@ -30,7 +30,10 @@
       "MoveUp": "Nach oben",
       "MoveDown": "Nach unten",
       "Drag": "Zum Verschieben ziehen",
-      "AddSessionChange": "Änderung hinzufügen"
+      "AddSessionChange": "Änderung hinzufügen",
+      "PinToOverview": "In Übersicht anzeigen",
+      "UnpinFromOverview": "Aus Übersicht entfernen",
+      "OpenOverviewTarget": "Zum Element springen"
     },
     "Session": {
       "Session": "Sitzung",
@@ -41,7 +44,7 @@
     },
     "Overview": {
       "Title": "Übersicht",
-      "Description": "Ein ruhiger Blick auf den aktuellen Stand der Kampagnendaten.",
+      "Description": "Langfristig wichtige Einträge, Gruppen und Kampagnenwerte auf einen Blick.",
       "Entries": "Einträge",
       "ActiveEntries": "Aktive Einträge",
       "Chapters": "Kapitel",
@@ -49,7 +52,15 @@
       "Trackers": "Werte",
       "EntryTypes": "Einträge nach Typ",
       "CurrentSession": "Aktuelle Sitzung",
-      "NoEntries": "Noch keine Einträge vorhanden."
+      "NoEntries": "Noch keine Einträge vorhanden.",
+      "PinnedTitle": "Angeheftete Kampagnenpunkte",
+      "PinnedDescription": "Markiere Einträge, Gruppen oder Werte in den jeweiligen Ansichten, um sie hier dauerhaft im Blick zu behalten.",
+      "NoPinnedTitle": "Noch nichts angeheftet",
+      "NoPinnedText": "Hefte wichtige Einträge, Gruppen oder Werte über das Stecknadel-Symbol an die Übersicht an.",
+      "ProgressCount": "{reached} / {total} erreicht",
+      "NoProgressEntries": "Keine enthaltenen Einträge",
+      "CampaignValue": "Kampagnenwert",
+      "UnboundedValue": "ohne feste Grenzen"
     },
     "Campaign": {
       "Title": "Kampagne",
@@ -156,7 +167,10 @@
       "TrackerUpdated": "Wert „{title}“ wurde bearbeitet.",
       "TrackerDeleted": "Wert „{title}“ wurde gelöscht.",
       "TrackerAdjusted": "„{title}“ wurde um {delta} auf {value} geändert.",
-      "ManualSessionChange": "{kind}: „{title}“"
+      "ManualSessionChange": "{kind}: „{title}“",
+      "OverviewPinned": "„{title}“ wurde an die Übersicht angeheftet.",
+      "OverviewUnpinned": "„{title}“ wurde aus der Übersicht entfernt.",
+      "OverviewMoved": "„{title}“ wurde in der Übersicht verschoben."
     },
     "Confirm": {
       "Title": "Campaign Forge",
@@ -182,7 +196,9 @@
       "INVALID_TRACKER_RANGE": "Minimum darf nicht größer als Maximum sein.",
       "INVALID_SESSION_CHANGE_KIND": "Diese Art von Sitzungsänderung ist ungültig.",
       "SESSION_CHANGE_NOT_FOUND": "Die Sitzungsänderung wurde nicht gefunden.",
-      "SESSION_CHANGE_NOT_MANUAL": "Nur manuell hinzugefügte Sitzungsänderungen können hier gelöscht werden."
+      "SESSION_CHANGE_NOT_MANUAL": "Nur manuell hinzugefügte Sitzungsänderungen können hier gelöscht werden.",
+      "INVALID_OVERVIEW_TARGET": "Dieser Elementtyp kann nicht in der Übersicht verwendet werden.",
+      "OVERVIEW_PIN_NOT_FOUND": "Der Eintrag in der Übersicht wurde nicht gefunden."
     },
     "SessionChangeKinds": {
       "note": "Notiz",

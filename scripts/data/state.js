@@ -1,4 +1,4 @@
-import { ENTRY_TYPES, SORT_STEP } from "../core/constants.js";
+import { ENTRY_TYPES, OVERVIEW_REACHED_STATUSES, SORT_STEP } from "../core/constants.js";
 
 function nowIso() {
   return new Date().toISOString();
@@ -70,6 +70,16 @@ export function normalizeState(raw) {
     entry.updatedAt ??= entry.createdAt;
   }
 
+  state.overviewPins = state.overviewPins
+    .filter(pin => pin && ["entry", "group", "tracker"].includes(pin.targetType) && pin.targetId)
+    .map((pin, index) => ({
+      id: String(pin.id ?? `overview-${pin.targetType}-${pin.targetId}`),
+      targetType: pin.targetType,
+      targetId: String(pin.targetId),
+      sort: Number.isFinite(Number(pin.sort)) ? Number(pin.sort) : (index + 1) * SORT_STEP,
+      createdAt: pin.createdAt ?? state.meta.createdAt
+    }));
+
   for (const tracker of state.trackers) {
     tracker.value = Number(tracker.value ?? 0);
     tracker.min = tracker.min === null || tracker.min === "" || tracker.min === undefined
@@ -116,4 +126,37 @@ export function nextSort(state, parentId) {
   const siblings = getChildren(state, parentId);
   if (!siblings.length) return SORT_STEP;
   return Number(siblings[siblings.length - 1].sort ?? 0) + SORT_STEP;
+}
+
+
+export function getDescendantEntries(state, groupId) {
+  const entries = [];
+  const pending = [groupId];
+  const seen = new Set();
+
+  while (pending.length) {
+    const current = pending.shift();
+    if (!current || seen.has(current)) continue;
+    seen.add(current);
+
+    entries.push(...state.entries.filter(entry => entry.parentId === current));
+    for (const child of state.groups.filter(group => group.parentId === current)) {
+      pending.push(child.id);
+    }
+  }
+
+  return entries;
+}
+
+export function getGroupProgress(state, groupId) {
+  const entries = getDescendantEntries(state, groupId);
+  const reached = entries.filter(entry =>
+    (OVERVIEW_REACHED_STATUSES[entry.type] ?? []).includes(entry.status)
+  ).length;
+  const total = entries.length;
+  return {
+    reached,
+    total,
+    percent: total ? Math.round((reached / total) * 100) : 0
+  };
 }

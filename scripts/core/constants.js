@@ -47,6 +47,16 @@ export const ENTRY_TYPES = Object.freeze({
   }
 });
 
+export const OVERVIEW_REACHED_STATUSES = Object.freeze({
+  quest: Object.freeze(["completed"]),
+  knowledge: Object.freeze(["discovered", "understood", "confirmed"]),
+  event: Object.freeze(["occurred", "prevented"]),
+  mystery: Object.freeze(["solved"]),
+  location: Object.freeze(["discovered", "visited"]),
+  item: Object.freeze(["acquired"]),
+  note: Object.freeze(["completed"])
+});
+
 
 export const SESSION_CHANGE_KINDS = Object.freeze({
   note: { label: "CAMPAIGN_FORGE.SessionChangeKinds.note", icon: "fa-solid fa-note-sticky" },
@@ -90,5 +100,8 @@ export const STRUCTURAL_ACTIONS = new Set([
   "entry.deleted",
   "tracker.created",
   "tracker.updated",
-  "tracker.deleted"
+  "tracker.deleted",
+  "overview.pinned",
+  "overview.unpinned",
+  "overview.moved"
 ]);

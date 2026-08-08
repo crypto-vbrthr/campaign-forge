@@ -95,6 +95,14 @@ export class CampaignEngine {
     return tracker;
   }
 
+  _findOverviewTarget(state, targetType, targetId) {
+    if (targetType === "entry") return this._findEntry(state, targetId);
+    if (targetType === "group") return this._findGroup(state, targetId);
+    if (targetType === "tracker") return this._findTracker(state, targetId);
+    throw new CampaignEngineError("INVALID_OVERVIEW_TARGET", { targetType, targetId });
+  }
+
+
   _assertValidParent(state, parentId) {
     if (parentId === null || parentId === undefined || parentId === "") return null;
     return this._findGroup(state, parentId);
@@ -175,6 +183,7 @@ export class CampaignEngine {
       if (hasChildren) throw new CampaignEngineError("GROUP_NOT_EMPTY", { id });
       const before = cloneData(group);
       state.groups = state.groups.filter(g => g.id !== id);
+      state.overviewPins = state.overviewPins.filter(pin => !(pin.targetType === "group" && pin.targetId === id));
       this._recordChange(state, {
         action: "group.deleted",
         targetType: "group",
@@ -309,6 +318,7 @@ export class CampaignEngine {
       const entry = this._findEntry(state, id);
       const before = cloneData(entry);
       state.entries = state.entries.filter(e => e.id !== id);
+      state.overviewPins = state.overviewPins.filter(pin => !(pin.targetType === "entry" && pin.targetId === id));
       this._recordChange(state, {
         action: "entry.deleted",
         targetType: "entry",
@@ -597,6 +607,7 @@ export class CampaignEngine {
       const tracker = this._findTracker(state, id);
       const before = cloneData(tracker);
       state.trackers = state.trackers.filter(t => t.id !== id);
+      state.overviewPins = state.overviewPins.filter(pin => !(pin.targetType === "tracker" && pin.targetId === id));
       this._recordChange(state, {
         action: "tracker.deleted",
         targetType: "tracker",
@@ -606,6 +617,77 @@ export class CampaignEngine {
         structural: true
       });
       return before;
+    });
+  }
+
+  async setOverviewPinned(targetType, targetId, pinned = true) {
+    return this._mutate(state => {
+      const target = this._findOverviewTarget(state, targetType, targetId);
+      const existing = state.overviewPins.find(pin => pin.targetType === targetType && pin.targetId === targetId);
+
+      if (pinned) {
+        if (existing) return cloneData(existing);
+        const sort = state.overviewPins.length
+          ? Math.max(...state.overviewPins.map(pin => Number(pin.sort ?? 0))) + SORT_STEP
+          : SORT_STEP;
+        const pin = {
+          id: this._newId(),
+          targetType,
+          targetId,
+          sort,
+          createdAt: new Date(this._now()).toISOString()
+        };
+        state.overviewPins.push(pin);
+        this._recordChange(state, {
+          action: "overview.pinned",
+          targetType,
+          targetId,
+          targetTitle: target.title,
+          after: pin,
+          structural: true
+        });
+        return cloneData(pin);
+      }
+
+      if (!existing) return null;
+      state.overviewPins = state.overviewPins.filter(pin => pin.id !== existing.id);
+      state.overviewPins
+        .sort((a, b) => a.sort - b.sort)
+        .forEach((pin, index) => pin.sort = (index + 1) * SORT_STEP);
+      this._recordChange(state, {
+        action: "overview.unpinned",
+        targetType,
+        targetId,
+        targetTitle: target.title,
+        before: existing,
+        structural: true
+      });
+      return cloneData(existing);
+    });
+  }
+
+  async moveOverviewPinByOffset(pinId, offset) {
+    return this._mutate(state => {
+      const pins = [...state.overviewPins].sort((a, b) => a.sort - b.sort);
+      const currentIndex = pins.findIndex(pin => pin.id === pinId);
+      if (currentIndex < 0) throw new CampaignEngineError("OVERVIEW_PIN_NOT_FOUND", { pinId });
+      const targetIndex = Math.max(0, Math.min(pins.length - 1, currentIndex + Number(offset)));
+      if (targetIndex === currentIndex) return cloneData(pins[currentIndex]);
+
+      const [moved] = pins.splice(currentIndex, 1);
+      pins.splice(targetIndex, 0, moved);
+      pins.forEach((pin, index) => pin.sort = (index + 1) * SORT_STEP);
+      state.overviewPins = pins;
+
+      const target = this._findOverviewTarget(state, moved.targetType, moved.targetId);
+      this._recordChange(state, {
+        action: "overview.moved",
+        targetType: moved.targetType,
+        targetId: moved.targetId,
+        targetTitle: target.title,
+        structural: true
+      });
+      return cloneData(moved);
     });
   }
 
