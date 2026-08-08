@@ -294,7 +294,7 @@
     {{/if}}
 
     {{#if (eq activeTab "sessions")}}
-      <section class="cf-tab-panel cf-session-layout">
+      <section class="cf-tab-panel cf-session-layout {{#if (eq editor.kind "sessionChange")}}has-editor{{/if}}">
         <div class="cf-session-panel">
           <div class="cf-section-heading">
             <div>
@@ -355,14 +355,24 @@
                             {{#if detailsText}}<small>{{detailsText}}</small>{{/if}}
                           </span>
                           {{#if canEdit}}
-                            <button type="button" class="icon" data-action="editSessionChange" data-change-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Edit"}}">
-                              <i class="fa-solid fa-pen"></i>
-                            </button>
-                          {{/if}}
-                          {{#if canDelete}}
-                            <button type="button" class="icon" data-action="deleteSessionChange" data-change-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Delete"}}">
-                              <i class="fa-solid fa-trash"></i>
-                            </button>
+                            <span class="cf-change-actions">
+                              <button type="button" class="icon" data-action="editSessionChange" data-change-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Edit"}}">
+                                <i class="fa-solid fa-pen"></i>
+                              </button>
+                              {{#if canDelete}}
+                                <button type="button" class="icon" data-action="deleteSessionChange" data-change-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Delete"}}">
+                                  <i class="fa-solid fa-trash"></i>
+                                </button>
+                              {{/if}}
+                            </span>
+                          {{else}}
+                            {{#if canDelete}}
+                              <span class="cf-change-actions">
+                                <button type="button" class="icon" data-action="deleteSessionChange" data-change-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Delete"}}">
+                                  <i class="fa-solid fa-trash"></i>
+                                </button>
+                              </span>
+                            {{/if}}
                           {{/if}}
                         </div>
                       {{/each}}

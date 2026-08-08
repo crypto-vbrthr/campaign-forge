@@ -442,9 +442,13 @@ button.icon,
 
 .cf-session-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  grid-template-columns: minmax(0, 1fr);
   gap: .8rem;
   align-items: start;
+}
+
+.cf-session-layout.has-editor {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
 }
 
 .cf-session-panel {
@@ -503,6 +507,17 @@ button.icon,
   gap: .7rem;
   padding: .42rem .7rem;
   border-top: 1px solid var(--cf-border);
+}
+
+.cf-change-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: .2rem;
+  white-space: nowrap;
+}
+
+.cf-change-actions .icon {
+  flex: 0 0 auto;
 }
 
 .cf-change-row:first-child {

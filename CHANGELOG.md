@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4
+
+- Sitzungsansicht nutzt ohne geöffneten Änderungseditor nun die volle verfügbare Fensterbreite.
+- Bearbeiten- und Löschen-Aktionen manueller Sitzungsänderungen bleiben gemeinsam in einer Zeile.
+- Der rechte Editorbereich wird nur noch reserviert, wenn tatsächlich eine Sitzungsänderung bearbeitet oder angelegt wird.
+
 ## 0.1.3
 
 - Manuell hinzugefügte Änderungen einer aktiven Sitzung können jetzt bearbeitet werden.
