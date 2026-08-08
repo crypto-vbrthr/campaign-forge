@@ -1,0 +1,594 @@
+.campaign-forge {
+  --cf-border: var(--color-border-light-2, rgba(255,255,255,.14));
+  --cf-border-strong: var(--color-border-light-1, rgba(255,255,255,.24));
+  --cf-panel: rgba(0, 0, 0, .16);
+  --cf-panel-soft: rgba(255, 255, 255, .035);
+  --cf-hover: rgba(255, 255, 255, .07);
+  --cf-muted: var(--color-text-subtle, rgba(255,255,255,.62));
+}
+
+.campaign-forge .window-content {
+  padding: 0;
+  overflow: hidden;
+}
+
+.cf-shell {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cf-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .65rem .8rem;
+  border-bottom: 1px solid var(--cf-border);
+  background: var(--cf-panel-soft);
+}
+
+.cf-title-block,
+.cf-session-strip {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+}
+
+.cf-title-block > i {
+  opacity: .8;
+}
+
+.cf-session-strip {
+  color: var(--cf-muted);
+}
+
+.cf-session-strip > span:not(.cf-session-dot) {
+  display: flex;
+  align-items: baseline;
+  gap: .45rem;
+}
+
+.cf-session-strip small {
+  color: var(--cf-muted);
+}
+
+.cf-session-dot {
+  width: .55rem;
+  height: .55rem;
+  border-radius: 999px;
+  display: inline-block;
+  border: 1px solid currentColor;
+  opacity: .55;
+}
+
+.cf-session-dot.is-active {
+  background: currentColor;
+  opacity: .9;
+}
+
+.cf-tabs {
+  display: flex;
+  gap: .15rem;
+  padding: .35rem .55rem 0;
+  border-bottom: 1px solid var(--cf-border);
+  background: var(--cf-panel);
+}
+
+.cf-tabs button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: .3rem .3rem 0 0;
+  background: transparent;
+  padding: .55rem .75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  box-shadow: none;
+}
+
+.cf-tabs button:hover {
+  background: var(--cf-hover);
+}
+
+.cf-tabs button.is-active {
+  border-bottom-color: currentColor;
+  background: var(--cf-panel-soft);
+}
+
+.cf-main-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.cf-tab-panel {
+  padding: .85rem;
+  min-height: 100%;
+}
+
+.cf-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: .75rem;
+}
+
+.cf-section-heading h2,
+.cf-editor-heading h3,
+.cf-panel h3 {
+  margin: 0;
+}
+
+.cf-section-heading p {
+  margin: .2rem 0 0;
+  color: var(--cf-muted);
+}
+
+.cf-heading-actions {
+  display: flex;
+  gap: .4rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.cf-primary-action {
+  font-weight: 600;
+}
+
+.cf-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: .55rem;
+  margin-bottom: .75rem;
+}
+
+.cf-stat-card,
+.cf-panel,
+.cf-active-session-card,
+.cf-session-entry,
+.cf-tracker-row,
+.cf-settings-list {
+  border: 1px solid var(--cf-border);
+  background: var(--cf-panel-soft);
+  border-radius: .45rem;
+}
+
+.cf-stat-card {
+  padding: .7rem .75rem;
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+}
+
+.cf-stat-card span {
+  color: var(--cf-muted);
+  font-size: .85em;
+}
+
+.cf-stat-card strong {
+  font-size: 1.45em;
+}
+
+.cf-overview-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+}
+
+.cf-panel {
+  padding: .75rem;
+}
+
+.cf-plain-list {
+  list-style: none;
+  padding: 0;
+  margin: .6rem 0 0;
+}
+
+.cf-plain-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .35rem 0;
+  border-top: 1px solid var(--cf-border);
+}
+
+.cf-plain-list li:first-child {
+  border-top: 0;
+}
+
+.cf-campaign-layout,
+.cf-tracker-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: .75rem;
+  align-items: start;
+}
+
+.cf-campaign-layout:not(:has(.cf-editor)),
+.cf-tracker-layout:not(:has(.cf-editor)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cf-root-drop {
+  border: 1px dashed var(--cf-border);
+  color: var(--cf-muted);
+  border-radius: .35rem;
+  padding: .35rem .55rem;
+  margin-bottom: .45rem;
+  font-size: .86em;
+}
+
+.cf-tree {
+  border: 1px solid var(--cf-border);
+  border-radius: .4rem;
+  overflow: hidden;
+}
+
+.cf-tree-row {
+  display: grid;
+  grid-template-columns: 20px 26px 26px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: .25rem;
+  min-height: 42px;
+  padding: .25rem .35rem .25rem calc(.35rem + (var(--cf-depth) * 1.15rem));
+  border-top: 1px solid var(--cf-border);
+  background: var(--cf-panel-soft);
+}
+
+.cf-tree-row:first-child {
+  border-top: 0;
+}
+
+.cf-tree-row:hover {
+  background: var(--cf-hover);
+}
+
+.cf-tree-row.is-chapter {
+  background: rgba(255, 255, 255, .055);
+}
+
+.cf-tree-row.is-inactive {
+  opacity: .62;
+}
+
+.cf-drag-handle {
+  cursor: grab;
+  opacity: .45;
+  text-align: center;
+}
+
+.cf-drag-handle:active {
+  cursor: grabbing;
+}
+
+.cf-disclosure,
+.cf-disclosure-spacer {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.cf-row-icon {
+  opacity: .72;
+  text-align: center;
+}
+
+.cf-row-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .05rem;
+}
+
+.cf-row-main strong,
+.cf-row-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cf-row-main small {
+  color: var(--cf-muted);
+}
+
+.cf-entry-status {
+  width: 175px;
+  min-width: 145px;
+}
+
+.cf-row-actions {
+  display: flex;
+  align-items: center;
+  gap: .1rem;
+  opacity: .15;
+  transition: opacity .12s ease;
+}
+
+.cf-tree-row:hover .cf-row-actions,
+.cf-tracker-row:hover .cf-row-actions {
+  opacity: 1;
+}
+
+button.icon,
+.cf-row-actions button.icon {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0;
+}
+
+.cf-drop-target {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+.cf-editor {
+  position: sticky;
+  top: 0;
+  border: 1px solid var(--cf-border-strong);
+  border-radius: .45rem;
+  background: var(--cf-panel);
+  overflow: hidden;
+}
+
+.cf-editor-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .5rem;
+  padding: .65rem .7rem;
+  border-bottom: 1px solid var(--cf-border);
+}
+
+.cf-editor-form {
+  padding: .7rem;
+  display: flex;
+  flex-direction: column;
+  gap: .65rem;
+}
+
+.cf-editor-form label {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+}
+
+.cf-editor-form label > span {
+  font-size: .88em;
+  color: var(--cf-muted);
+}
+
+.cf-editor-form textarea {
+  resize: vertical;
+  min-height: 85px;
+}
+
+.cf-checkbox-row {
+  flex-direction: row !important;
+  align-items: center;
+}
+
+.cf-checkbox-row input {
+  flex: 0 0 auto;
+}
+
+.cf-editor-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: .4rem;
+  padding-top: .25rem;
+}
+
+.cf-two-column-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .5rem;
+}
+
+.cf-empty-state {
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  color: var(--cf-muted);
+  text-align: center;
+  padding: 1rem;
+}
+
+.cf-empty-state > i {
+  font-size: 1.7rem;
+  opacity: .55;
+}
+
+.cf-empty {
+  color: var(--cf-muted);
+}
+
+.cf-active-session-card {
+  padding: .65rem .75rem;
+  margin-bottom: .7rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 1rem;
+  align-items: center;
+}
+
+.cf-active-session-card > div:first-child {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: .5rem;
+  align-items: center;
+}
+
+.cf-active-session-card small {
+  color: var(--cf-muted);
+}
+
+.cf-active-session-card > div:nth-child(2) {
+  display: flex;
+  align-items: baseline;
+  gap: .3rem;
+}
+
+.cf-session-list {
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+}
+
+.cf-session-entry {
+  overflow: hidden;
+}
+
+.cf-session-entry summary {
+  cursor: pointer;
+  padding: .6rem .7rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.cf-session-entry summary > span:first-child {
+  display: flex;
+  align-items: baseline;
+  gap: .6rem;
+}
+
+.cf-session-entry summary small,
+.cf-session-summary-count {
+  color: var(--cf-muted);
+}
+
+.cf-change-list {
+  border-top: 1px solid var(--cf-border);
+}
+
+.cf-change-row {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  gap: .7rem;
+  padding: .42rem .7rem;
+  border-top: 1px solid var(--cf-border);
+}
+
+.cf-change-row:first-child {
+  border-top: 0;
+}
+
+.cf-change-row time {
+  color: var(--cf-muted);
+}
+
+.cf-change-row.is-structural {
+  opacity: .7;
+}
+
+.cf-tracker-list {
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+}
+
+.cf-tracker-row {
+  padding: .6rem .65rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: .7rem;
+  align-items: center;
+}
+
+.cf-tracker-main {
+  min-width: 0;
+}
+
+.cf-tracker-main strong,
+.cf-tracker-main small {
+  display: block;
+}
+
+.cf-tracker-main small,
+.cf-tracker-main p {
+  color: var(--cf-muted);
+}
+
+.cf-tracker-main p {
+  margin: .25rem 0 0;
+}
+
+.cf-tracker-value {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+
+.cf-tracker-value strong {
+  min-width: 3ch;
+  text-align: center;
+  font-size: 1.15em;
+}
+
+.cf-settings-list {
+  overflow: hidden;
+}
+
+.cf-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .7rem .75rem;
+  border-top: 1px solid var(--cf-border);
+}
+
+.cf-setting-row:first-child {
+  border-top: 0;
+}
+
+.cf-setting-row > span {
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+}
+
+.cf-setting-row small {
+  color: var(--cf-muted);
+}
+
+.campaign-forge-journal-button {
+  width: 34px;
+  min-width: 34px;
+  height: 30px;
+  padding: 0;
+  margin-left: .25rem;
+}
+
+@media (max-width: 850px) {
+  .cf-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cf-overview-columns,
+  .cf-campaign-layout,
+  .cf-tracker-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cf-editor {
+    position: static;
+  }
+
+  .cf-entry-status {
+    width: 145px;
+  }
+}

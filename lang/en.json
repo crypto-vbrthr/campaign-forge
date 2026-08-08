@@ -1,0 +1,179 @@
+{
+  "CAMPAIGN_FORGE": {
+    "Title": "Campaign Forge",
+    "Tabs": {
+      "Overview": "Overview",
+      "Campaign": "Campaign",
+      "Sessions": "Sessions",
+      "Trackers": "Trackers",
+      "Settings": "Settings"
+    },
+    "Common": {
+      "Navigation": "Navigation",
+      "Changes": "changes",
+      "Status": "Status",
+      "Hidden": "Hidden"
+    },
+    "Actions": {
+      "StartSession": "Start session",
+      "EndSession": "End session",
+      "OpenSessions": "Open sessions",
+      "NewChapter": "New chapter",
+      "NewGroup": "New group",
+      "NewEntry": "New entry",
+      "NewTracker": "New tracker",
+      "Edit": "Edit",
+      "Delete": "Delete",
+      "Save": "Save",
+      "Cancel": "Cancel",
+      "Close": "Close",
+      "MoveUp": "Move up",
+      "MoveDown": "Move down",
+      "Drag": "Drag to move"
+    },
+    "Session": {
+      "Session": "Session",
+      "NoneActive": "No active session",
+      "NoneActiveLong": "No session is currently running. Maintenance work outside a session is not recorded as session activity.",
+      "Active": "Active",
+      "Started": "Started:"
+    },
+    "Overview": {
+      "Title": "Overview",
+      "Description": "A calm snapshot of the current campaign data.",
+      "Entries": "Entries",
+      "ActiveEntries": "Active entries",
+      "Chapters": "Chapters",
+      "CompletedSessions": "Completed sessions",
+      "Trackers": "Trackers",
+      "EntryTypes": "Entries by type",
+      "CurrentSession": "Current session",
+      "NoEntries": "No entries yet."
+    },
+    "Campaign": {
+      "Title": "Campaign",
+      "Description": "Manage, collapse, and manually sort chapters, groups, and entries.",
+      "RootDrop": "Drop here to move an element to the top level.",
+      "EmptyTitle": "No campaign structure yet",
+      "EmptyText": "Create a chapter or your first entry."
+    },
+    "Sessions": {
+      "Title": "Sessions",
+      "Description": "Sessions are started explicitly. Only changes made while a session is active are recorded here.",
+      "NoChanges": "No visible changes.",
+      "EmptyTitle": "No sessions yet",
+      "EmptyText": "Start the first session when the actual game begins."
+    },
+    "Trackers": {
+      "Title": "Trackers",
+      "Description": "Manage numeric campaign values such as reputation, progress, or collection totals.",
+      "EmptyTitle": "No trackers yet",
+      "EmptyText": "Create a tracker when you want to follow a long-term numeric value."
+    },
+    "Settings": {
+      "Title": "Settings",
+      "Description": "Adjust Campaign Forge display and access behavior.",
+      "JournalButton": "Campaign Forge icon in the Journal tab",
+      "JournalButtonHint": "Shows a compact button in the Journal tab for opening Campaign Forge.",
+      "StructuralChanges": "Show structural changes in sessions",
+      "StructuralChangesHint": "Shows create, edit, delete, and sorting operations in the session view. The data remains recorded regardless of this display setting.",
+      "Version": "Version",
+      "VersionHint": "Installed Campaign Forge version."
+    },
+    "Editor": {
+      "NewChapter": "New chapter",
+      "NewGroup": "New group",
+      "EditGroup": "Edit group",
+      "NewEntry": "New entry",
+      "EditEntry": "Edit entry",
+      "NewTracker": "New tracker",
+      "EditTracker": "Edit tracker"
+    },
+    "Fields": {
+      "Title": "Title",
+      "Description": "Description",
+      "Type": "Type",
+      "Status": "Status",
+      "Active": "Active",
+      "Visible": "Visible",
+      "Value": "Value",
+      "Minimum": "Minimum",
+      "Maximum": "Maximum"
+    },
+    "GroupKinds": {
+      "chapter": "Chapter",
+      "group": "Group"
+    },
+    "EntryTypes": {
+      "quest": "Quest",
+      "knowledge": "Knowledge",
+      "event": "Event",
+      "mystery": "Mystery",
+      "location": "Location",
+      "item": "Item",
+      "note": "Note"
+    },
+    "Status": {
+      "inactive": "Inactive",
+      "available": "Available",
+      "active": "Active",
+      "completed": "Completed",
+      "failed": "Failed",
+      "unknown": "Unknown",
+      "hinted": "Hinted",
+      "discovered": "Discovered",
+      "understood": "Understood",
+      "confirmed": "Confirmed",
+      "pending": "Pending",
+      "occurred": "Occurred",
+      "prevented": "Prevented",
+      "obsolete": "Obsolete",
+      "open": "Open",
+      "partial": "Partially solved",
+      "solved": "Solved",
+      "visited": "Visited",
+      "known": "Known",
+      "acquired": "Acquired",
+      "lost": "Lost"
+    },
+    "JournalButton": {
+      "Tooltip": "Open Campaign Forge"
+    },
+    "Changes": {
+      "EntryStatus": "“{title}”: {from} → {to}",
+      "EntryCreated": "Entry “{title}” was created.",
+      "EntryUpdated": "Entry “{title}” was edited.",
+      "EntryDeleted": "Entry “{title}” was deleted.",
+      "GroupCreated": "Group “{title}” was created.",
+      "GroupUpdated": "Group “{title}” was edited.",
+      "GroupDeleted": "Group “{title}” was deleted.",
+      "NodeMoved": "“{title}” was moved.",
+      "TrackerCreated": "Tracker “{title}” was created.",
+      "TrackerUpdated": "Tracker “{title}” was edited.",
+      "TrackerDeleted": "Tracker “{title}” was deleted.",
+      "TrackerAdjusted": "“{title}” changed by {delta} to {value}."
+    },
+    "Confirm": {
+      "Title": "Campaign Forge",
+      "Delete": "Really delete “{title}”?",
+      "EndSession": "Really end the current session?"
+    },
+    "Errors": {
+      "Generic": "The action could not be completed. Details are available in the console.",
+      "GMOnly": "Campaign Forge can only be edited by the GM in this version.",
+      "TITLE_REQUIRED": "A title is required.",
+      "GROUP_NOT_FOUND": "The group could not be found.",
+      "ENTRY_NOT_FOUND": "The entry could not be found.",
+      "TRACKER_NOT_FOUND": "The tracker could not be found.",
+      "GROUP_NOT_EMPTY": "The group cannot be deleted until its subgroups and entries have been removed or moved.",
+      "INVALID_ENTRY_TYPE": "This entry type is invalid.",
+      "INVALID_STATUS": "This status is invalid for the entry type.",
+      "INVALID_NODE_TYPE": "This element type cannot be moved.",
+      "CHAPTER_MUST_BE_ROOT": "Chapters must remain at the top level.",
+      "GROUP_CYCLE": "This move would create a cyclic group structure.",
+      "SESSION_ALREADY_ACTIVE": "A session is already running.",
+      "NO_ACTIVE_SESSION": "No session is currently running.",
+      "INVALID_TRACKER_RANGE": "Minimum cannot be greater than maximum."
+    }
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "CAMPAIGN_FORGE": {
+    "Title": "Campaign Forge",
+    "Tabs": {
+      "Overview": "Übersicht",
+      "Campaign": "Kampagne",
+      "Sessions": "Sitzungen",
+      "Trackers": "Werte",
+      "Settings": "Einstellungen"
+    },
+    "Common": {
+      "Navigation": "Navigation",
+      "Changes": "Änderungen",
+      "Status": "Status",
+      "Hidden": "Verborgen"
+    },
+    "Actions": {
+      "StartSession": "Sitzung beginnen",
+      "EndSession": "Sitzung beenden",
+      "OpenSessions": "Sitzungen öffnen",
+      "NewChapter": "Neues Kapitel",
+      "NewGroup": "Neue Gruppe",
+      "NewEntry": "Neuer Eintrag",
+      "NewTracker": "Neuer Tracker",
+      "Edit": "Bearbeiten",
+      "Delete": "Löschen",
+      "Save": "Speichern",
+      "Cancel": "Abbrechen",
+      "Close": "Schließen",
+      "MoveUp": "Nach oben",
+      "MoveDown": "Nach unten",
+      "Drag": "Zum Verschieben ziehen"
+    },
+    "Session": {
+      "Session": "Sitzung",
+      "NoneActive": "Keine aktive Sitzung",
+      "NoneActiveLong": "Es läuft derzeit keine Sitzung. Pflegearbeiten außerhalb einer Sitzung werden nicht als Sitzungsänderungen protokolliert.",
+      "Active": "Läuft",
+      "Started": "Beginn:"
+    },
+    "Overview": {
+      "Title": "Übersicht",
+      "Description": "Ein ruhiger Blick auf den aktuellen Stand der Kampagnendaten.",
+      "Entries": "Einträge",
+      "ActiveEntries": "Aktive Einträge",
+      "Chapters": "Kapitel",
+      "CompletedSessions": "Beendete Sitzungen",
+      "Trackers": "Tracker",
+      "EntryTypes": "Einträge nach Typ",
+      "CurrentSession": "Aktuelle Sitzung",
+      "NoEntries": "Noch keine Einträge vorhanden."
+    },
+    "Campaign": {
+      "Title": "Kampagne",
+      "Description": "Kapitel, Gruppen und Einträge verwalten, einklappen und manuell sortieren.",
+      "RootDrop": "Hier ablegen, um ein Element auf die oberste Ebene zu verschieben.",
+      "EmptyTitle": "Noch keine Kampagnenstruktur",
+      "EmptyText": "Lege ein Kapitel oder einen ersten Eintrag an."
+    },
+    "Sessions": {
+      "Title": "Sitzungen",
+      "Description": "Sitzungen werden bewusst gestartet. Nur während einer aktiven Sitzung werden Änderungen hier protokolliert.",
+      "NoChanges": "Keine anzuzeigenden Änderungen.",
+      "EmptyTitle": "Noch keine Sitzungen",
+      "EmptyText": "Beginne die erste Sitzung, wenn die Spielrunde tatsächlich startet."
+    },
+    "Trackers": {
+      "Title": "Werte & Tracker",
+      "Description": "Numerische Kampagnenwerte wie Ruf, Fortschritt oder Sammlungsstände verwalten.",
+      "EmptyTitle": "Noch keine Tracker",
+      "EmptyText": "Lege einen Tracker an, wenn du einen langfristigen Zahlenwert verfolgen möchtest."
+    },
+    "Settings": {
+      "Title": "Einstellungen",
+      "Description": "Darstellung und Zugriff der Campaign Forge anpassen.",
+      "JournalButton": "Campaign-Forge-Icon im Journal-Reiter",
+      "JournalButtonHint": "Zeigt im Journal-Reiter einen kompakten Knopf zum Öffnen der Campaign Forge.",
+      "StructuralChanges": "Strukturelle Änderungen in Sitzungen anzeigen",
+      "StructuralChangesHint": "Zeigt auch Erstellen, Bearbeiten, Löschen und Sortieränderungen in der Sitzungsansicht. Die Daten bleiben unabhängig davon protokolliert.",
+      "Version": "Version",
+      "VersionHint": "Installierte Version der Campaign Forge."
+    },
+    "Editor": {
+      "NewChapter": "Neues Kapitel",
+      "NewGroup": "Neue Gruppe",
+      "EditGroup": "Gruppe bearbeiten",
+      "NewEntry": "Neuer Eintrag",
+      "EditEntry": "Eintrag bearbeiten",
+      "NewTracker": "Neuer Tracker",
+      "EditTracker": "Tracker bearbeiten"
+    },
+    "Fields": {
+      "Title": "Titel",
+      "Description": "Beschreibung",
+      "Type": "Typ",
+      "Status": "Status",
+      "Active": "Aktiv",
+      "Visible": "Sichtbar",
+      "Value": "Wert",
+      "Minimum": "Minimum",
+      "Maximum": "Maximum"
+    },
+    "GroupKinds": {
+      "chapter": "Kapitel",
+      "group": "Gruppe"
+    },
+    "EntryTypes": {
+      "quest": "Quest",
+      "knowledge": "Wissen",
+      "event": "Ereignis",
+      "mystery": "Rätsel",
+      "location": "Ort",
+      "item": "Gegenstand",
+      "note": "Notiz"
+    },
+    "Status": {
+      "inactive": "Inaktiv",
+      "available": "Verfügbar",
+      "active": "Aktiv",
+      "completed": "Abgeschlossen",
+      "failed": "Gescheitert",
+      "unknown": "Unbekannt",
+      "hinted": "Angedeutet",
+      "discovered": "Entdeckt",
+      "understood": "Verstanden",
+      "confirmed": "Bestätigt",
+      "pending": "Ausstehend",
+      "occurred": "Eingetreten",
+      "prevented": "Verhindert",
+      "obsolete": "Obsolet",
+      "open": "Offen",
+      "partial": "Teilweise gelöst",
+      "solved": "Gelöst",
+      "visited": "Besucht",
+      "known": "Bekannt",
+      "acquired": "Erhalten",
+      "lost": "Verloren"
+    },
+    "JournalButton": {
+      "Tooltip": "Campaign Forge öffnen"
+    },
+    "Changes": {
+      "EntryStatus": "„{title}“: {from} → {to}",
+      "EntryCreated": "Eintrag „{title}“ wurde erstellt.",
+      "EntryUpdated": "Eintrag „{title}“ wurde bearbeitet.",
+      "EntryDeleted": "Eintrag „{title}“ wurde gelöscht.",
+      "GroupCreated": "Gruppe „{title}“ wurde erstellt.",
+      "GroupUpdated": "Gruppe „{title}“ wurde bearbeitet.",
+      "GroupDeleted": "Gruppe „{title}“ wurde gelöscht.",
+      "NodeMoved": "„{title}“ wurde verschoben.",
+      "TrackerCreated": "Tracker „{title}“ wurde erstellt.",
+      "TrackerUpdated": "Tracker „{title}“ wurde bearbeitet.",
+      "TrackerDeleted": "Tracker „{title}“ wurde gelöscht.",
+      "TrackerAdjusted": "„{title}“ wurde um {delta} auf {value} geändert."
+    },
+    "Confirm": {
+      "Title": "Campaign Forge",
+      "Delete": "„{title}“ wirklich löschen?",
+      "EndSession": "Die laufende Sitzung wirklich beenden?"
+    },
+    "Errors": {
+      "Generic": "Die Aktion konnte nicht ausgeführt werden. Details stehen in der Konsole.",
+      "GMOnly": "Die Campaign Forge kann in dieser Version nur von der Spielleitung bearbeitet werden.",
+      "TITLE_REQUIRED": "Ein Titel ist erforderlich.",
+      "GROUP_NOT_FOUND": "Die Gruppe wurde nicht gefunden.",
+      "ENTRY_NOT_FOUND": "Der Eintrag wurde nicht gefunden.",
+      "TRACKER_NOT_FOUND": "Der Tracker wurde nicht gefunden.",
+      "GROUP_NOT_EMPTY": "Die Gruppe kann erst gelöscht werden, wenn sie keine Untergruppen oder Einträge mehr enthält.",
+      "INVALID_ENTRY_TYPE": "Dieser Eintragstyp ist ungültig.",
+      "INVALID_STATUS": "Dieser Status ist für den Eintragstyp ungültig.",
+      "INVALID_NODE_TYPE": "Dieser Elementtyp kann nicht verschoben werden.",
+      "CHAPTER_MUST_BE_ROOT": "Kapitel müssen auf der obersten Ebene bleiben.",
+      "GROUP_CYCLE": "Diese Verschiebung würde eine zyklische Gruppenstruktur erzeugen.",
+      "SESSION_ALREADY_ACTIVE": "Es läuft bereits eine Sitzung.",
+      "NO_ACTIVE_SESSION": "Es läuft keine Sitzung.",
+      "INVALID_TRACKER_RANGE": "Minimum darf nicht größer als Maximum sein."
+    }
+  }
+}

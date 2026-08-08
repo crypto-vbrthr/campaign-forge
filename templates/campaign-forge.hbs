@@ -1,0 +1,506 @@
+<div class="cf-shell">
+  <header class="cf-toolbar">
+    <div class="cf-title-block">
+      <i class="fa-solid fa-book-open"></i>
+      <strong>{{labels.title}}</strong>
+    </div>
+
+    <div class="cf-session-strip">
+      {{#if activeSession}}
+        <span class="cf-session-dot is-active"></span>
+        <span>
+          {{localize "CAMPAIGN_FORGE.Session.Session"}} #{{activeSession.number}}
+          <small>{{activeSession.startedLabel}} · {{activeSession.changeCount}} {{localize "CAMPAIGN_FORGE.Common.Changes"}}</small>
+        </span>
+        <button type="button" class="icon" data-action="endSession" title="{{localize "CAMPAIGN_FORGE.Actions.EndSession"}}">
+          <i class="fa-solid fa-stop"></i>
+        </button>
+      {{else}}
+        <span class="cf-session-dot"></span>
+        <span>{{labels.noActiveSession}}</span>
+        <button type="button" class="cf-primary-action" data-action="startSession">
+          <i class="fa-solid fa-play"></i>
+          {{localize "CAMPAIGN_FORGE.Actions.StartSession"}}
+        </button>
+      {{/if}}
+    </div>
+  </header>
+
+  <nav class="cf-tabs" aria-label="{{localize "CAMPAIGN_FORGE.Common.Navigation"}}">
+    {{#each tabs}}
+      <button type="button" class="{{#if active}}is-active{{/if}}" data-action="setTab" data-tab="{{id}}">
+        <i class="{{icon}}"></i>
+        <span>{{label}}</span>
+      </button>
+    {{/each}}
+  </nav>
+
+  <main class="cf-main-scroll">
+    {{#if (eq activeTab "overview")}}
+      <section class="cf-tab-panel">
+        <div class="cf-section-heading">
+          <div>
+            <h2>{{localize "CAMPAIGN_FORGE.Overview.Title"}}</h2>
+            <p>{{localize "CAMPAIGN_FORGE.Overview.Description"}}</p>
+          </div>
+        </div>
+
+        <div class="cf-stat-grid">
+          <article class="cf-stat-card">
+            <span>{{localize "CAMPAIGN_FORGE.Overview.Entries"}}</span>
+            <strong>{{overview.entries}}</strong>
+          </article>
+          <article class="cf-stat-card">
+            <span>{{localize "CAMPAIGN_FORGE.Overview.ActiveEntries"}}</span>
+            <strong>{{overview.activeEntries}}</strong>
+          </article>
+          <article class="cf-stat-card">
+            <span>{{localize "CAMPAIGN_FORGE.Overview.Chapters"}}</span>
+            <strong>{{overview.chapters}}</strong>
+          </article>
+          <article class="cf-stat-card">
+            <span>{{localize "CAMPAIGN_FORGE.Overview.CompletedSessions"}}</span>
+            <strong>{{overview.sessions}}</strong>
+          </article>
+          <article class="cf-stat-card">
+            <span>{{localize "CAMPAIGN_FORGE.Overview.Trackers"}}</span>
+            <strong>{{overview.trackers}}</strong>
+          </article>
+        </div>
+
+        <div class="cf-overview-columns">
+          <section class="cf-panel">
+            <h3>{{localize "CAMPAIGN_FORGE.Overview.EntryTypes"}}</h3>
+            {{#if countByType.length}}
+              <ul class="cf-plain-list">
+                {{#each countByType}}
+                  <li>
+                    <span><i class="{{icon}}"></i> {{label}}</span>
+                    <strong>{{count}}</strong>
+                  </li>
+                {{/each}}
+              </ul>
+            {{else}}
+              <p class="cf-empty">{{localize "CAMPAIGN_FORGE.Overview.NoEntries"}}</p>
+            {{/if}}
+          </section>
+
+          <section class="cf-panel">
+            <h3>{{localize "CAMPAIGN_FORGE.Overview.CurrentSession"}}</h3>
+            {{#if activeSession}}
+              <p><strong>{{localize "CAMPAIGN_FORGE.Session.Session"}} #{{activeSession.number}}</strong></p>
+              <p>{{activeSession.changeCount}} {{localize "CAMPAIGN_FORGE.Common.Changes"}}</p>
+              <button type="button" data-action="setTab" data-tab="sessions">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                {{localize "CAMPAIGN_FORGE.Actions.OpenSessions"}}
+              </button>
+            {{else}}
+              <p class="cf-empty">{{localize "CAMPAIGN_FORGE.Session.NoneActiveLong"}}</p>
+            {{/if}}
+          </section>
+        </div>
+      </section>
+    {{/if}}
+
+    {{#if (eq activeTab "campaign")}}
+      <section class="cf-tab-panel cf-campaign-layout">
+        <div class="cf-campaign-tree-panel">
+          <div class="cf-section-heading">
+            <div>
+              <h2>{{localize "CAMPAIGN_FORGE.Campaign.Title"}}</h2>
+              <p>{{localize "CAMPAIGN_FORGE.Campaign.Description"}}</p>
+            </div>
+            <div class="cf-heading-actions">
+              <button type="button" data-action="createChapter">
+                <i class="fa-solid fa-bookmark"></i>
+                {{localize "CAMPAIGN_FORGE.Actions.NewChapter"}}
+              </button>
+              <button type="button" data-action="createEntry" data-parent-id="">
+                <i class="fa-solid fa-plus"></i>
+                {{localize "CAMPAIGN_FORGE.Actions.NewEntry"}}
+              </button>
+            </div>
+          </div>
+
+          <div class="cf-root-drop" data-cf-root-drop>
+            <i class="fa-solid fa-arrow-turn-down"></i>
+            {{localize "CAMPAIGN_FORGE.Campaign.RootDrop"}}
+          </div>
+
+          <div class="cf-tree" role="tree">
+            {{#if campaignRows.length}}
+              {{#each campaignRows}}
+                {{#if (eq nodeType "group")}}
+                  <div
+                    class="cf-tree-row cf-group-row {{#if (eq kind "chapter")}}is-chapter{{/if}}"
+                    style="--cf-depth: {{depth}}"
+                    role="treeitem"
+                    data-cf-draggable
+                    data-node-type="group"
+                    data-node-id="{{id}}"
+                  >
+                    <span class="cf-drag-handle" title="{{localize "CAMPAIGN_FORGE.Actions.Drag"}}">
+                      <i class="fa-solid fa-grip-vertical"></i>
+                    </span>
+                    <button type="button" class="cf-disclosure" data-action="toggleGroup" data-node-id="{{id}}">
+                      <i class="fa-solid {{#if collapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}}"></i>
+                    </button>
+                    <span class="cf-row-icon"><i class="{{icon}}"></i></span>
+                    <div class="cf-row-main">
+                      <strong>{{title}}</strong>
+                      <small>{{kindLabel}}</small>
+                    </div>
+                    <div class="cf-row-actions">
+                      <button type="button" class="icon" data-action="createGroup" data-parent-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.NewGroup"}}">
+                        <i class="fa-solid fa-folder-plus"></i>
+                      </button>
+                      <button type="button" class="icon" data-action="createEntry" data-parent-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.NewEntry"}}">
+                        <i class="fa-solid fa-file-circle-plus"></i>
+                      </button>
+                      <button type="button" class="icon" data-action="moveUp" data-node-type="group" data-node-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.MoveUp"}}">
+                        <i class="fa-solid fa-arrow-up"></i>
+                      </button>
+                      <button type="button" class="icon" data-action="moveDown" data-node-type="group" data-node-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.MoveDown"}}">
+                        <i class="fa-solid fa-arrow-down"></i>
+                      </button>
+                      <button type="button" class="icon" data-action="editGroup" data-node-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Edit"}}">
+                        <i class="fa-solid fa-pen"></i>
+                      </button>
+                      <button type="button" class="icon" data-action="deleteNode" data-node-type="group" data-node-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Delete"}}">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                {{else}}
+                  <div
+                    class="cf-tree-row cf-entry-row {{#unless active}}is-inactive{{/unless}}"
+                    style="--cf-depth: {{depth}}"
+                    role="treeitem"
+                    data-cf-draggable
+                    data-node-type="entry"
+                    data-node-id="{{id}}"
+                  >
+                    <span class="cf-drag-handle" title="{{localize "CAMPAIGN_FORGE.Actions.Drag"}}">
+                      <i class="fa-solid fa-grip-vertical"></i>
+                    </span>
+                    <span class="cf-disclosure cf-disclosure-spacer"></span>
+                    <span class="cf-row-icon"><i class="{{icon}}"></i></span>
+                    <div class="cf-row-main">
+                      <strong>{{title}}</strong>
+                      <small>{{typeLabel}}{{#unless visible}} · {{localize "CAMPAIGN_FORGE.Common.Hidden"}}{{/unless}}</small>
+                    </div>
+                    <select class="cf-entry-status" data-entry-id="{{id}}" aria-label="{{localize "CAMPAIGN_FORGE.Common.Status"}}">
+                      {{#each statuses}}
+                        <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                      {{/each}}
+                    </select>
+                    <div class="cf-row-actions">
+                      <button type="button" class="icon" data-action="moveUp" data-node-type="entry" data-node-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.MoveUp"}}">
+                        <i class="fa-solid fa-arrow-up"></i>
+                      </button>
+                      <button type="button" class="icon" data-action="moveDown" data-node-type="entry" data-node-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.MoveDown"}}">
+                        <i class="fa-solid fa-arrow-down"></i>
+                      </button>
+                      <button type="button" class="icon" data-action="editEntry" data-node-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Edit"}}">
+                        <i class="fa-solid fa-pen"></i>
+                      </button>
+                      <button type="button" class="icon" data-action="deleteNode" data-node-type="entry" data-node-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Delete"}}">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                {{/if}}
+              {{/each}}
+            {{else}}
+              <div class="cf-empty-state">
+                <i class="fa-solid fa-folder-open"></i>
+                <strong>{{localize "CAMPAIGN_FORGE.Campaign.EmptyTitle"}}</strong>
+                <span>{{localize "CAMPAIGN_FORGE.Campaign.EmptyText"}}</span>
+              </div>
+            {{/if}}
+          </div>
+        </div>
+
+        {{#if editor}}
+          <aside class="cf-editor">
+            <div class="cf-editor-heading">
+              <h3>{{editor.heading}}</h3>
+              <button type="button" class="icon" data-action="cancelEditor" title="{{localize "CAMPAIGN_FORGE.Actions.Close"}}">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <form class="cf-editor-form">
+              {{#if (eq editor.kind "group")}}
+                <input type="hidden" name="kind" value="{{editor.groupKind}}">
+                <input type="hidden" name="parentId" value="{{editor.parentId}}">
+                <label>
+                  <span>{{localize "CAMPAIGN_FORGE.Fields.Title"}}</span>
+                  <input type="text" name="title" value="{{editor.title}}" required autofocus>
+                </label>
+                <label>
+                  <span>{{localize "CAMPAIGN_FORGE.Fields.Description"}}</span>
+                  <textarea name="description" rows="8">{{editor.description}}</textarea>
+                </label>
+              {{/if}}
+
+              {{#if (eq editor.kind "entry")}}
+                <input type="hidden" name="parentId" value="{{editor.parentId}}">
+                <label>
+                  <span>{{localize "CAMPAIGN_FORGE.Fields.Title"}}</span>
+                  <input type="text" name="title" value="{{editor.title}}" required autofocus>
+                </label>
+                <label>
+                  <span>{{localize "CAMPAIGN_FORGE.Fields.Type"}}</span>
+                  <select name="type">
+                    {{#each editor.types}}
+                      <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                    {{/each}}
+                  </select>
+                </label>
+                <label>
+                  <span>{{localize "CAMPAIGN_FORGE.Fields.Status"}}</span>
+                  <select name="status">
+                    {{#each editor.statuses}}
+                      <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                    {{/each}}
+                  </select>
+                </label>
+                <label>
+                  <span>{{localize "CAMPAIGN_FORGE.Fields.Description"}}</span>
+                  <textarea name="description" rows="8">{{editor.description}}</textarea>
+                </label>
+                <label class="cf-checkbox-row">
+                  <input type="checkbox" name="active" {{#if editor.active}}checked{{/if}}>
+                  <span>{{localize "CAMPAIGN_FORGE.Fields.Active"}}</span>
+                </label>
+                <label class="cf-checkbox-row">
+                  <input type="checkbox" name="visible" {{#if editor.visible}}checked{{/if}}>
+                  <span>{{localize "CAMPAIGN_FORGE.Fields.Visible"}}</span>
+                </label>
+              {{/if}}
+
+              <div class="cf-editor-footer">
+                <button type="button" data-action="cancelEditor">{{localize "CAMPAIGN_FORGE.Actions.Cancel"}}</button>
+                <button type="button" class="cf-primary-action" data-action="saveEditor">
+                  <i class="fa-solid fa-floppy-disk"></i>
+                  {{localize "CAMPAIGN_FORGE.Actions.Save"}}
+                </button>
+              </div>
+            </form>
+          </aside>
+        {{/if}}
+      </section>
+    {{/if}}
+
+    {{#if (eq activeTab "sessions")}}
+      <section class="cf-tab-panel">
+        <div class="cf-section-heading">
+          <div>
+            <h2>{{localize "CAMPAIGN_FORGE.Sessions.Title"}}</h2>
+            <p>{{localize "CAMPAIGN_FORGE.Sessions.Description"}}</p>
+          </div>
+          {{#unless activeSession}}
+            <button type="button" class="cf-primary-action" data-action="startSession">
+              <i class="fa-solid fa-play"></i>
+              {{localize "CAMPAIGN_FORGE.Actions.StartSession"}}
+            </button>
+          {{/unless}}
+        </div>
+
+        {{#if activeSession}}
+          <article class="cf-active-session-card">
+            <div>
+              <span class="cf-session-dot is-active"></span>
+              <strong>{{localize "CAMPAIGN_FORGE.Session.Session"}} #{{activeSession.number}}</strong>
+              <small>{{localize "CAMPAIGN_FORGE.Session.Started"}} {{activeSession.startedLabel}}</small>
+            </div>
+            <div>
+              <strong>{{activeSession.changeCount}}</strong>
+              <span>{{localize "CAMPAIGN_FORGE.Common.Changes"}}</span>
+            </div>
+            <button type="button" data-action="endSession">
+              <i class="fa-solid fa-stop"></i>
+              {{localize "CAMPAIGN_FORGE.Actions.EndSession"}}
+            </button>
+          </article>
+        {{/if}}
+
+        <div class="cf-session-list">
+          {{#if sessions.length}}
+            {{#each sessions}}
+              <details class="cf-session-entry" {{#if (eq status "active")}}open{{/if}}>
+                <summary>
+                  <span>
+                    <strong>{{localize "CAMPAIGN_FORGE.Session.Session"}} #{{number}}</strong>
+                    <small>{{startedLabel}}</small>
+                  </span>
+                  <span class="cf-session-summary-count">{{changes.length}} {{localize "CAMPAIGN_FORGE.Common.Changes"}}</span>
+                </summary>
+                <div class="cf-change-list">
+                  {{#if changes.length}}
+                    {{#each changes}}
+                      <div class="cf-change-row {{#if structural}}is-structural{{/if}}">
+                        <time>{{timeLabel}}</time>
+                        <span>{{summary}}</span>
+                      </div>
+                    {{/each}}
+                  {{else}}
+                    <p class="cf-empty">{{localize "CAMPAIGN_FORGE.Sessions.NoChanges"}}</p>
+                  {{/if}}
+                </div>
+              </details>
+            {{/each}}
+          {{else}}
+            <div class="cf-empty-state">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+              <strong>{{localize "CAMPAIGN_FORGE.Sessions.EmptyTitle"}}</strong>
+              <span>{{localize "CAMPAIGN_FORGE.Sessions.EmptyText"}}</span>
+            </div>
+          {{/if}}
+        </div>
+      </section>
+    {{/if}}
+
+    {{#if (eq activeTab "trackers")}}
+      <section class="cf-tab-panel cf-tracker-layout">
+        <div class="cf-tracker-panel">
+          <div class="cf-section-heading">
+            <div>
+              <h2>{{localize "CAMPAIGN_FORGE.Trackers.Title"}}</h2>
+              <p>{{localize "CAMPAIGN_FORGE.Trackers.Description"}}</p>
+            </div>
+            <button type="button" data-action="createTracker">
+              <i class="fa-solid fa-plus"></i>
+              {{localize "CAMPAIGN_FORGE.Actions.NewTracker"}}
+            </button>
+          </div>
+
+          <div class="cf-tracker-list">
+            {{#if trackers.length}}
+              {{#each trackers}}
+                <article class="cf-tracker-row">
+                  <div class="cf-tracker-main">
+                    <strong>{{title}}</strong>
+                    {{#if rangeLabel}}<small>{{rangeLabel}}</small>{{/if}}
+                    {{#if description}}<p>{{description}}</p>{{/if}}
+                  </div>
+                  <div class="cf-tracker-value">
+                    <button type="button" class="icon" data-action="adjustTracker" data-tracker-id="{{id}}" data-delta="-1" title="-1">
+                      <i class="fa-solid fa-minus"></i>
+                    </button>
+                    <strong>{{value}}</strong>
+                    <button type="button" class="icon" data-action="adjustTracker" data-tracker-id="{{id}}" data-delta="1" title="+1">
+                      <i class="fa-solid fa-plus"></i>
+                    </button>
+                  </div>
+                  <div class="cf-row-actions">
+                    <button type="button" class="icon" data-action="moveTrackerUp" data-tracker-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.MoveUp"}}">
+                      <i class="fa-solid fa-arrow-up"></i>
+                    </button>
+                    <button type="button" class="icon" data-action="moveTrackerDown" data-tracker-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.MoveDown"}}">
+                      <i class="fa-solid fa-arrow-down"></i>
+                    </button>
+                    <button type="button" class="icon" data-action="editTracker" data-tracker-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Edit"}}">
+                      <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button type="button" class="icon" data-action="deleteTracker" data-tracker-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Delete"}}">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </article>
+              {{/each}}
+            {{else}}
+              <div class="cf-empty-state">
+                <i class="fa-solid fa-chart-simple"></i>
+                <strong>{{localize "CAMPAIGN_FORGE.Trackers.EmptyTitle"}}</strong>
+                <span>{{localize "CAMPAIGN_FORGE.Trackers.EmptyText"}}</span>
+              </div>
+            {{/if}}
+          </div>
+        </div>
+
+        {{#if editor}}
+          {{#if (eq editor.kind "tracker")}}
+            <aside class="cf-editor">
+              <div class="cf-editor-heading">
+                <h3>{{editor.heading}}</h3>
+                <button type="button" class="icon" data-action="cancelEditor" title="{{localize "CAMPAIGN_FORGE.Actions.Close"}}">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+              <form class="cf-editor-form">
+                <label>
+                  <span>{{localize "CAMPAIGN_FORGE.Fields.Title"}}</span>
+                  <input type="text" name="title" value="{{editor.title}}" required autofocus>
+                </label>
+                <label>
+                  <span>{{localize "CAMPAIGN_FORGE.Fields.Value"}}</span>
+                  <input type="number" name="value" value="{{editor.value}}" step="1">
+                </label>
+                <div class="cf-two-column-fields">
+                  <label>
+                    <span>{{localize "CAMPAIGN_FORGE.Fields.Minimum"}}</span>
+                    <input type="number" name="min" value="{{editor.min}}" step="1">
+                  </label>
+                  <label>
+                    <span>{{localize "CAMPAIGN_FORGE.Fields.Maximum"}}</span>
+                    <input type="number" name="max" value="{{editor.max}}" step="1">
+                  </label>
+                </div>
+                <label>
+                  <span>{{localize "CAMPAIGN_FORGE.Fields.Description"}}</span>
+                  <textarea name="description" rows="6">{{editor.description}}</textarea>
+                </label>
+                <div class="cf-editor-footer">
+                  <button type="button" data-action="cancelEditor">{{localize "CAMPAIGN_FORGE.Actions.Cancel"}}</button>
+                  <button type="button" class="cf-primary-action" data-action="saveEditor">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    {{localize "CAMPAIGN_FORGE.Actions.Save"}}
+                  </button>
+                </div>
+              </form>
+            </aside>
+          {{/if}}
+        {{/if}}
+      </section>
+    {{/if}}
+
+    {{#if (eq activeTab "settings")}}
+      <section class="cf-tab-panel">
+        <div class="cf-section-heading">
+          <div>
+            <h2>{{localize "CAMPAIGN_FORGE.Settings.Title"}}</h2>
+            <p>{{localize "CAMPAIGN_FORGE.Settings.Description"}}</p>
+          </div>
+        </div>
+
+        <div class="cf-settings-list">
+          <label class="cf-setting-row">
+            <span>
+              <strong>{{localize "CAMPAIGN_FORGE.Settings.JournalButton"}}</strong>
+              <small>{{localize "CAMPAIGN_FORGE.Settings.JournalButtonHint"}}</small>
+            </span>
+            <input type="checkbox" data-cf-setting="showJournalButton" {{#if settings.showJournalButton}}checked{{/if}}>
+          </label>
+
+          <label class="cf-setting-row">
+            <span>
+              <strong>{{localize "CAMPAIGN_FORGE.Settings.StructuralChanges"}}</strong>
+              <small>{{localize "CAMPAIGN_FORGE.Settings.StructuralChangesHint"}}</small>
+            </span>
+            <input type="checkbox" data-cf-setting="showStructuralChanges" {{#if settings.showStructuralChanges}}checked{{/if}}>
+          </label>
+
+          <div class="cf-setting-row">
+            <span>
+              <strong>{{localize "CAMPAIGN_FORGE.Settings.Version"}}</strong>
+              <small>{{localize "CAMPAIGN_FORGE.Settings.VersionHint"}}</small>
+            </span>
+            <code>{{version}}</code>
+          </div>
+        </div>
+      </section>
+    {{/if}}
+  </main>
+</div>

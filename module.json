@@ -1,0 +1,33 @@
+{
+  "id": "campaign-forge",
+  "title": "Campaign Forge",
+  "description": "Campaign progress, knowledge, session, and tracker management for Foundry VTT.",
+  "version": "0.1.0",
+  "authors": [
+    {
+      "name": "Campaign Forge"
+    }
+  ],
+  "compatibility": {
+    "minimum": "13",
+    "verified": "14"
+  },
+  "esmodules": [
+    "scripts/main.js"
+  ],
+  "styles": [
+    "styles/campaign-forge.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    },
+    {
+      "lang": "de",
+      "name": "Deutsch",
+      "path": "lang/de.json"
+    }
+  ]
+}
