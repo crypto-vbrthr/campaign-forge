@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.2
+
+### Fixed
+- Fully scoped Campaign Forge CSS beneath `.campaign-forge`.
+- Generic `.cf-*` selectors no longer leak into other Forge modules.
+- Campaign Forge is now protected against City Forge or other Forge modules overriding its tabs, panels, toolbar, tree, editor, and overview layout through shared internal class names.
+
+### Compatibility
+- No campaign data schema changes.
+- Existing Campaign Forge API remains unchanged.
+- No migration is required.
+
 ## 0.6.1
 
 - Added an **All players** reward target for XP, currency, and Item rewards.

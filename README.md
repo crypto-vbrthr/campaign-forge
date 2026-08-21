@@ -65,3 +65,8 @@ Further transition triggers and action types, provider integrations such as Loot
 Campaign entries can reference one or more Foundry Journals or individual Journal pages. A primary Journal can be opened directly from the Campaign tree. Existing entries can also be dragged into ProseMirror Journal text; after the Journal is saved, Campaign Forge enriches the lightweight reference into a live block. GM users can change the entry status from that block, and all transition rules continue to apply through the central Campaign Engine.
 
 Journal embeds are references rather than copies. Renamed entries, status changes, descriptions, and visibility therefore remain synchronized with Campaign Forge data.
+
+
+## 0.6.2 CSS isolation hotfix
+
+All Campaign Forge UI rules are now scoped beneath the application's `.campaign-forge` root class. This prevents generic internal `.cf-*` class names from colliding with City Forge or other Forge-suite modules.

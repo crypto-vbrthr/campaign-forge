@@ -1,0 +1,337 @@
+Campaign Forge 0.6.2 – Test Results
+Generated: 2026-08-21T14:07:05
+
+Automated Node tests: 51/51 passed
+JavaScript syntax checks: 10/10 passed
+JSON parse checks: PASS
+CSS isolation audit: PASS
+Generic Campaign Forge `.cf-*` leakage: NONE
+
+
+> campaign-forge@0.6.2 test
+> node --test
+
+TAP version 13
+# Subtest: Campaign Forge critical UI rules are module-scoped
+ok 1 - Campaign Forge critical UI rules are module-scoped
+  ---
+  duration_ms: 2.894695
+  type: 'test'
+  ...
+# Subtest: creates chapters, groups, and entries with valid defaults
+ok 2 - creates chapters, groups, and entries with valid defaults
+  ---
+  duration_ms: 2.744085
+  type: 'test'
+  ...
+# Subtest: explicit sessions only record changes while active
+ok 3 - explicit sessions only record changes while active
+  ---
+  duration_ms: 1.882641
+  type: 'test'
+  ...
+# Subtest: session numbers increment monotonically
+ok 4 - session numbers increment monotonically
+  ---
+  duration_ms: 0.412484
+  type: 'test'
+  ...
+# Subtest: cannot start two sessions at once
+ok 5 - cannot start two sessions at once
+  ---
+  duration_ms: 0.597177
+  type: 'test'
+  ...
+# Subtest: entry status is validated against its type
+ok 6 - entry status is validated against its type
+  ---
+  duration_ms: 1.418242
+  type: 'test'
+  ...
+# Subtest: entries can move between groups and are re-sorted
+ok 7 - entries can move between groups and are re-sorted
+  ---
+  duration_ms: 14.145015
+  type: 'test'
+  ...
+# Subtest: non-empty groups cannot be deleted
+ok 8 - non-empty groups cannot be deleted
+  ---
+  duration_ms: 0.785689
+  type: 'test'
+  ...
+# Subtest: trackers clamp to optional min and max and log during sessions
+ok 9 - trackers clamp to optional min and max and log during sessions
+  ---
+  duration_ms: 0.73982
+  type: 'test'
+  ...
+# Subtest: chapters cannot be nested and group cycles are rejected
+ok 10 - chapters cannot be nested and group cycles are rejected
+  ---
+  duration_ms: 0.733018
+  type: 'test'
+  ...
+# Subtest: tracker ranges are validated and values are clamped on create/update
+ok 11 - tracker ranges are validated and values are clamped on create/update
+  ---
+  duration_ms: 0.980474
+  type: 'test'
+  ...
+# Subtest: manual session changes can be added, edited, and removed while a session is active
+ok 12 - manual session changes can be added, edited, and removed while a session is active
+  ---
+  duration_ms: 1.123296
+  type: 'test'
+  ...
+# Subtest: manual session changes require an active session and a valid kind
+ok 13 - manual session changes require an active session and a valid kind
+  ---
+  duration_ms: 1.294127
+  type: 'test'
+  ...
+# Subtest: overview pins can reference entries, groups, and trackers without duplicates
+ok 14 - overview pins can reference entries, groups, and trackers without duplicates
+  ---
+  duration_ms: 2.938152
+  type: 'test'
+  ...
+# Subtest: overview pins can be reordered and unpinned
+ok 15 - overview pins can be reordered and unpinned
+  ---
+  duration_ms: 1.685901
+  type: 'test'
+  ...
+# Subtest: deleting a target also removes its overview pin
+ok 16 - deleting a target also removes its overview pin
+  ---
+  duration_ms: 0.557608
+  type: 'test'
+  ...
+# Subtest: group progress includes nested entries and recognizes type-specific reached states
+ok 17 - group progress includes nested entries and recognizes type-specific reached states
+  ---
+  duration_ms: 0.960986
+  type: 'test'
+  ...
+# Subtest: key players can link actors, reputation values, and campaign entries
+ok 18 - key players can link actors, reputation values, and campaign entries
+  ---
+  duration_ms: 1.620931
+  type: 'test'
+  ...
+# Subtest: an actor can only be registered once as a key player
+ok 19 - an actor can only be registered once as a key player
+  ---
+  duration_ms: 0.504964
+  type: 'test'
+  ...
+# Subtest: key player appearances are tied to explicit sessions and logged once per session
+ok 20 - key player appearances are tied to explicit sessions and logged once per session
+  ---
+  duration_ms: 0.776942
+  type: 'test'
+  ...
+# Subtest: key players can be pinned, reordered, and cleaned up with deleted references
+ok 21 - key players can be pinned, reordered, and cleaned up with deleted references
+  ---
+  duration_ms: 1.399268
+  type: 'test'
+  ...
+# Subtest: transition rules can change status, activity, visibility, and trackers in one transaction
+ok 22 - transition rules can change status, activity, visibility, and trackers in one transaction
+  ---
+  duration_ms: 2.139554
+  type: 'test'
+  ...
+# Subtest: status consequences can trigger further transition rules
+ok 23 - status consequences can trigger further transition rules
+  ---
+  duration_ms: 1.323721
+  type: 'test'
+  ...
+# Subtest: transition cycles are detected before data is changed
+ok 24 - transition cycles are detected before data is changed
+  ---
+  duration_ms: 1.516267
+  type: 'test'
+  ...
+# Subtest: transition rules are validated, editable, removable, and cleaned when targets are deleted
+ok 25 - transition rules are validated, editable, removable, and cleaned when targets are deleted
+  ---
+  duration_ms: 1.557269
+  type: 'test'
+  ...
+# Subtest: entries can manage multiple Journal references with one primary link
+ok 26 - entries can manage multiple Journal references with one primary link
+  ---
+  duration_ms: 2.551275
+  type: 'test'
+  ...
+# Subtest: duplicate and invalid Journal links are rejected
+ok 27 - duplicate and invalid Journal links are rejected
+  ---
+  duration_ms: 0.449135
+  type: 'test'
+  ...
+# Subtest: removing a primary Journal link promotes the next reference
+ok 28 - removing a primary Journal link promotes the next reference
+  ---
+  duration_ms: 8.431274
+  type: 'test'
+  ...
+# Subtest: Journal reference changes are recorded as structural session changes
+ok 29 - Journal reference changes are recorded as structural session changes
+  ---
+  duration_ms: 1.343866
+  type: 'test'
+  ...
+# Subtest: status changes originating from Journals use the normal transition transaction
+ok 30 - status changes originating from Journals use the normal transition transaction
+  ---
+  duration_ms: 3.282665
+  type: 'test'
+  ...
+# Subtest: reward rules become pending on their status trigger without granting automatically
+ok 31 - reward rules become pending on their status trigger without granting automatically
+  ---
+  duration_ms: 11.470563
+  type: 'test'
+  ...
+# Subtest: due external rewards can be granted with duplicate protection
+ok 32 - due external rewards can be granted with duplicate protection
+  ---
+  duration_ms: 2.222544
+  type: 'test'
+  ...
+# Subtest: tracker rewards are applied internally and share the transition transaction
+ok 33 - tracker rewards are applied internally and share the transition transaction
+  ---
+  duration_ms: 0.99126
+  type: 'test'
+  ...
+# Subtest: failed rewards remain retryable and can later be granted
+ok 34 - failed rewards remain retryable and can later be granted
+  ---
+  duration_ms: 0.775987
+  type: 'test'
+  ...
+# Subtest: resetting a skipped reward re-arms it for the next matching trigger
+ok 35 - resetting a skipped reward re-arms it for the next matching trigger
+  ---
+  duration_ms: 5.705302
+  type: 'test'
+  ...
+# Subtest: resetting an already granted reward deliberately allows it to be granted on a later trigger
+ok 36 - resetting an already granted reward deliberately allows it to be granted on a later trigger
+  ---
+  duration_ms: 2.872233
+  type: 'test'
+  ...
+# Subtest: deleting a tracker cleans tracker rewards that reference it
+ok 37 - deleting a tracker cleans tracker rewards that reference it
+  ---
+  duration_ms: 0.927428
+  type: 'test'
+  ...
+# Subtest: one reward rule can contain and process multiple rewards
+ok 38 - one reward rule can contain and process multiple rewards
+  ---
+  duration_ms: 1.52292
+  type: 'test'
+  ...
+# Subtest: a locked reward cannot be skipped before its trigger becomes due
+ok 39 - a locked reward cannot be skipped before its trigger becomes due
+  ---
+  duration_ms: 0.578395
+  type: 'test'
+  ...
+# Subtest: transition rules with ALL conditions only execute when every condition is met
+ok 40 - transition rules with ALL conditions only execute when every condition is met
+  ---
+  duration_ms: 2.059824
+  type: 'test'
+  ...
+# Subtest: a failed ALL condition blocks only the rule consequences, not the requested root status change
+ok 41 - a failed ALL condition blocks only the rule consequences, not the requested root status change
+  ---
+  duration_ms: 1.508395
+  type: 'test'
+  ...
+# Subtest: ANY condition mode executes when at least one condition is satisfied
+ok 42 - ANY condition mode executes when at least one condition is satisfied
+  ---
+  duration_ms: 0.86145
+  type: 'test'
+  ...
+# Subtest: entry status conditions support equality, inequality, and ordered comparisons
+ok 43 - entry status conditions support equality, inequality, and ordered comparisons
+  ---
+  duration_ms: 0.561442
+  type: 'test'
+  ...
+# Subtest: group progress conditions can use reached-entry counts and percentages
+ok 44 - group progress conditions can use reached-entry counts and percentages
+  ---
+  duration_ms: 1.226672
+  type: 'test'
+  ...
+# Subtest: entry active and visibility conditions are evaluated independently
+ok 45 - entry active and visibility conditions are evaluated independently
+  ---
+  duration_ms: 0.582406
+  type: 'test'
+  ...
+# Subtest: deleting a condition target disables affected transition rules instead of broadening them silently
+ok 46 - deleting a condition target disables affected transition rules instead of broadening them silently
+  ---
+  duration_ms: 1.141409
+  type: 'test'
+  ...
+# Subtest: conditions are evaluated for transition rules reached through chained automatic status changes
+ok 47 - conditions are evaluated for transition rules reached through chained automatic status changes
+  ---
+  duration_ms: 0.717332
+  type: 'test'
+  ...
+# Subtest: all-players XP grants the full XP amount to every player character
+ok 48 - all-players XP grants the full XP amount to every player character
+  ---
+  duration_ms: 1.199683
+  type: 'test'
+  ...
+# Subtest: all-players currency grants the full coin bundle to every player character
+ok 49 - all-players currency grants the full coin bundle to every player character
+  ---
+  duration_ms: 1.116724
+  type: 'test'
+  ...
+# Subtest: all-players item rewards grant the full quantity to every player character
+ok 50 - all-players item rewards grant the full quantity to every player character
+  ---
+  duration_ms: 0.659662
+  type: 'test'
+  ...
+# Subtest: currency and item rewards can target a PF2e party Actor as team inventory
+ok 51 - currency and item rewards can target a PF2e party Actor as team inventory
+  ---
+  duration_ms: 0.410314
+  type: 'test'
+  ...
+1..51
+# tests 51
+# suites 0
+# pass 51
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 181.02392
+
+Release contract:
+- Module version: 0.6.2
+- Campaign data schema: unchanged
+- Public API: unchanged
+
+Runtime note:
+- No live Foundry runtime smoke test was performed in this build environment.
