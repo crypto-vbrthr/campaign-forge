@@ -1,3 +1,9 @@
+## 0.9.1 - Search Focus Hotfix
+
+- Fixed campaign-tree live search losing keyboard focus after the debounced results rerender.
+- Search focus and caret/selection are restored after filtering only when the field was still active when the rerender started, avoiding unwanted focus stealing after the user clicks elsewhere.
+- Added regression coverage for the focus-preservation path. Full regression suite: **104 tests**.
+
 ## 0.9.0 - Hardening & UX Review
 
 - Added campaign-tree text search, type filtering, and scope filtering for active/inactive, player-visible, and GM-only content. Matching branches auto-expand while saved collapse state remains untouched.

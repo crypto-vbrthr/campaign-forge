@@ -1,4 +1,10 @@
-# Campaign Forge v0.9.0
+# Campaign Forge v0.9.1
+
+## v0.9.1 Search Focus Hotfix
+
+- Campaign-tree live search now preserves keyboard focus and caret position across its debounced rerender. Typing can continue normally while results update.
+- The fix only restores focus when the search field was still the active control when the debounced filter render began, so clicking elsewhere does not pull focus back unexpectedly.
+- Added regression coverage for the search-focus preservation path. Full regression suite: **104 tests**.
 
 ## v0.9.0 Hardening & UX Review
 

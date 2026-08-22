@@ -2,7 +2,7 @@
   "id": "campaign-forge",
   "title": "Campaign Forge",
   "description": "Campaign progress, knowledge, sessions, player-facing campaign overview, trackers, key players, rule-driven campaign state, Journal integration, rewards, and optional Forge provider integrations for Foundry VTT.",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "authors": [
     {
       "name": "Campaign Forge"

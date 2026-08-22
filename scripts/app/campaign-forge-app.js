@@ -954,6 +954,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this._itemRewardEditorDialog = null;
     this._campaignFilter = { query: "", type: "all", scope: "all" };
     this._filterRenderTimer = null;
+    this._campaignQueryFocus = null;
     this._dataHealthCache = null;
     this._sessionHistoryLimit = 20;
   }
@@ -1386,7 +1387,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         showJournalButton: game.settings.get(MODULE_ID, SETTINGS.SHOW_JOURNAL_BUTTON),
         showStructuralChanges: game.settings.get(MODULE_ID, SETTINGS.SHOW_STRUCTURAL_CHANGES)
       },
-      version: game.modules.get(MODULE_ID)?.version ?? "0.9.0",
+      version: game.modules.get(MODULE_ID)?.version ?? "0.9.1",
       labels: {
         title: localize("CAMPAIGN_FORGE.Title"),
         noActiveSession: localize("CAMPAIGN_FORGE.Session.NoneActive")
@@ -1979,13 +1980,35 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const campaignQuery = root.querySelector("[data-cf-campaign-query]");
     if (campaignQuery) {
       campaignQuery.addEventListener("input", event => {
-        this._campaignFilter.query = event.currentTarget.value ?? "";
+        const input = event.currentTarget;
+        this._campaignFilter.query = input.value ?? "";
         globalThis.clearTimeout?.(this._filterRenderTimer);
-        this._filterRenderTimer = globalThis.setTimeout?.(() => {
+        this._filterRenderTimer = globalThis.setTimeout?.(async () => {
           this._filterRenderTimer = null;
-          this.render();
+          this._campaignQueryFocus = document.activeElement === input
+            ? {
+                start: input.selectionStart,
+                end: input.selectionEnd,
+                direction: input.selectionDirection ?? "none"
+              }
+            : null;
+          await this.render();
         }, 180);
       });
+
+      if (this._campaignQueryFocus) {
+        const focus = this._campaignQueryFocus;
+        this._campaignQueryFocus = null;
+        try { campaignQuery.focus({ preventScroll: true }); }
+        catch { campaignQuery.focus(); }
+        if (Number.isInteger(focus.start) && Number.isInteger(focus.end)) {
+          const length = campaignQuery.value.length;
+          const start = Math.min(Math.max(focus.start, 0), length);
+          const end = Math.min(Math.max(focus.end, start), length);
+          try { campaignQuery.setSelectionRange(start, end, focus.direction); }
+          catch { /* Some browser/input combinations do not expose a text selection. */ }
+        }
+      }
     }
     const campaignTypeFilter = root.querySelector("[data-cf-campaign-type-filter]");
     if (campaignTypeFilter) campaignTypeFilter.addEventListener("change", async event => {
@@ -4039,7 +4062,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       const payload = {
         format: "campaign-forge-backup",
         formatVersion: 1,
-        moduleVersion: game.modules.get(MODULE_ID)?.version ?? "0.9.0",
+        moduleVersion: game.modules.get(MODULE_ID)?.version ?? "0.9.1",
         exportedAt: new Date().toISOString(),
         state
       };

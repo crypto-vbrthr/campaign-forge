@@ -40,7 +40,7 @@ function exposeApi() {
   if (!module) return;
 
   module.api = {
-    version: "0.9.0",
+    version: "0.9.1",
     open: openCampaignForge,
     openPlayerView: openPlayerCampaignForge,
     getState: async () => {

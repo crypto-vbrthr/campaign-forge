@@ -120,3 +120,12 @@ test("hardening UX exposes campaign filters, data health and guarded backups", (
   assert.match(css, /\.campaign-forge \.cf-campaign-filter-bar/);
   assert.match(css, /\.campaign-forge \.cf-health-summary/);
 });
+
+
+test("campaign live search preserves focus and caret across debounced rerenders", () => {
+  const app = fs.readFileSync(path.join(ROOT, "scripts", "app", "campaign-forge-app.js"), "utf8");
+
+  assert.match(app, /const input = event\.currentTarget;[\s\S]*document\.activeElement === input/);
+  assert.match(app, /campaignQuery\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(app, /campaignQuery\.setSelectionRange\(start, end, focus\.direction\)/);
+});
