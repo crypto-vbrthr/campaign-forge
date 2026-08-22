@@ -1,4 +1,15 @@
-# Campaign Forge v0.7.3
+# Campaign Forge v0.8.0
+
+## v0.8.0 Player View
+
+- Players can open a dedicated read-only Campaign Forge view from the Journal sidebar. GMs can open the same view from the new **Player View / Spieleransicht** tab as a preview.
+- Player View contains **Overview**, **Campaign**, and **Key Players** tabs and never exposes session logs, GM notes, transition/reward rules, or Forge provider payloads.
+- Entries use the existing visibility flag, now labelled explicitly as player visibility. Chapters/groups, campaign values, key players, and overview pins must be explicitly published separately.
+- Values and key players have separate player-facing text fields so GM descriptions and notes can remain private.
+- Group progress is privacy-safe: only visible entries are counted, preventing hidden clues from being inferred through progress totals.
+- Hidden parent groups are skipped and visible descendants are re-homed to the nearest published ancestor or root.
+- Journal and Actor shortcuts only appear when the player already has Foundry observer permission for the referenced document.
+
 
 ## v0.7.3 Integration Review & Workspace Polish
 

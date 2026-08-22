@@ -420,6 +420,11 @@ function actionSummary(change) {
       return format("CAMPAIGN_FORGE.Changes.OverviewUnpinned", { title: change.targetTitle });
     case "overview.moved":
       return format("CAMPAIGN_FORGE.Changes.OverviewMoved", { title: change.targetTitle });
+    case "overview.playerVisibility":
+      return format("CAMPAIGN_FORGE.Changes.OverviewPlayerVisibility", {
+        title: change.targetTitle,
+        value: change.after?.playerVisible ? localize("CAMPAIGN_FORGE.Common.Yes") : localize("CAMPAIGN_FORGE.Common.No")
+      });
     case "keyPlayer.created":
       return format("CAMPAIGN_FORGE.Changes.KeyPlayerCreated", { title: change.targetTitle });
     case "keyPlayer.updated":
@@ -800,7 +805,9 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       openCreatureForge: this._actionOpenCreatureForge,
       captureEntryWeather: this._actionCaptureEntryWeather,
       clearEntryWeather: this._actionClearEntryWeather,
-      openWeatherForge: this._actionOpenWeatherForge
+      openWeatherForge: this._actionOpenWeatherForge,
+      toggleOverviewPlayerVisible: this._actionToggleOverviewPlayerVisible,
+      openPlayerView: this._actionOpenPlayerView
     }
   };
 
@@ -811,7 +818,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     }
   };
 
-  constructor(engine, { providers = null, ...options } = {}) {
+  constructor(engine, { providers = null, openPlayerView = null, ...options } = {}) {
     super({
       ...options,
       window: {
@@ -821,6 +828,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     });
     this.engine = engine;
     this.providers = providers;
+    this.openPlayerView = openPlayerView;
     this._activeTab = "overview";
     this._editor = null;
     this._ruleEditor = null;
@@ -987,6 +995,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           ? `${Number.isFinite(tracker.min) ? tracker.min : "−∞"} … ${Number.isFinite(tracker.max) ? tracker.max : "∞"}`
           : null,
         overviewPinned: pinnedTargets.has(`tracker:${tracker.id}`),
+        playerVisible: tracker.playerVisible === true,
         focusKey: `tracker:${tracker.id}`
       }));
 
@@ -1019,6 +1028,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           seenThisSession: Boolean(activeSession && keyPlayer.lastSeenSessionId === activeSession.id),
           canMarkSeen: Boolean(activeSession),
           overviewPinned: pinnedTargets.has(`keyPlayer:${keyPlayer.id}`),
+          playerVisible: keyPlayer.playerVisible === true,
           focusKey: `keyPlayer:${keyPlayer.id}`
         };
       }));
@@ -1123,6 +1133,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         { id: "sessions", label: localize("CAMPAIGN_FORGE.Tabs.Sessions"), icon: "fa-solid fa-clock-rotate-left", active: this._activeTab === "sessions" },
         { id: "trackers", label: localize("CAMPAIGN_FORGE.Tabs.Trackers"), icon: "fa-solid fa-chart-simple", active: this._activeTab === "trackers" },
         { id: "keyPlayers", label: localize("CAMPAIGN_FORGE.Tabs.KeyPlayers"), icon: "fa-solid fa-users", active: this._activeTab === "keyPlayers" },
+        { id: "playerView", label: localize("CAMPAIGN_FORGE.PlayerView.Tab"), icon: "fa-solid fa-eye", active: this._activeTab === "playerView" },
         { id: "settings", label: localize("CAMPAIGN_FORGE.Tabs.Settings"), icon: "fa-solid fa-gear", active: this._activeTab === "settings" }
       ],
       state,
@@ -1172,6 +1183,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         isNew: !source,
         title: source?.title ?? "",
         description: source?.description ?? "",
+        playerVisible: source?.playerVisible === true,
         groupKind: source?.kind ?? this._editor.groupKind ?? "group",
         parentId: source?.parentId ?? this._editor.parentId ?? null,
         heading: localize(source
@@ -1666,6 +1678,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         isNew: !source,
         title: source?.title ?? "",
         description: source?.description ?? "",
+        playerDescription: source?.playerDescription ?? "",
+        playerVisible: source?.playerVisible === true,
         value: source?.value ?? 0,
         min: source?.min ?? "",
         max: source?.max ?? "",
@@ -1687,6 +1701,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         role: source.role,
         state: source.state,
         note: source.note ?? "",
+        playerNote: source.playerNote ?? "",
+        playerVisible: source.playerVisible === true,
         roles: keyPlayerRoleOptions(source.role),
         states: keyPlayerStateOptions(source.state),
         trackers: [
@@ -3303,7 +3319,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           title: data.title,
           description: data.description ?? "",
           kind: data.kind ?? this._editor.groupKind ?? "group",
-          parentId: data.parentId || this._editor.parentId || null
+          parentId: data.parentId || this._editor.parentId || null,
+          playerVisible: form.querySelector('[name="playerVisible"]')?.checked ?? false
         };
         if (this._editor.id) await this.engine.updateGroup(this._editor.id, payload);
         else await this.engine.createGroup(payload);
@@ -3346,6 +3363,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         const payload = {
           title: data.title,
           description: data.description ?? "",
+          playerDescription: data.playerDescription ?? "",
+          playerVisible: form.querySelector('[name="playerVisible"]')?.checked ?? false,
           value: data.value,
           min: data.min,
           max: data.max
@@ -3363,6 +3382,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           role: data.role ?? "neutral",
           state: data.state ?? "active",
           note: data.note ?? "",
+          playerNote: data.playerNote ?? "",
+          playerVisible: form.querySelector('[name="playerVisible"]')?.checked ?? false,
           relationshipTrackerId: data.relationshipTrackerId || null,
           entryLinks,
           actorName: actor?.name ?? current?.actorName ?? "",
@@ -3682,6 +3703,21 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     } catch (error) {
       this._handleError(error);
     }
+  }
+
+  static async _actionToggleOverviewPlayerVisible(event, target) {
+    try {
+      const pinId = target.dataset.pinId;
+      const next = target.dataset.playerVisible !== "true";
+      await this.engine.setOverviewPlayerVisible(pinId, next);
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static _actionOpenPlayerView() {
+    return this.openPlayerView?.();
   }
 
   static async _actionMoveOverviewPinUp(event, target) {

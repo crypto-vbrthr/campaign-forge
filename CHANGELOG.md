@@ -1,3 +1,17 @@
+## 0.8.0 - Player View
+
+- Added a dedicated read-only Campaign Forge player application, available to non-GM users from the Journal sidebar and to GMs as a preview.
+- Added a GM-facing Player View tab explaining publication controls and opening the exact player-facing view for review.
+- Existing entry visibility now explicitly means player visibility in the entry editor; hidden entries are excluded from the player projection.
+- Chapters/groups, campaign values, and key players now have independent player-publication flags. Existing groups, trackers, and key players migrate conservatively as private until explicitly published.
+- Campaign values support a separate player description; key players support a separate player note so GM descriptions/notes never need to be reused for players.
+- Overview pins require an additional player-publication toggle. Pinning something for GM use therefore never publishes it automatically.
+- Player overview group progress is calculated only from player-visible entries, so hidden clues cannot be inferred from a larger denominator.
+- Player Campaign view re-homes visible content past private ancestor groups instead of leaking hidden group titles.
+- Player Journal/Actor quick-open actions are only rendered when the current user has observer permission for the referenced Foundry document.
+- Player UI omits sessions, GM notes, transition rules, reward rules, provider payloads, weather internals, and other GM-only management data.
+- Added DE/EN localization and regression coverage for projection privacy, publication flags, and hidden-progress behavior.
+
 ## 0.7.3 - Integration Review & Workspace Polish
 
 - Completed a cross-module integration review against the currently supplied City Forge, NPC Forge, Creature Forge, Loot Forge, Item Forge, and Weather Forge contracts.

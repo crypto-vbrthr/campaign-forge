@@ -1,0 +1,98 @@
+<div class="cf-player-shell">
+  <header class="cf-player-header">
+    <div>
+      <i class="fa-solid fa-book-open-reader"></i>
+      <strong>{{localize "CAMPAIGN_FORGE.PlayerView.Title"}}</strong>
+      <small>{{localize "CAMPAIGN_FORGE.PlayerView.ReadOnly"}}</small>
+    </div>
+  </header>
+
+  <nav class="cf-tabs" aria-label="{{localize "CAMPAIGN_FORGE.Common.Navigation"}}">
+    {{#each tabs}}
+      <button type="button" class="{{#if active}}is-active{{/if}}" data-action="setTab" data-tab="{{id}}">
+        <i class="{{icon}}"></i><span>{{label}}</span>
+      </button>
+    {{/each}}
+  </nav>
+
+  <main class="cf-player-scroll">
+    {{#if (eq activeTab "overview")}}
+      <section class="cf-tab-panel">
+        <div class="cf-section-heading">
+          <div>
+            <h2>{{localize "CAMPAIGN_FORGE.PlayerView.OverviewTitle"}}</h2>
+            <p>{{localize "CAMPAIGN_FORGE.PlayerView.OverviewDescription"}}</p>
+          </div>
+        </div>
+        <div class="cf-stat-grid cf-player-stat-grid">
+          <article class="cf-stat-card"><span>{{localize "CAMPAIGN_FORGE.PlayerView.KnownEntries"}}</span><strong>{{stats.entries}}</strong></article>
+          <article class="cf-stat-card"><span>{{localize "CAMPAIGN_FORGE.PlayerView.PublicGroups"}}</span><strong>{{stats.groups}}</strong></article>
+          <article class="cf-stat-card"><span>{{localize "CAMPAIGN_FORGE.PlayerView.PublicTrackers"}}</span><strong>{{stats.trackers}}</strong></article>
+          <article class="cf-stat-card"><span>{{localize "CAMPAIGN_FORGE.PlayerView.PublicKeyPlayers"}}</span><strong>{{stats.keyPlayers}}</strong></article>
+        </div>
+        {{#if pins.length}}
+          <div class="cf-player-pin-grid">
+            {{#each pins}}
+              <article class="cf-player-pin-card">
+                <span class="cf-overview-pin-icon">{{#if image}}<img src="{{image}}" alt="">{{else}}<i class="{{icon}}"></i>{{/if}}</span>
+                <div class="cf-overview-pin-main">
+                  <div class="cf-overview-pin-heading"><strong>{{title}}</strong><small>{{meta}}</small></div>
+                  <div class="cf-overview-pin-detail">{{detail}}</div>
+                  {{#if description}}<p>{{description}}</p>{{/if}}
+                  {{#if hasProgress}}<div class="cf-progress-track" title="{{progressPercent}}%"><span style="width: {{progressPercent}}%"></span></div>{{/if}}
+                </div>
+              </article>
+            {{/each}}
+          </div>
+        {{else}}
+          <div class="cf-empty-state"><i class="fa-solid fa-compass"></i><strong>{{localize "CAMPAIGN_FORGE.PlayerView.NoOverviewTitle"}}</strong><span>{{localize "CAMPAIGN_FORGE.PlayerView.NoOverviewText"}}</span></div>
+        {{/if}}
+      </section>
+    {{/if}}
+
+    {{#if (eq activeTab "campaign")}}
+      <section class="cf-tab-panel">
+        <div class="cf-section-heading"><div><h2>{{localize "CAMPAIGN_FORGE.PlayerView.CampaignTitle"}}</h2><p>{{localize "CAMPAIGN_FORGE.PlayerView.CampaignDescription"}}</p></div></div>
+        {{#if campaignRows.length}}
+          <div class="cf-player-campaign-list">
+            {{#each campaignRows}}
+              {{#if (eq nodeType "group")}}
+                <div class="cf-player-group-row" style="--cf-depth: {{depth}}"><i class="{{icon}}"></i><strong>{{title}}</strong></div>
+              {{else}}
+                <article class="cf-player-entry-card" style="--cf-depth: {{depth}}">
+                  <span class="cf-row-icon"><i class="{{icon}}"></i></span>
+                  <div class="cf-player-entry-main">
+                    <div><strong>{{title}}</strong><small>{{typeLabel}} · {{statusLabel}}</small></div>
+                    {{#if description}}<p>{{description}}</p>{{/if}}
+                  </div>
+                  {{#if canOpenJournal}}<button type="button" class="icon" data-action="openJournal" data-uuid="{{journalUuid}}" title="{{localize "CAMPAIGN_FORGE.PlayerView.OpenJournal"}}"><i class="fa-solid fa-book-open"></i></button>{{/if}}
+                </article>
+              {{/if}}
+            {{/each}}
+          </div>
+        {{else}}
+          <div class="cf-empty-state"><i class="fa-solid fa-folder-open"></i><strong>{{localize "CAMPAIGN_FORGE.PlayerView.NoCampaignTitle"}}</strong><span>{{localize "CAMPAIGN_FORGE.PlayerView.NoCampaignText"}}</span></div>
+        {{/if}}
+      </section>
+    {{/if}}
+
+    {{#if (eq activeTab "keyPlayers")}}
+      <section class="cf-tab-panel">
+        <div class="cf-section-heading"><div><h2>{{localize "CAMPAIGN_FORGE.PlayerView.KeyPlayersTitle"}}</h2><p>{{localize "CAMPAIGN_FORGE.PlayerView.KeyPlayersDescription"}}</p></div></div>
+        {{#if keyPlayers.length}}
+          <div class="cf-player-keyplayer-grid">
+            {{#each keyPlayers}}
+              <article class="cf-player-keyplayer-card">
+                <img src="{{image}}" alt="">
+                <div><strong>{{name}}</strong><small>{{roleLabel}} · {{stateLabel}}</small>{{#if note}}<p>{{note}}</p>{{/if}}{{#if hasRelationship}}<span class="cf-player-relationship"><i class="fa-solid fa-handshake"></i> {{relationshipTitle}}: {{relationshipValue}}</span>{{/if}}</div>
+                {{#if canOpenActor}}<button type="button" class="icon" data-action="openActor" data-uuid="{{actorUuid}}" title="{{localize "CAMPAIGN_FORGE.Actions.OpenActor"}}"><i class="fa-solid fa-user"></i></button>{{/if}}
+              </article>
+            {{/each}}
+          </div>
+        {{else}}
+          <div class="cf-empty-state"><i class="fa-solid fa-users"></i><strong>{{localize "CAMPAIGN_FORGE.PlayerView.NoKeyPlayersTitle"}}</strong><span>{{localize "CAMPAIGN_FORGE.PlayerView.NoKeyPlayersText"}}</span></div>
+        {{/if}}
+      </section>
+    {{/if}}
+  </main>
+</div>

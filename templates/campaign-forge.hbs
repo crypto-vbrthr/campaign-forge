@@ -82,6 +82,9 @@
                     <button type="button" class="icon" data-action="openOverviewTarget" data-target-type="{{targetType}}" data-target-id="{{targetId}}" title="{{localize "CAMPAIGN_FORGE.Actions.OpenOverviewTarget"}}">
                       <i class="fa-solid fa-arrow-up-right-from-square"></i>
                     </button>
+                    <button type="button" class="icon {{#if playerVisible}}is-player-visible{{/if}}" data-action="toggleOverviewPlayerVisible" data-pin-id="{{id}}" data-player-visible="{{playerVisible}}" title="{{#if playerVisible}}{{localize "CAMPAIGN_FORGE.PlayerView.HidePin"}}{{else}}{{localize "CAMPAIGN_FORGE.PlayerView.ShowPin"}}{{/if}}">
+                      <i class="fa-solid {{#if playerVisible}}fa-eye{{else}}fa-eye-slash{{/if}}"></i>
+                    </button>
                     <button type="button" class="icon is-pinned" data-action="toggleOverviewPin" data-target-type="{{targetType}}" data-target-id="{{targetId}}" data-pinned="true" title="{{localize "CAMPAIGN_FORGE.Actions.UnpinFromOverview"}}">
                       <i class="fa-solid fa-thumbtack"></i>
                     </button>
@@ -319,6 +322,10 @@
                 <label>
                   <span>{{localize "CAMPAIGN_FORGE.Fields.Description"}}</span>
                   <textarea name="description" rows="8">{{editor.description}}</textarea>
+                </label>
+                <label class="cf-checkbox-row cf-player-publish-row">
+                  <input type="checkbox" name="playerVisible" {{#if editor.playerVisible}}checked{{/if}}>
+                  <span class="cf-checkbox-label">{{localize "CAMPAIGN_FORGE.PlayerView.GroupVisible"}}</span>
                 </label>
               {{/if}}
 
@@ -1340,6 +1347,7 @@
                     <strong>{{title}}</strong>
                     {{#if rangeLabel}}<small>{{rangeLabel}}</small>{{/if}}
                     {{#if description}}<p>{{description}}</p>{{/if}}
+                    {{#if playerVisible}}<small class="cf-player-visible-badge"><i class="fa-solid fa-eye"></i> {{localize "CAMPAIGN_FORGE.PlayerView.VisibleToPlayers"}}</small>{{/if}}
                   </div>
                   <div class="cf-tracker-value">
                     <button type="button" class="icon" data-action="adjustTracker" data-tracker-id="{{id}}" data-delta="-1" title="-1">
@@ -1411,6 +1419,15 @@
                   <span>{{localize "CAMPAIGN_FORGE.Fields.Description"}}</span>
                   <textarea name="description" rows="6">{{editor.description}}</textarea>
                 </label>
+                <label class="cf-checkbox-row cf-player-publish-row">
+                  <input type="checkbox" name="playerVisible" {{#if editor.playerVisible}}checked{{/if}}>
+                  <span class="cf-checkbox-label">{{localize "CAMPAIGN_FORGE.PlayerView.TrackerVisible"}}</span>
+                </label>
+                <label>
+                  <span>{{localize "CAMPAIGN_FORGE.PlayerView.PlayerDescription"}}</span>
+                  <textarea name="playerDescription" rows="4">{{editor.playerDescription}}</textarea>
+                  <small>{{localize "CAMPAIGN_FORGE.PlayerView.PlayerDescriptionHint"}}</small>
+                </label>
                 <div class="cf-editor-footer">
                   <button type="button" data-action="cancelEditor">{{localize "CAMPAIGN_FORGE.Actions.Cancel"}}</button>
                   <button type="button" class="cf-primary-action" data-action="saveEditor">
@@ -1468,6 +1485,7 @@
                       <small class="cf-keyplayer-warning"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "CAMPAIGN_FORGE.KeyPlayers.ActorMissing"}}</small>
                     {{/if}}
                     {{#if note}}<p>{{note}}</p>{{/if}}
+                    {{#if playerVisible}}<small class="cf-player-visible-badge"><i class="fa-solid fa-eye"></i> {{localize "CAMPAIGN_FORGE.PlayerView.VisibleToPlayers"}}</small>{{/if}}
                     <div class="cf-keyplayer-meta">
                       <span><i class="fa-solid fa-clock-rotate-left"></i> {{localize "CAMPAIGN_FORGE.KeyPlayers.LastSeen"}}: {{lastSeenLabel}}</span>
                       <span><i class="fa-solid fa-link"></i> {{localize "CAMPAIGN_FORGE.KeyPlayers.LinkedEntries"}}: {{linkedEntryCount}}</span>
@@ -1562,6 +1580,15 @@
                 </select>
                 <small>{{localize "CAMPAIGN_FORGE.KeyPlayers.LinkedEntriesHint"}}</small>
               </label>
+              <label class="cf-checkbox-row cf-player-publish-row">
+                <input type="checkbox" name="playerVisible" {{#if editor.playerVisible}}checked{{/if}}>
+                <span class="cf-checkbox-label">{{localize "CAMPAIGN_FORGE.PlayerView.KeyPlayerVisible"}}</span>
+              </label>
+              <label>
+                <span>{{localize "CAMPAIGN_FORGE.PlayerView.PlayerNote"}}</span>
+                <textarea name="playerNote" rows="4">{{editor.playerNote}}</textarea>
+                <small>{{localize "CAMPAIGN_FORGE.PlayerView.PlayerNoteHint"}}</small>
+              </label>
               <label>
                 <span>{{localize "CAMPAIGN_FORGE.Fields.GMNote"}}</span>
                 <textarea name="note" rows="7">{{editor.note}}</textarea>
@@ -1576,6 +1603,38 @@
             </form>
           </aside>
         {{/if}}
+      </section>
+    {{/if}}
+
+    {{#if (eq activeTab "playerView")}}
+      <section class="cf-tab-panel cf-player-preview-panel">
+        <div class="cf-section-heading">
+          <div>
+            <h2>{{localize "CAMPAIGN_FORGE.PlayerView.GMTitle"}}</h2>
+            <p>{{localize "CAMPAIGN_FORGE.PlayerView.GMDescription"}}</p>
+          </div>
+          <button type="button" class="cf-primary-action" data-action="openPlayerView">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            {{localize "CAMPAIGN_FORGE.PlayerView.OpenPreview"}}
+          </button>
+        </div>
+        <div class="cf-player-preview-info">
+          <article class="cf-panel">
+            <h3>{{localize "CAMPAIGN_FORGE.PlayerView.PublishingTitle"}}</h3>
+            <p>{{localize "CAMPAIGN_FORGE.PlayerView.PublishingText"}}</p>
+            <ul class="cf-player-publishing-list">
+              <li><i class="fa-solid fa-file-lines"></i><span>{{localize "CAMPAIGN_FORGE.PlayerView.PublishEntriesHint"}}</span></li>
+              <li><i class="fa-solid fa-folder"></i><span>{{localize "CAMPAIGN_FORGE.PlayerView.PublishGroupsHint"}}</span></li>
+              <li><i class="fa-solid fa-chart-line"></i><span>{{localize "CAMPAIGN_FORGE.PlayerView.PublishTrackersHint"}}</span></li>
+              <li><i class="fa-solid fa-user"></i><span>{{localize "CAMPAIGN_FORGE.PlayerView.PublishKeyPlayersHint"}}</span></li>
+              <li><i class="fa-solid fa-thumbtack"></i><span>{{localize "CAMPAIGN_FORGE.PlayerView.PublishOverviewHint"}}</span></li>
+            </ul>
+          </article>
+          <article class="cf-panel">
+            <h3>{{localize "CAMPAIGN_FORGE.PlayerView.PrivacyTitle"}}</h3>
+            <p>{{localize "CAMPAIGN_FORGE.PlayerView.PrivacyText"}}</p>
+          </article>
+        </div>
       </section>
     {{/if}}
 

@@ -2063,3 +2063,197 @@
 .campaign-forge .cf-creature-linked-main small {
   color: var(--cf-muted);
 }
+
+/* v0.8.0 Player View */
+.campaign-forge .cf-player-visible-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+  opacity: 0.82;
+}
+
+.campaign-forge button.is-player-visible {
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.campaign-forge .cf-player-publish-row {
+  margin-top: 0.25rem;
+}
+
+.campaign-forge .cf-player-preview-panel {
+  max-width: 1100px;
+}
+
+.campaign-forge .cf-player-preview-info {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+  gap: 1rem;
+}
+
+.campaign-forge .cf-player-publishing-list {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.campaign-forge .cf-player-publishing-list li {
+  display: grid;
+  grid-template-columns: 1.4rem minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: start;
+}
+
+.campaign-forge .cf-player-shell {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.campaign-forge .cf-player-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--color-border-light-primary, rgba(128, 128, 128, 0.35));
+}
+
+.campaign-forge .cf-player-header > div {
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 0.6rem;
+  align-items: center;
+}
+
+.campaign-forge .cf-player-header i {
+  grid-row: 1 / span 2;
+  font-size: 1.25rem;
+}
+
+.campaign-forge .cf-player-header small {
+  grid-column: 2;
+  opacity: 0.7;
+}
+
+.campaign-forge .cf-player-scroll {
+  overflow: auto;
+  min-height: 0;
+}
+
+.campaign-forge .cf-player-stat-grid {
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+}
+
+.campaign-forge .cf-player-pin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.campaign-forge .cf-player-pin-card {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: start;
+  padding: 0.8rem;
+  border: 1px solid var(--color-border-light-primary, rgba(128, 128, 128, 0.35));
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.campaign-forge .cf-player-pin-card p,
+.campaign-forge .cf-player-entry-card p,
+.campaign-forge .cf-player-keyplayer-card p {
+  margin: 0.4rem 0 0;
+  opacity: 0.86;
+  line-height: 1.4;
+}
+
+.campaign-forge .cf-player-campaign-list {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.campaign-forge .cf-player-group-row,
+.campaign-forge .cf-player-entry-card {
+  margin-left: calc(var(--cf-depth, 0) * 1.15rem);
+}
+
+.campaign-forge .cf-player-group-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.45rem;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+}
+
+.campaign-forge .cf-player-entry-card {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  align-items: start;
+  padding: 0.65rem 0.75rem;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.campaign-forge .cf-player-entry-main > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.campaign-forge .cf-player-entry-main small {
+  opacity: 0.72;
+  white-space: nowrap;
+}
+
+.campaign-forge .cf-player-keyplayer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.campaign-forge .cf-player-keyplayer-card {
+  display: grid;
+  grid-template-columns: 3.4rem minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border-light-primary, rgba(128, 128, 128, 0.35));
+  border-radius: 8px;
+}
+
+.campaign-forge .cf-player-keyplayer-card img {
+  width: 3.4rem;
+  height: 3.4rem;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.campaign-forge .cf-player-keyplayer-card small,
+.campaign-forge .cf-player-relationship {
+  display: block;
+  margin-top: 0.2rem;
+  opacity: 0.75;
+}
+
+@media (max-width: 820px) {
+  .campaign-forge .cf-player-preview-info,
+  .campaign-forge .cf-player-pin-grid,
+  .campaign-forge .cf-player-keyplayer-grid {
+    grid-template-columns: 1fr;
+  }
+  .campaign-forge .cf-player-stat-grid {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+  .campaign-forge .cf-player-entry-main > div {
+    display: grid;
+  }
+}

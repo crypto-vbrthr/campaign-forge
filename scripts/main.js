@@ -3,6 +3,8 @@ import { registerSettings } from "./core/settings.js";
 import { FoundryCampaignRepository } from "./data/foundry-repository.js";
 import { CampaignEngine } from "./engine/campaign-engine.js";
 import { CampaignForgeApp } from "./app/campaign-forge-app.js";
+import { PlayerCampaignForgeApp } from "./player/player-campaign-forge-app.js";
+import { buildPlayerProjection } from "./player/player-projection.js";
 import { injectJournalButton, registerJournalIntegration } from "./integrations/journal-sidebar.js";
 import { campaignEntryEmbedSyntax, refreshJournalEmbeds, registerJournalEntryIntegration } from "./integrations/journal-entries.js";
 import { FoundryRewardExecutor } from "./integrations/reward-provider.js";
@@ -10,6 +12,7 @@ import { FoundryForgeProviderRegistry } from "./integrations/forge-provider-regi
 
 let engine = null;
 let app = null;
+let playerApp = null;
 let providers = null;
 
 function requireGM() {
@@ -18,12 +21,15 @@ function requireGM() {
   }
 }
 
+export function openPlayerCampaignForge() {
+  if (!playerApp) playerApp = new PlayerCampaignForgeApp(engine);
+  playerApp.render({ force: true });
+  return playerApp;
+}
+
 export function openCampaignForge(target = null) {
-  if (!game.user?.isGM) {
-    ui.notifications.warn(game.i18n.localize("CAMPAIGN_FORGE.Errors.GMOnly"));
-    return null;
-  }
-  if (!app) app = new CampaignForgeApp(engine, { providers });
+  if (!game.user?.isGM) return openPlayerCampaignForge();
+  if (!app) app = new CampaignForgeApp(engine, { providers, openPlayerView: openPlayerCampaignForge });
   app.render({ force: true });
   if (target?.targetType && target?.targetId) app.focusTarget?.(target.targetType, target.targetId);
   return app;
@@ -34,9 +40,14 @@ function exposeApi() {
   if (!module) return;
 
   module.api = {
-    version: "0.7.3",
+    version: "0.8.0",
     open: openCampaignForge,
-    getState: () => engine.getState(),
+    openPlayerView: openPlayerCampaignForge,
+    getState: async () => {
+      const state = await engine.getState();
+      return game.user?.isGM ? state : buildPlayerProjection(state);
+    },
+    getPlayerState: async () => buildPlayerProjection(await engine.getState()),
     getJournalEmbedSyntax: (entryId, mode = "card") => campaignEntryEmbedSyntax(entryId, mode),
     createGroup: data => {
       requireGM();
@@ -97,7 +108,10 @@ function exposeApi() {
       requireGM();
       return engine.setEntryStatus(id, status, options);
     },
-    previewEntryStatusTransition: (id, status) => engine.previewEntryStatusTransition(id, status),
+    previewEntryStatusTransition: (id, status) => {
+      requireGM();
+      return engine.previewEntryStatusTransition(id, status);
+    },
     createTransitionRule: (entryId, data) => {
       requireGM();
       return engine.createTransitionRule(entryId, data);
@@ -182,6 +196,10 @@ function exposeApi() {
     moveOverviewPinByOffset: (pinId, offset) => {
       requireGM();
       return engine.moveOverviewPinByOffset(pinId, offset);
+    },
+    setOverviewPlayerVisible: (pinId, visible = true) => {
+      requireGM();
+      return engine.setOverviewPlayerVisible(pinId, visible);
     }
   };
 }
@@ -207,15 +225,15 @@ Hooks.once("ready", async () => {
 
   // Defensive fallback for worlds where the Journal directory was rendered
   // before ready. The injector is idempotent, so this cannot create a duplicate.
-  if (game.user?.isGM) {
+  {
     const journal = ui.sidebar?.tabs?.journal;
     if (journal) injectJournalButton(journal, journal.element, openCampaignForge);
   }
 
   Hooks.on("updateSetting", setting => {
-    if (!game.user?.isGM) return;
     if (setting?.key !== `${MODULE_ID}.${SETTINGS.DATA}`) return;
-    if (app?.rendered) app.render();
+    if (game.user?.isGM && app?.rendered) app.render();
+    if (playerApp?.rendered) playerApp.render();
     refreshJournalEmbeds().catch(error => console.warn(`${MODULE_ID} | Could not refresh Journal embeds`, error));
   });
 

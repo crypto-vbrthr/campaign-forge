@@ -12,7 +12,7 @@ export function cloneData(value) {
 
 export function createDefaultState() {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     groups: [],
     entries: [],
     trackers: [],
@@ -31,7 +31,7 @@ export function normalizeState(raw) {
   const base = createDefaultState();
   const state = raw && typeof raw === "object" ? cloneData(raw) : {};
 
-  state.schemaVersion = Number(state.schemaVersion ?? base.schemaVersion);
+  state.schemaVersion = Math.max(2, Number(state.schemaVersion ?? base.schemaVersion) || 2);
   state.groups = Array.isArray(state.groups) ? state.groups : [];
   state.entries = Array.isArray(state.entries) ? state.entries : [];
   state.trackers = Array.isArray(state.trackers) ? state.trackers : [];
@@ -49,6 +49,7 @@ export function normalizeState(raw) {
     group.parentId = group.kind === "chapter" ? null : (group.parentId ?? null);
     group.sort = Number.isFinite(Number(group.sort)) ? Number(group.sort) : SORT_STEP;
     group.description ??= "";
+    group.playerVisible = group.playerVisible === true;
     group.createdAt ??= state.meta.createdAt;
     group.updatedAt ??= group.createdAt;
   }
@@ -206,7 +207,8 @@ export function normalizeState(raw) {
       targetType: pin.targetType,
       targetId: String(pin.targetId),
       sort: Number.isFinite(Number(pin.sort)) ? Number(pin.sort) : (index + 1) * SORT_STEP,
-      createdAt: pin.createdAt ?? state.meta.createdAt
+      createdAt: pin.createdAt ?? state.meta.createdAt,
+      playerVisible: pin.playerVisible === true
     }));
 
   for (const keyPlayer of state.keyPlayers) {
@@ -216,6 +218,8 @@ export function normalizeState(raw) {
     if (!KEY_PLAYER_ROLES[keyPlayer.role]) keyPlayer.role = "neutral";
     if (!KEY_PLAYER_STATES[keyPlayer.state]) keyPlayer.state = "active";
     keyPlayer.note = String(keyPlayer.note ?? "");
+    keyPlayer.playerVisible = keyPlayer.playerVisible === true;
+    keyPlayer.playerNote = String(keyPlayer.playerNote ?? "");
     keyPlayer.relationshipTrackerId = keyPlayer.relationshipTrackerId || null;
     keyPlayer.entryLinks = Array.isArray(keyPlayer.entryLinks)
       ? [...new Set(keyPlayer.entryLinks.filter(Boolean).map(String))]
@@ -236,6 +240,8 @@ export function normalizeState(raw) {
       : Number(tracker.max);
     tracker.sort = Number.isFinite(Number(tracker.sort)) ? Number(tracker.sort) : SORT_STEP;
     tracker.description ??= "";
+    tracker.playerVisible = tracker.playerVisible === true;
+    tracker.playerDescription = String(tracker.playerDescription ?? "");
     tracker.createdAt ??= state.meta.createdAt;
     tracker.updatedAt ??= tracker.createdAt;
   }

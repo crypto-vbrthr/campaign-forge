@@ -10,7 +10,6 @@ function rootElement(html) {
 }
 
 export function injectJournalButton(app, html, openCampaignForge) {
-  if (!game.user?.isGM) return;
   if (!game.settings.get(MODULE_ID, SETTINGS.SHOW_JOURNAL_BUTTON)) return;
 
   const root = rootElement(html) ?? rootElement(app?.element);
@@ -20,7 +19,7 @@ export function injectJournalButton(app, html, openCampaignForge) {
   button.type = "button";
   button.className = "campaign-forge-journal-button";
   button.dataset.campaignForgeJournalButton = "true";
-  button.title = game.i18n.localize("CAMPAIGN_FORGE.JournalButton.Tooltip");
+  button.title = game.i18n.localize(game.user?.isGM ? "CAMPAIGN_FORGE.JournalButton.Tooltip" : "CAMPAIGN_FORGE.PlayerView.JournalButtonTooltip");
   button.setAttribute("aria-label", button.title);
   button.innerHTML = '<i class="fa-solid fa-book-open"></i>';
   button.addEventListener("click", event => {

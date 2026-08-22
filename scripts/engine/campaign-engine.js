@@ -1010,7 +1010,7 @@ export class CampaignEngine {
     return false;
   }
 
-  async createGroup({ title, description = "", kind = "group", parentId = null }) {
+  async createGroup({ title, description = "", kind = "group", parentId = null, playerVisible = false }) {
     const cleanTitle = String(title ?? "").trim();
     if (!cleanTitle) throw new CampaignEngineError("TITLE_REQUIRED");
     return this._mutate(state => {
@@ -1022,6 +1022,7 @@ export class CampaignEngine {
         id: this._newId(),
         title: cleanTitle,
         description: String(description ?? ""),
+        playerVisible: Boolean(playerVisible),
         kind: kind === "chapter" ? "chapter" : "group",
         parentId: parentId || null,
         sort: nextSort(state, parentId || null),
@@ -1051,6 +1052,7 @@ export class CampaignEngine {
         group.title = title;
       }
       if (patch.description !== undefined) group.description = String(patch.description ?? "");
+      if (patch.playerVisible !== undefined) group.playerVisible = Boolean(patch.playerVisible);
       group.updatedAt = new Date(this._now()).toISOString();
       this._recordChange(state, {
         action: "group.updated",
@@ -1906,7 +1908,7 @@ export class CampaignEngine {
     });
   }
 
-  async createTracker({ title, description = "", value = 0, min = null, max = null }) {
+  async createTracker({ title, description = "", playerDescription = "", playerVisible = false, value = 0, min = null, max = null }) {
     const cleanTitle = String(title ?? "").trim();
     if (!cleanTitle) throw new CampaignEngineError("TITLE_REQUIRED");
     return this._mutate(state => {
@@ -1925,6 +1927,8 @@ export class CampaignEngine {
         id: this._newId(),
         title: cleanTitle,
         description: String(description ?? ""),
+        playerDescription: String(playerDescription ?? ""),
+        playerVisible: Boolean(playerVisible),
         value: parsedValue,
         min: parsedMin,
         max: parsedMax,
@@ -1957,6 +1961,8 @@ export class CampaignEngine {
         tracker.title = title;
       }
       if (patch.description !== undefined) tracker.description = String(patch.description ?? "");
+      if (patch.playerDescription !== undefined) tracker.playerDescription = String(patch.playerDescription ?? "");
+      if (patch.playerVisible !== undefined) tracker.playerVisible = Boolean(patch.playerVisible);
       if (patch.value !== undefined) tracker.value = Number(patch.value);
       if (patch.min !== undefined) tracker.min = patch.min === "" || patch.min === null ? null : Number(patch.min);
       if (patch.max !== undefined) tracker.max = patch.max === "" || patch.max === null ? null : Number(patch.max);
@@ -2045,6 +2051,8 @@ export class CampaignEngine {
     role = "neutral",
     state: keyPlayerState = "active",
     note = "",
+    playerNote = "",
+    playerVisible = false,
     relationshipTrackerId = null,
     entryLinks = []
   } = {}) {
@@ -2067,6 +2075,8 @@ export class CampaignEngine {
         role,
         state: keyPlayerState,
         note: String(note ?? ""),
+        playerNote: String(playerNote ?? ""),
+        playerVisible: Boolean(playerVisible),
         relationshipTrackerId: relationshipTrackerId || null,
         entryLinks: normalizedLinks,
         lastSeenSessionId: null,
@@ -2103,6 +2113,8 @@ export class CampaignEngine {
         keyPlayer.state = patch.state;
       }
       if (patch.note !== undefined) keyPlayer.note = String(patch.note ?? "");
+      if (patch.playerNote !== undefined) keyPlayer.playerNote = String(patch.playerNote ?? "");
+      if (patch.playerVisible !== undefined) keyPlayer.playerVisible = Boolean(patch.playerVisible);
       if (patch.actorName !== undefined) keyPlayer.actorName = String(patch.actorName ?? "");
       if (patch.actorImg !== undefined) keyPlayer.actorImg = String(patch.actorImg ?? "");
 
@@ -2207,7 +2219,8 @@ export class CampaignEngine {
           targetType,
           targetId,
           sort,
-          createdAt: new Date(this._now()).toISOString()
+          createdAt: new Date(this._now()).toISOString(),
+          playerVisible: false
         };
         state.overviewPins.push(pin);
         this._recordChange(state, {
@@ -2235,6 +2248,25 @@ export class CampaignEngine {
         structural: true
       });
       return cloneData(existing);
+    });
+  }
+
+  async setOverviewPlayerVisible(pinId, playerVisible = true) {
+    return this._mutate(state => {
+      const pin = state.overviewPins.find(candidate => candidate.id === pinId);
+      if (!pin) throw new CampaignEngineError("OVERVIEW_PIN_NOT_FOUND", { pinId });
+      const before = { playerVisible: pin.playerVisible === true };
+      pin.playerVisible = Boolean(playerVisible);
+      this._recordChange(state, {
+        action: "overview.playerVisibility",
+        targetType: pin.targetType,
+        targetId: pin.targetId,
+        targetTitle: this._overviewTargetTitle(pin.targetType, this._findOverviewTarget(state, pin.targetType, pin.targetId)),
+        before,
+        after: { playerVisible: pin.playerVisible },
+        structural: true
+      });
+      return cloneData(pin);
     });
   }
 
