@@ -1877,6 +1877,10 @@
 }
 
 /* 0.7.2 Creature Forge embedded host and Weather context */
+.campaign-forge .cf-weather-context-editor.is-hidden {
+  display: none !important;
+}
+
 .campaign-forge .cf-creature-link-builder,
 .campaign-forge .cf-weather-context-editor {
   margin-top: 0.75rem;

@@ -649,7 +649,9 @@
         "SessionContext": "Wetter bei Sitzungsbeginn",
         "ContextMismatch": "Weather Forge meldete beim Erfassen einen abweichenden Orts-/Klimakontext.",
         "Wind": "Wind {value}",
-        "SessionCaptureUnavailable": "Weather Forge ist aktiv, aber beim Sitzungsstart konnte kein Wetter-Snapshot erfasst werden. Die Sitzung wurde trotzdem gestartet."
+        "SessionCaptureUnavailable": "Weather Forge ist aktiv, aber beim Sitzungsstart konnte kein Wetter-Snapshot erfasst werden. Die Sitzung wurde trotzdem gestartet.",
+        "SaveFirst": "Speichere den Ereigniseintrag zuerst. Danach kannst du das aktuelle Wetter als historischen Snapshot übernehmen.",
+        "SaveEventTypeFirst": "Speichere zuerst die Änderung des Eintragstyps zu „Ereignis“. Danach kann ein Wetter-Snapshot erfasst werden."
       }
     }
   },

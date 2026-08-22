@@ -1298,13 +1298,20 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           canOpen: Boolean(this.providers?.supports?.("creatureForge", "open")),
           canCreate: Boolean(source && this.providers?.supports?.("creatureForge", "embeddedEditor") && this.providers?.supports?.("creatureForge", "createActor"))
         },
-        weatherIntegration: {
-          ready: Boolean(source && type === "event" && (this.providers?.supports?.("weatherForge", "currentContext") || this.providers?.supports?.("weatherForge", "weatherState"))),
-          canOpen: Boolean(this.providers?.supports?.("weatherForge", "open")),
-          isEvent: type === "event",
-          snapshot: weatherSnapshotView(source?.weatherSnapshot),
-          hasSnapshot: Boolean(source?.weatherSnapshot)
-        },
+        weatherIntegration: (() => {
+          const providerReady = Boolean(this.providers?.supports?.("weatherForge", "currentContext") || this.providers?.supports?.("weatherForge", "weatherState"));
+          const storedIsEvent = source?.type === "event";
+          return {
+            providerReady,
+            ready: Boolean(source && storedIsEvent && providerReady),
+            canOpen: Boolean(this.providers?.supports?.("weatherForge", "open")),
+            isEvent: type === "event",
+            saveFirst: !source,
+            requiresTypeSave: Boolean(source && !storedIsEvent),
+            snapshot: weatherSnapshotView(source?.weatherSnapshot),
+            hasSnapshot: Boolean(source?.weatherSnapshot)
+          };
+        })(),
         heading: localize(source ? "CAMPAIGN_FORGE.Editor.EditEntry" : "CAMPAIGN_FORGE.Editor.NewEntry")
       };
     }
@@ -1731,18 +1738,25 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const typeSelect = root.querySelector('.cf-editor-form select[name="type"]');
     if (typeSelect) {
       typeSelect.addEventListener("change", event => {
+        const selectedType = event.currentTarget.value;
         const statusSelect = root.querySelector('.cf-editor-form select[name="status"]');
-        if (!statusSelect) return;
-        const statuses = ENTRY_TYPES[event.currentTarget.value]?.statuses ?? [];
-        const current = statusSelect.value;
-        statusSelect.replaceChildren(...statuses.map(id => {
-          const option = document.createElement("option");
-          option.value = id;
-          option.textContent = localize(STATUS_LABELS[id] ?? id);
-          option.selected = id === current;
-          return option;
-        }));
-        if (!statuses.includes(current) && statuses.length) statusSelect.value = statuses[0];
+        if (statusSelect) {
+          const statuses = ENTRY_TYPES[selectedType]?.statuses ?? [];
+          const current = statusSelect.value;
+          statusSelect.replaceChildren(...statuses.map(id => {
+            const option = document.createElement("option");
+            option.value = id;
+            option.textContent = localize(STATUS_LABELS[id] ?? id);
+            option.selected = id === current;
+            return option;
+          }));
+          if (!statuses.includes(current) && statuses.length) statusSelect.value = statuses[0];
+        }
+
+        // The weather-context panel is part of the entry editor from the start so
+        // changing the type to Event reveals it immediately, even before saving.
+        const weatherSection = root.querySelector("[data-cf-entry-weather-section]");
+        if (weatherSection) weatherSection.classList.toggle("is-hidden", selectedType !== "event");
       });
     }
 
@@ -3288,10 +3302,12 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           active: form.querySelector('[name="active"]')?.checked ?? false,
           visible: form.querySelector('[name="visible"]')?.checked ?? false
         };
+        let keepOpenEntryId = null;
         if (this._editor.id) {
           const currentState = await this.engine.getState();
           const current = currentState.entries.find(entry => entry.id === this._editor.id);
           if (!current) return;
+          const changedToEvent = current.type !== "event" && payload.type === "event";
           if (current.type === payload.type) {
             const desiredStatus = payload.status;
             const structuralPayload = { ...payload };
@@ -3301,7 +3317,16 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           } else {
             await this.engine.updateEntry(this._editor.id, payload);
           }
-        } else await this.engine.createEntry(payload);
+          if (changedToEvent) keepOpenEntryId = this._editor.id;
+        } else {
+          const created = await this.engine.createEntry(payload);
+          if (payload.type === "event") keepOpenEntryId = created.id;
+        }
+        if (keepOpenEntryId) {
+          this._editor = { kind: "entry", id: keepOpenEntryId };
+          await this.render();
+          return;
+        }
       } else if (this._editor.kind === "tracker") {
         const payload = {
           title: data.title,

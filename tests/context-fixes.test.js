@@ -138,3 +138,27 @@ test("active session renders its live changes before the closed-session history"
   assert.match(app, /activeSessionView\.changeCount = activeSessionView\.changes\.length/);
   assert.match(template, /cf-active-change-list[\s\S]*?\{\{#each activeSession\.changes\}\}[\s\S]*?data-action="editSessionChange"/);
 });
+
+
+test("Event weather panel appears immediately when the entry type is changed to Event", () => {
+  const template = fs.readFileSync(new URL("../templates/campaign-forge.hbs", import.meta.url), "utf8");
+  const app = fs.readFileSync(new URL("../scripts/app/campaign-forge-app.js", import.meta.url), "utf8");
+  const de = JSON.parse(fs.readFileSync(new URL("../lang/de.json", import.meta.url), "utf8"));
+  assert.match(template, /data-cf-entry-weather-section/);
+  assert.match(template, /cf-weather-context-editor \{\{#unless editor\.weatherIntegration\.isEvent\}\}is-hidden/);
+  assert.match(app, /weatherSection\.classList\.toggle\("is-hidden", selectedType !== "event"\)/);
+  assert.match(template, /CAMPAIGN_FORGE\.Integrations\.Weather\.SaveFirst/);
+  assert.equal(typeof de.CAMPAIGN_FORGE.Integrations.Weather.SaveFirst, "string");
+});
+
+test("saving a new Event reopens its editor so weather capture is immediately available", () => {
+  const app = fs.readFileSync(new URL("../scripts/app/campaign-forge-app.js", import.meta.url), "utf8");
+  assert.match(app, /const created = await this\.engine\.createEntry\(payload\);[\s\S]*?if \(payload\.type === "event"\) keepOpenEntryId = created\.id;/);
+  assert.match(app, /if \(keepOpenEntryId\) \{[\s\S]*?this\._editor = \{ kind: "entry", id: keepOpenEntryId \};[\s\S]*?await this\.render\(\);[\s\S]*?return;/);
+});
+
+test("weather visibility rule does not hide the Creature Forge link builder", () => {
+  const css = fs.readFileSync(new URL("../styles/campaign-forge.css", import.meta.url), "utf8");
+  assert.match(css, /\.campaign-forge \.cf-weather-context-editor\.is-hidden\s*\{\s*display:\s*none !important;/s);
+  assert.doesNotMatch(css, /\.campaign-forge \.cf-creature-link-builder,\s*\.campaign-forge \.cf-weather-context-editor\.is-hidden\s*\{\s*display:\s*none/s);
+});

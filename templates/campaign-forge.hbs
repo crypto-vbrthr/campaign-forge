@@ -504,8 +504,7 @@
                   {{/if}}
                 </section>
 
-                {{#if editor.weatherIntegration.isEvent}}
-                  <section class="cf-weather-context-editor">
+                <section class="cf-weather-context-editor {{#unless editor.weatherIntegration.isEvent}}is-hidden{{/unless}}" data-cf-entry-weather-section>
                     <div class="cf-journal-links-heading">
                       <div>
                         <strong><i class="fa-solid fa-cloud-sun-rain"></i> {{localize "CAMPAIGN_FORGE.Integrations.Weather.EventTitle"}}</strong>
@@ -532,14 +531,17 @@
                         </div>
                       {{/with}}
                     {{else}}
-                      {{#if editor.weatherIntegration.ready}}
+                      {{#if editor.weatherIntegration.saveFirst}}
+                        <small class="cf-external-links-empty">{{localize "CAMPAIGN_FORGE.Integrations.Weather.SaveFirst"}}</small>
+                      {{else if editor.weatherIntegration.requiresTypeSave}}
+                        <small class="cf-external-links-empty">{{localize "CAMPAIGN_FORGE.Integrations.Weather.SaveEventTypeFirst"}}</small>
+                      {{else if editor.weatherIntegration.ready}}
                         <button type="button" data-action="captureEntryWeather"><i class="fa-solid fa-camera"></i> {{localize "CAMPAIGN_FORGE.Integrations.Weather.CaptureSnapshot"}}</button>
                       {{else}}
                         <small class="cf-external-links-empty">{{localize "CAMPAIGN_FORGE.Integrations.Weather.Unavailable"}}</small>
                       {{/if}}
                     {{/if}}
                   </section>
-                {{/if}}
               {{/if}}
 
               {{#if (eq editor.kind "rules")}}

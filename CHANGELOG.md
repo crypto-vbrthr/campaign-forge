@@ -1,5 +1,11 @@
 ## 0.7.2 hotfix – Live active-session changes
 
+### Event weather context visibility fix
+- The Event weather-context panel is now present in the entry editor from the start and appears immediately when the type is changed to Event.
+- New Event entries explain that they must be saved before a weather snapshot can be captured.
+- Existing entries changed to Event stay open after saving so the weather snapshot action is immediately available.
+
+
 - Active sessions now render their current change log immediately below the live session card instead of only exposing changes after the session is closed.
 - Manual live-session entries retain their Edit/Delete controls while the session is active.
 - Active-session change counts now use the same structural-change visibility filter as the displayed live log, keeping the counter and visible rows consistent.

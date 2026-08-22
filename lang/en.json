@@ -649,7 +649,9 @@
         "SessionContext": "Weather at session start",
         "ContextMismatch": "Weather Forge reported a mismatched place/climate context when this snapshot was captured.",
         "Wind": "Wind {value}",
-        "SessionCaptureUnavailable": "Weather Forge is active, but no weather snapshot could be captured when the session started. The session was started anyway."
+        "SessionCaptureUnavailable": "Weather Forge is active, but no weather snapshot could be captured when the session started. The session was started anyway.",
+        "SaveFirst": "Save the Event entry first. You can then capture the current weather as a historical snapshot.",
+        "SaveEventTypeFirst": "Save the entry type change to Event first. A weather snapshot can then be captured."
       }
     }
   },
