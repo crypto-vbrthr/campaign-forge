@@ -722,8 +722,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     id: "campaign-forge",
     classes: ["campaign-forge"],
     position: {
-      width: 1040,
-      height: 720
+      width: 1220,
+      height: 800
     },
     window: {
       icon: "fa-solid fa-book-open",
@@ -854,6 +854,12 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           : (status.installed
             ? "CAMPAIGN_FORGE.Integrations.Status.inactive"
             : "CAMPAIGN_FORGE.Integrations.Status.notInstalled"))),
+      apiVersionLabel: status.apiVersion
+        ? format("CAMPAIGN_FORGE.Integrations.ApiVersion", { version: status.apiVersion })
+        : "",
+      editorContractLabel: status.embeddedContractVersion
+        ? format("CAMPAIGN_FORGE.Integrations.EditorContractVersion", { version: status.embeddedContractVersion })
+        : "",
       capabilityLabels: Object.entries(status.capabilities ?? {})
         .filter(([, enabled]) => enabled)
         .map(([id]) => localize(`CAMPAIGN_FORGE.Integrations.Capabilities.${id}`))
@@ -1186,9 +1192,11 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       const externalLinks = await Promise.all((source?.externalLinks ?? []).map(async link => {
         let liveLabel = link.label || link.meta?.settlementName || link.targetId;
         let missing = false;
+        let actorImg = null;
         if (link.provider === "creatureForge" && link.kind === "actor") {
           const actor = await resolveActor(link.targetId);
           liveLabel = actor?.name ?? liveLabel;
+          actorImg = actor?.img ?? null;
           missing = !actor;
         }
         return {
@@ -1200,11 +1208,14 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
               ? localize("CAMPAIGN_FORGE.Integrations.Creature.ActorReference")
               : link.kind),
           displayLabel: liveLabel,
+          actorImg,
           missing,
           canOpen: (link.provider === "cityForge" && Boolean(this.providers?.supports?.("cityForge", "open")))
             || (link.provider === "creatureForge" && link.kind === "actor")
         };
       }));
+      const creatureLinks = externalLinks.filter(link => link.provider === "creatureForge" && link.kind === "actor");
+      const generalExternalLinks = externalLinks.filter(link => !(link.provider === "creatureForge" && link.kind === "actor"));
 
       let cityIntegration = { ready: false };
       const cityStatus = this.providers?.inspect?.("cityForge") ?? null;
@@ -1292,11 +1303,15 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         hasJournalLinks: Boolean(source?.journalLinks?.length),
         externalLinks,
         hasExternalLinks: externalLinks.length > 0,
+        generalExternalLinks,
+        hasGeneralExternalLinks: generalExternalLinks.length > 0,
         cityIntegration,
         creatureIntegration: {
           ready: Boolean(source && this.providers?.supports?.("creatureForge", "embeddedEditor")),
           canOpen: Boolean(this.providers?.supports?.("creatureForge", "open")),
-          canCreate: Boolean(source && this.providers?.supports?.("creatureForge", "embeddedEditor") && this.providers?.supports?.("creatureForge", "createActor"))
+          canCreate: Boolean(source && this.providers?.supports?.("creatureForge", "embeddedEditor") && this.providers?.supports?.("creatureForge", "createActor")),
+          links: creatureLinks,
+          hasLinks: creatureLinks.length > 0
         },
         weatherIntegration: (() => {
           const providerReady = Boolean(this.providers?.supports?.("weatherForge", "currentContext") || this.providers?.supports?.("weatherForge", "weatherState"));

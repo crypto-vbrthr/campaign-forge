@@ -1,3 +1,22 @@
+## 0.7.3 - Integration Review & Workspace Polish
+
+- Completed a cross-module integration review against the currently supplied City Forge, NPC Forge, Creature Forge, Loot Forge, Item Forge, and Weather Forge contracts.
+- Increased the default Campaign Forge workspace from 1040×720 to 1220×800 and widened editor/detail columns for denser campaign data without changing the responsive single-column fallback.
+- City Forge transition consequences targeting the same settlement are now merged into one public State Patch instead of issuing several independent writes.
+- City Forge batches are dry-run preflighted before persistence and use the dry-run revision as `expectedRevision`, reducing partial or stale state updates when several campaign consequences fire together.
+- Provider diagnostics now surface the advertised public API version and embedded-editor contract version where a Forge exposes them, making integration mismatches easier to diagnose from Campaign Forge Settings.
+- Confirmed optional-provider boundaries: no Forge module is a hard dependency, Weather Forge compatibility fallback remains read-only, and provider-owned generation/persistence logic is not duplicated in Campaign Forge.
+- Added regression coverage for workspace sizing, City Forge batch/preflight behavior, provider contract diagnostics, DE/EN localization parity, and optional-provider ownership boundaries.
+- Full regression suite: 92 tests.
+
+## 0.7.2 - Creature Link Display Fix
+
+- Creature Actor references are now rendered directly inside the Creature Forge section of a campaign entry.
+- Actors linked by drag & drop and Actors created through the embedded Creature Forge become visible immediately after linking.
+- Linked creature rows show the Actor portrait, current name, open action, and remove action.
+- Missing Actors remain visible as broken references instead of disappearing.
+- Creature links are separated from the generic external-link list to avoid confusing placement and duplicate rendering.
+
 ## 0.7.2 hotfix – Live active-session changes
 
 ### Event weather context visibility fix

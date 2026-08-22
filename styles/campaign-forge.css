@@ -194,7 +194,7 @@
 
 .campaign-forge .cf-campaign-layout, .campaign-forge .cf-tracker-layout, .campaign-forge .cf-keyplayer-layout{
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 330px;
+  grid-template-columns: minmax(0, 1fr) 370px;
   gap: .75rem;
   align-items: start;
 }
@@ -464,7 +464,7 @@
 }
 
 .campaign-forge .cf-session-layout.has-editor{
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
 }
 
 .campaign-forge .cf-session-panel{
@@ -1996,4 +1996,70 @@
   display: inline-flex;
   align-items: center;
   gap: .35rem;
+}
+
+/* 0.7.2 linked Creature Forge references */
+.campaign-forge .cf-creature-linked-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.55rem;
+}
+
+.campaign-forge .cf-creature-linked-title {
+  color: var(--cf-muted);
+  font-weight: 600;
+}
+
+.campaign-forge .cf-creature-linked-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--cf-border);
+  border-radius: 0.4rem;
+  background: var(--cf-panel-soft);
+}
+
+.campaign-forge .cf-creature-linked-row.is-missing {
+  opacity: 0.72;
+}
+
+.campaign-forge .cf-creature-linked-portrait {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--cf-border);
+  border-radius: 0.35rem;
+  background: var(--cf-panel);
+}
+
+.campaign-forge .cf-creature-linked-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 0;
+}
+
+.campaign-forge .cf-creature-linked-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+}
+
+.campaign-forge .cf-creature-linked-main strong,
+.campaign-forge .cf-creature-linked-main small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.campaign-forge .cf-creature-linked-main small {
+  color: var(--cf-muted);
 }

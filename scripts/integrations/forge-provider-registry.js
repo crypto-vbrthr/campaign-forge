@@ -115,6 +115,57 @@ function normalizeProviderAction(action) {
   };
 }
 
+function mergeCityPatch(target, patch) {
+  const out = target ?? {};
+  if (patch?.dimensions) out.dimensions = { ...(out.dimensions ?? {}), ...patch.dimensions };
+
+  if (patch?.conditions) {
+    out.conditions ??= {};
+    const enable = new Set(out.conditions.enableIds ?? []);
+    const disable = new Set(out.conditions.disableIds ?? []);
+    for (const id of patch.conditions.enableIds ?? []) {
+      enable.add(id);
+      disable.delete(id);
+    }
+    for (const id of patch.conditions.disableIds ?? []) {
+      disable.add(id);
+      enable.delete(id);
+    }
+    if (enable.size) out.conditions.enableIds = [...enable];
+    else delete out.conditions.enableIds;
+    if (disable.size) out.conditions.disableIds = [...disable];
+    else delete out.conditions.disableIds;
+  }
+
+  if (patch?.activeThreats) {
+    out.activeThreats ??= {};
+    const add = new Set(out.activeThreats.add ?? []);
+    const remove = new Set(out.activeThreats.remove ?? []);
+    for (const id of patch.activeThreats.add ?? []) {
+      add.add(id);
+      remove.delete(id);
+    }
+    for (const id of patch.activeThreats.remove ?? []) {
+      remove.add(id);
+      add.delete(id);
+    }
+    if (add.size) out.activeThreats.add = [...add];
+    else delete out.activeThreats.add;
+    if (remove.size) out.activeThreats.remove = [...remove];
+    else delete out.activeThreats.remove;
+  }
+
+  return out;
+}
+
+function campaignSource(context = {}) {
+  return {
+    type: "campaign",
+    id: context.entryId ?? null,
+    label: context.entryTitle ?? "Campaign Forge"
+  };
+}
+
 function cityPatchFromPayload(payload = {}) {
   const operation = String(payload.operation ?? "");
   if (operation === "setDimension") {
@@ -179,6 +230,10 @@ export class FoundryForgeProviderRegistry {
       else this._capabilityCache.delete(providerId);
     }
     const capabilityValues = Object.values(capabilities);
+    const apiVersion = api?.apiVersion ?? api?.version ?? null;
+    const embeddedContractVersion = api?.ui?.creatureEditor?.contractVersion
+      ?? api?.embeddedContractVersion
+      ?? null;
     return Object.freeze({
       id: providerId,
       moduleId: definition.moduleId,
@@ -188,6 +243,8 @@ export class FoundryForgeProviderRegistry {
       apiExposed: Boolean(api),
       ready: Boolean(api) && (capabilityValues.length === 0 || capabilityValues.some(Boolean)),
       version: module?.version ?? "",
+      apiVersion: apiVersion == null ? "" : String(apiVersion),
+      embeddedContractVersion: embeddedContractVersion == null ? "" : String(embeddedContractVersion),
       capabilities: Object.freeze({ ...capabilities })
     });
   }
@@ -224,6 +281,69 @@ export class FoundryForgeProviderRegistry {
     return { valid: true };
   }
 
+  async executeActions(actions = [], context = {}) {
+    const normalized = (Array.isArray(actions) ? actions : []).map(normalizeProviderAction);
+    if (!normalized.length) return [];
+
+    for (const action of normalized) {
+      const validation = this.validateAction(action);
+      if (!validation.valid) {
+        const error = new Error(validation.code);
+        error.code = validation.code;
+        throw error;
+      }
+    }
+
+    // City Forge is currently the only transition-action provider. Batch all
+    // actions for the same settlement into one State Patch. A dry run validates
+    // every settlement before any write, and the real write uses the revision
+    // returned by the dry run to protect against an intervening city update.
+    const cityGroups = new Map();
+    const fallbacks = [];
+    normalized.forEach((action, index) => {
+      if (action.provider === "cityForge" && action.action === "applyStatePatch") {
+        const key = action.targetId;
+        const group = cityGroups.get(key) ?? { targetId: action.targetId, patch: {}, indexes: [] };
+        group.patch = mergeCityPatch(group.patch, cityPatchFromPayload(action.payload));
+        group.indexes.push(index);
+        cityGroups.set(key, group);
+      } else {
+        fallbacks.push({ action, index });
+      }
+    });
+
+    const results = new Array(normalized.length).fill(null);
+    if (cityGroups.size) {
+      const api = this.getApi("cityForge");
+      const applyPatch = api?.integrations?.campaign?.applyStatePatch ?? api?.state?.applyPatch;
+      if (typeof applyPatch !== "function") {
+        const error = new Error("City Forge state patch capability is unavailable");
+        error.code = "PROVIDER_CAPABILITY_UNAVAILABLE";
+        throw error;
+      }
+
+      const source = campaignSource(context);
+      const prepared = [];
+      for (const group of cityGroups.values()) {
+        const preview = await applyPatch(group.targetId, clone(group.patch), { source, dryRun: true });
+        prepared.push({ ...group, revision: preview?.revision ?? null });
+      }
+      for (const group of prepared) {
+        const result = await applyPatch(group.targetId, clone(group.patch), {
+          source,
+          expectedRevision: group.revision
+        });
+        for (const index of group.indexes) results[index] = result;
+      }
+    }
+
+    for (const { action, index } of fallbacks) {
+      results[index] = await this.executeAction(action, context);
+    }
+
+    return results.map(clone);
+  }
+
   async executeAction(action, context = {}) {
     const normalized = normalizeProviderAction(action);
     const validation = this.validateAction(normalized);
@@ -249,11 +369,7 @@ export class FoundryForgeProviderRegistry {
       }
       const patch = cityPatchFromPayload(normalized.payload);
       return applyPatch(normalized.targetId, patch, {
-        source: {
-          type: "campaign",
-          id: context.entryId ?? null,
-          label: context.entryTitle ?? "Campaign Forge"
-        }
+        source: campaignSource(context)
       });
     }
 

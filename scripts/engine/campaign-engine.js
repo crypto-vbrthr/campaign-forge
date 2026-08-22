@@ -911,25 +911,52 @@ export class CampaignEngine {
   async _executeProviderActions(state, plan) {
     const providerActions = (plan.actions ?? []).filter(action => action.kind === "provider.action");
     if (!providerActions.length) return [];
-    if (!this._providerExecutor?.executeAction) {
+    if (!this._providerExecutor?.executeAction && !this._providerExecutor?.executeActions) {
       throw new CampaignEngineError("PROVIDER_UNAVAILABLE");
     }
 
-    const results = [];
-    for (const action of providerActions) {
-      const sourceEntry = action.causedByEntryId ? state.entries.find(entry => entry.id === action.causedByEntryId) : null;
-      try {
-        const result = await this._providerExecutor.executeAction({
+    const rootEntry = state.entries.find(entry => entry.id === plan.root?.entryId) ?? null;
+    let executionResults = null;
+    try {
+      if (typeof this._providerExecutor?.executeActions === "function") {
+        executionResults = await this._providerExecutor.executeActions(providerActions.map(action => ({
           provider: action.provider,
           action: action.providerAction,
           targetId: action.targetId,
           payload: cloneData(action.payload ?? {})
-        }, {
+        })), {
           transactionId: plan.transactionId,
-          ruleId: action.ruleId,
-          entryId: sourceEntry?.id ?? action.causedByEntryId ?? null,
-          entryTitle: sourceEntry?.title ?? ""
+          entryId: rootEntry?.id ?? plan.root?.entryId ?? null,
+          entryTitle: rootEntry?.title ?? plan.root?.title ?? ""
         });
+      }
+    } catch (error) {
+      throw new CampaignEngineError(error?.code || "PROVIDER_ACTION_FAILED", {
+        provider: error?.provider ?? null,
+        action: error?.action ?? null,
+        targetId: error?.targetId ?? null,
+        message: error?.message ?? String(error)
+      });
+    }
+
+    const results = [];
+    for (let index = 0; index < providerActions.length; index += 1) {
+      const action = providerActions[index];
+      const sourceEntry = action.causedByEntryId ? state.entries.find(entry => entry.id === action.causedByEntryId) : null;
+      try {
+        const result = executionResults
+          ? executionResults[index]
+          : await this._providerExecutor.executeAction({
+              provider: action.provider,
+              action: action.providerAction,
+              targetId: action.targetId,
+              payload: cloneData(action.payload ?? {})
+            }, {
+              transactionId: plan.transactionId,
+              ruleId: action.ruleId,
+              entryId: sourceEntry?.id ?? action.causedByEntryId ?? null,
+              entryTitle: sourceEntry?.title ?? ""
+            });
         action.result = cloneData(result ?? null);
         const providerTargetTitle = result?.state?.settlement?.name ?? action.targetTitle ?? action.targetId;
         action.targetTitle = providerTargetTitle;

@@ -1,9 +1,17 @@
-# Campaign Forge v0.7.2
+# Campaign Forge v0.7.3
 
-### v0.7.2 compatibility hotfix
+## v0.7.3 Integration Review & Workspace Polish
 
-- Session weather capture now tolerates a Weather Forge 1.1.x runtime in which its API is exposed before/without the hidden `weatherState` setting being registered. Campaign Forge falls back read-only to Weather Forge's persisted world state/history and does not register foreign settings.
-- The Campaign entry `Active` and `Visible` checkboxes now use explicit prepared labels and hardened module-scoped styling so their captions remain visible across Foundry themes.
+- The default Campaign Forge window is larger (1220×800) and the side editor has more room for integration-heavy entries, while existing responsive fallbacks remain intact.
+- The integration layer was reviewed against the supplied City Forge, NPC Forge, Creature Forge, Loot Forge, Item Forge, and Weather Forge builds. All remain optional runtime providers rather than hard dependencies.
+- Multiple City Forge consequences for one settlement are now combined into one State Patch. Campaign Forge dry-runs the complete batch first and persists it with City Forge's optimistic revision guard.
+- The Settings integration panel now shows public API and embedded-editor contract versions when the provider advertises them.
+- Weather Forge compatibility access remains strictly read-only; Campaign Forge never registers or writes Weather Forge settings.
+- DE/EN localization key parity and integration-boundary checks are part of the automated regression suite.
+
+### Integration-review note
+
+Item Forge currently advertises embedded-editor support but does not expose a public `createEmbeddedEditor()` factory. Campaign Forge therefore prefers such a factory when available and otherwise uses Item Forge's documented reusable `ItemForgeEditor` module asset. This is the only integration seam that is not yet a pure runtime API call; it is isolated in the provider registry so a future Item Forge factory can replace the fallback without touching Campaign Engine code.
 
 Campaign Forge is a GM-facing Foundry VTT module for tracking campaign structure, knowledge, quests, events, sessions, long-term campaign values, important NPCs, and rule-driven campaign state changes.
 
@@ -95,7 +103,7 @@ Campaign data is stored in a hidden world setting. UI collapse state and display
 
 ## Next planned blocks
 
-Reward providers for Loot Forge and Item Forge, Creature Forge references, Weather Forge session/event context, further Journal polish, and player-facing permissions.
+Further Journal polish, player-facing permissions/overview, larger campaign-data storage/migration hardening, and additional provider actions only where another Forge exposes a stable public contract.
 
 
 ## Journal integration
@@ -113,3 +121,7 @@ Campaign Forge mounts NPC Forge through its public embedded-editor session in a 
 - Session start captures the current Weather Forge context directly and falls back to Weather Forge's current weather state when the richer context read is unavailable.
 - Completed sessions can be deleted from the Sessions tab after a destructive confirmation. Active sessions must be ended first.
 - Campaign entry `Active` and `Visible` checkboxes use explicit localized labels.
+
+### Creature references in campaign entries
+
+Creature Actor links are displayed in a dedicated **Creature Forge** area of the entry editor. Actors added by drag & drop and Actors created through the embedded Creature Forge are shown there immediately with their portrait, current name, open action, and remove action. The stored link remains a UUID reference; Campaign Forge does not duplicate creature data.

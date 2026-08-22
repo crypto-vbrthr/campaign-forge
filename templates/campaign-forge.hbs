@@ -415,9 +415,9 @@
                     </div>
                   </div>
                   {{#if editor.canManageJournalLinks}}
-                    {{#if editor.hasExternalLinks}}
+                    {{#if editor.hasGeneralExternalLinks}}
                       <div class="cf-external-link-list">
-                        {{#each editor.externalLinks}}
+                        {{#each editor.generalExternalLinks}}
                           <article class="cf-external-link-row">
                             <div class="cf-external-link-main">
                               <strong>{{displayLabel}}</strong>
@@ -484,6 +484,38 @@
                           <button type="button" class="icon" data-action="openCreatureForge" title="{{localize "CAMPAIGN_FORGE.Integrations.Creature.Open"}}"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
                         {{/if}}
                       </div>
+                      {{#if editor.creatureIntegration.hasLinks}}
+                        <div class="cf-creature-linked-list">
+                          <small class="cf-creature-linked-title">{{localize "CAMPAIGN_FORGE.Integrations.Creature.LinkedCreatures"}}</small>
+                          {{#each editor.creatureIntegration.links}}
+                            <article class="cf-creature-linked-row {{#if missing}}is-missing{{/if}}">
+                              <div class="cf-creature-linked-portrait">
+                                {{#if actorImg}}
+                                  <img src="{{actorImg}}" alt="" loading="lazy">
+                                {{else}}
+                                  <i class="fa-solid fa-paw"></i>
+                                {{/if}}
+                              </div>
+                              <div class="cf-creature-linked-main">
+                                <strong>{{displayLabel}}</strong>
+                                <small>{{#if missing}}{{localize "CAMPAIGN_FORGE.Integrations.Creature.ActorMissing"}}{{else}}{{kindLabel}}{{/if}}</small>
+                              </div>
+                              <div class="cf-journal-link-actions">
+                                {{#if canOpen}}
+                                  <button type="button" class="icon" data-action="openExternalLink" data-provider="{{provider}}" data-target-id="{{targetId}}" title="{{localize "CAMPAIGN_FORGE.Integrations.ExternalLinks.Open"}}">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                  </button>
+                                {{/if}}
+                                <button type="button" class="icon" data-action="removeExternalLink" data-link-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Integrations.ExternalLinks.Remove"}}">
+                                  <i class="fa-solid fa-trash"></i>
+                                </button>
+                              </div>
+                            </article>
+                          {{/each}}
+                        </div>
+                      {{else}}
+                        <small class="cf-external-links-empty">{{localize "CAMPAIGN_FORGE.Integrations.Creature.NoneLinked"}}</small>
+                      {{/if}}
                       {{#if editor.creatureIntegration.ready}}
                         <div class="cf-drop-zone cf-creature-drop-zone" data-cf-creature-link-drop>
                           <i class="fa-solid fa-paw"></i>
@@ -1585,7 +1617,7 @@
                 <article class="cf-integration-status-row {{#if ready}}is-ready{{/if}}">
                   <div class="cf-integration-status-main">
                     <strong>{{label}}</strong>
-                    <small>{{moduleId}}{{#if version}} · v{{version}}{{/if}}</small>
+                    <small>{{moduleId}}{{#if version}} · v{{version}}{{/if}}{{#if apiVersionLabel}} · {{apiVersionLabel}}{{/if}}{{#if editorContractLabel}} · {{editorContractLabel}}{{/if}}</small>
                     {{#if capabilityLabels.length}}
                       <span class="cf-integration-capabilities">{{#each capabilityLabels}}<em class="cf-integration-capability">{{this}}</em>{{/each}}</span>
                     {{/if}}

@@ -635,7 +635,9 @@
         "Unavailable": "Creature Forge ist derzeit nicht verfügbar.",
         "ActorMissing": "Der verknüpfte Kreaturen-Actor wurde nicht gefunden.",
         "ActionFailed": "Creature-Forge-Aktion fehlgeschlagen. Details stehen in der Konsole.",
-        "LinkedCreated": "{name} wurde erstellt und mit dem Kampagneneintrag verknüpft."
+        "LinkedCreated": "{name} wurde erstellt und mit dem Kampagneneintrag verknüpft.",
+        "LinkedCreatures": "Verknüpfte Kreaturen",
+        "NoneLinked": "Noch keine Kreatur mit diesem Kampagneneintrag verknüpft."
       },
       "Weather": {
         "EventTitle": "Wetterkontext",
@@ -652,7 +654,9 @@
         "SessionCaptureUnavailable": "Weather Forge ist aktiv, aber beim Sitzungsstart konnte kein Wetter-Snapshot erfasst werden. Die Sitzung wurde trotzdem gestartet.",
         "SaveFirst": "Speichere den Ereigniseintrag zuerst. Danach kannst du das aktuelle Wetter als historischen Snapshot übernehmen.",
         "SaveEventTypeFirst": "Speichere zuerst die Änderung des Eintragstyps zu „Ereignis“. Danach kann ein Wetter-Snapshot erfasst werden."
-      }
+      },
+      "ApiVersion": "API {version}",
+      "EditorContractVersion": "Editor-Vertrag {version}"
     }
   },
   "CAMPAIGN_FORGE.Integrations.Npc.ActionFailed": "NPC-Forge-Aktion fehlgeschlagen. Details stehen in der Konsole."

@@ -635,7 +635,9 @@
         "Unavailable": "Creature Forge is currently unavailable.",
         "ActorMissing": "The linked creature Actor could not be found.",
         "ActionFailed": "Creature Forge action failed. See the console for details.",
-        "LinkedCreated": "{name} was created and linked to the campaign entry."
+        "LinkedCreated": "{name} was created and linked to the campaign entry.",
+        "LinkedCreatures": "Linked Creatures",
+        "NoneLinked": "No creature is linked to this campaign entry yet."
       },
       "Weather": {
         "EventTitle": "Weather context",
@@ -652,7 +654,9 @@
         "SessionCaptureUnavailable": "Weather Forge is active, but no weather snapshot could be captured when the session started. The session was started anyway.",
         "SaveFirst": "Save the Event entry first. You can then capture the current weather as a historical snapshot.",
         "SaveEventTypeFirst": "Save the entry type change to Event first. A weather snapshot can then be captured."
-      }
+      },
+      "ApiVersion": "API {version}",
+      "EditorContractVersion": "Editor contract {version}"
     }
   },
   "CAMPAIGN_FORGE.Integrations.Npc.ActionFailed": "NPC Forge action failed. See the console for details."

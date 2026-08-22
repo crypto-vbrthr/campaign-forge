@@ -129,3 +129,21 @@ test("Creature Forge ApplicationV2 host keeps the embedded editor height constra
   assert.match(template, /data-cf-creature-forge-host/);
   assert.match(template, /data-action="creatureCreateLink"/);
 });
+
+
+test("linked Creature Forge Actors render inside the Creature Forge section", () => {
+  const template = fs.readFileSync(new URL("../templates/campaign-forge.hbs", import.meta.url), "utf8");
+  const app = fs.readFileSync(new URL("../scripts/app/campaign-forge-app.js", import.meta.url), "utf8");
+  assert.match(app, /const creatureLinks = externalLinks\.filter/);
+  assert.match(app, /links: creatureLinks/);
+  assert.match(template, /editor\.creatureIntegration\.hasLinks/);
+  assert.match(template, /editor\.creatureIntegration\.links/);
+  assert.match(template, /cf-creature-linked-row/);
+});
+
+test("Creature Forge links are not duplicated in the generic external-link list", () => {
+  const app = fs.readFileSync(new URL("../scripts/app/campaign-forge-app.js", import.meta.url), "utf8");
+  const template = fs.readFileSync(new URL("../templates/campaign-forge.hbs", import.meta.url), "utf8");
+  assert.match(app, /const generalExternalLinks = externalLinks\.filter/);
+  assert.match(template, /editor\.generalExternalLinks/);
+});
