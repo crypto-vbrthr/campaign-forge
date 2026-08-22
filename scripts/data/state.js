@@ -90,6 +90,9 @@ export function normalizeState(raw) {
       if (primarySeen) link.primary = false;
       else primarySeen = true;
     }
+    entry.weatherSnapshot = entry.weatherSnapshot && typeof entry.weatherSnapshot === "object"
+      ? cloneData(entry.weatherSnapshot)
+      : null;
     entry.externalLinks = (Array.isArray(entry.externalLinks) ? entry.externalLinks : [])
       .filter(link => link && typeof link === "object" && link.provider && link.targetId)
       .map((link, index) => ({
@@ -245,6 +248,9 @@ export function normalizeState(raw) {
     session.endedAt ??= null;
     session.gameTimeStart ??= null;
     session.gameTimeEnd ??= null;
+    session.weatherSnapshot = session.weatherSnapshot && typeof session.weatherSnapshot === "object"
+      ? cloneData(session.weatherSnapshot)
+      : null;
   }
 
   const trackerIds = new Set(state.trackers.map(tracker => tracker.id));

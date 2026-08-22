@@ -38,7 +38,8 @@
       "UnpinFromOverview": "Aus Übersicht entfernen",
       "OpenOverviewTarget": "Zum Element springen",
       "MarkKeyPlayerSeen": "In aktueller Sitzung als aufgetreten markieren",
-      "OpenActor": "Actor öffnen"
+      "OpenActor": "Actor öffnen",
+      "DeleteSession": "Sitzung löschen"
     },
     "Session": {
       "Session": "Sitzung",
@@ -208,7 +209,10 @@
       "ExternalLinkAdded": "Externe Verknüpfung für „{title}“ hinzugefügt.",
       "ExternalLinkUpdated": "Externe Verknüpfung für „{title}“ bearbeitet.",
       "ExternalLinkRemoved": "Externe Verknüpfung für „{title}“ entfernt.",
-      "ProviderAction": "{provider}: „{title}“ wurde durch eine Folgeregel aktualisiert."
+      "ProviderAction": "{provider}: „{title}“ wurde durch eine Folgeregel aktualisiert.",
+      "WeatherCaptured": "Wetterkontext für „{title}“ gespeichert.",
+      "WeatherCleared": "Wetterkontext für „{title}“ entfernt.",
+      "SessionDeleted": "Sitzung {title} wurde gelöscht."
     },
     "Confirm": {
       "Title": "Campaign Forge",
@@ -219,7 +223,8 @@
       "DeleteJournalLink": "Diese Journal-Verknüpfung wirklich entfernen?",
       "DeleteRewardRule": "Diese Belohnungsregel wirklich löschen?",
       "SkipReward": "Diese Belohnung wirklich überspringen?",
-      "ResetReward": "Den Vergabestatus dieser Belohnung zurücksetzen? Bereits vergebene Spielwerte oder Gegenstände werden dadurch nicht automatisch zurückgenommen."
+      "ResetReward": "Den Vergabestatus dieser Belohnung zurücksetzen? Bereits vergebene Spielwerte oder Gegenstände werden dadurch nicht automatisch zurückgenommen.",
+      "DeleteSession": "Sitzung #{number} wirklich dauerhaft löschen? Das Sitzungsprotokoll und der gespeicherte Wetterkontext werden entfernt. Diese Aktion kann nicht rückgängig gemacht werden."
     },
     "Errors": {
       "Generic": "Die Aktion konnte nicht ausgeführt werden. Details stehen in der Konsole.",
@@ -304,7 +309,10 @@
       "EXTERNAL_LINK_EXISTS": "Diese externe Verknüpfung ist bereits vorhanden.",
       "EXTERNAL_LINK_NOT_FOUND": "Die externe Verknüpfung wurde nicht gefunden.",
       "REWARD_PROVIDER_CAPABILITY_UNAVAILABLE": "Die benötigte Funktion des Belohnungs-Providers ist nicht verfügbar.",
-      "REWARD_ITEM_FORGE_RESULT_INVALID": "Item Forge hat kein verwendbares Gegenstandsergebnis zurückgegeben."
+      "REWARD_ITEM_FORGE_RESULT_INVALID": "Item Forge hat kein verwendbares Gegenstandsergebnis zurückgegeben.",
+      "WEATHER_SNAPSHOT_EVENT_ONLY": "Wetter-Snapshots können nur Ereignissen zugeordnet werden.",
+      "SESSION_NOT_FOUND": "Die Sitzung wurde nicht gefunden.",
+      "ACTIVE_SESSION_CANNOT_BE_DELETED": "Eine laufende Sitzung kann nicht gelöscht werden. Beende sie zuerst."
     },
     "SessionChangeKinds": {
       "note": "Notiz",
@@ -555,7 +563,8 @@
         "actorDelivery": "Actor-Übergabe",
         "preview": "Vorschau",
         "currentContext": "Aktueller Kontext",
-        "weatherState": "Wetterzustand"
+        "weatherState": "Wetterzustand",
+        "createActor": "Actor-Erstellung"
       },
       "ExternalLinks": {
         "Title": "Externe Verknüpfungen",
@@ -612,7 +621,35 @@
         "Unavailable": "NPC Forge ist derzeit nicht verfügbar.",
         "CreateTitle": "Schlüsselperson mit NPC Forge erstellen",
         "Generate": "Generieren",
-        "Commit": "Übernehmen"
+        "Commit": "Übernehmen",
+        "ActionFailed": "NPC-Forge-Aktion fehlgeschlagen. Details stehen in der Konsole."
+      },
+      "Creature": {
+        "ActorReference": "Kreatur / Actor",
+        "DropActor": "Kreaturen-Actor hierher ziehen, um ihn mit diesem Eintrag zu verknüpfen.",
+        "DropActorOnly": "Hier kann nur ein Actor abgelegt werden.",
+        "CreateAndLink": "Mit Creature Forge erstellen",
+        "CreateTitle": "Kreatur mit Creature Forge erstellen",
+        "CreateActorAndLink": "Actor erstellen & verknüpfen",
+        "Open": "Creature Forge öffnen",
+        "Unavailable": "Creature Forge ist derzeit nicht verfügbar.",
+        "ActorMissing": "Der verknüpfte Kreaturen-Actor wurde nicht gefunden.",
+        "ActionFailed": "Creature-Forge-Aktion fehlgeschlagen. Details stehen in der Konsole.",
+        "LinkedCreated": "{name} wurde erstellt und mit dem Kampagneneintrag verknüpft."
+      },
+      "Weather": {
+        "EventTitle": "Wetterkontext",
+        "EventHint": "Speichert das aktuelle Wetter als historischen Snapshot dieses Ereignisses. Spätere Wetteränderungen verändern den Snapshot nicht.",
+        "CaptureSnapshot": "Aktuelles Wetter übernehmen",
+        "ReplaceSnapshot": "Snapshot aktualisieren",
+        "ClearSnapshot": "Wetter-Snapshot entfernen",
+        "Captured": "Aktueller Wetterkontext wurde gespeichert.",
+        "Open": "Weather Forge öffnen",
+        "Unavailable": "Weather Forge ist derzeit nicht verfügbar oder liefert keinen aktuellen Wetterkontext.",
+        "SessionContext": "Wetter bei Sitzungsbeginn",
+        "ContextMismatch": "Weather Forge meldete beim Erfassen einen abweichenden Orts-/Klimakontext.",
+        "Wind": "Wind {value}",
+        "SessionCaptureUnavailable": "Weather Forge ist aktiv, aber beim Sitzungsstart konnte kein Wetter-Snapshot erfasst werden. Die Sitzung wurde trotzdem gestartet."
       }
     }
   },

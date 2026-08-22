@@ -34,7 +34,7 @@ function exposeApi() {
   if (!module) return;
 
   module.api = {
-    version: "0.7.1",
+    version: "0.7.2",
     open: openCampaignForge,
     getState: () => engine.getState(),
     getJournalEmbedSyntax: (entryId, mode = "card") => campaignEntryEmbedSyntax(entryId, mode),
@@ -65,6 +65,16 @@ function exposeApi() {
     removeExternalLink: (entryId, linkId) => {
       requireGM();
       return engine.removeExternalLink(entryId, linkId);
+    },
+    captureEntryWeather: async entryId => {
+      requireGM();
+      const snapshot = await providers?.getCurrentWeatherSnapshot?.();
+      if (!snapshot) throw new Error("Weather Forge context is unavailable.");
+      return engine.setEntryWeatherSnapshot(entryId, snapshot, { source: "api" });
+    },
+    clearEntryWeather: entryId => {
+      requireGM();
+      return engine.setEntryWeatherSnapshot(entryId, null, { source: "api" });
     },
     getIntegrationStatus: () => providers?.listStatus?.() ?? [],
     integrations: Object.freeze({
@@ -124,13 +134,18 @@ function exposeApi() {
       requireGM();
       return engine.resetReward(entryId, ruleId, rewardId);
     },
-    startSession: () => {
+    startSession: async () => {
       requireGM();
-      return engine.startSession();
+      const weatherSnapshot = await providers?.getCurrentWeatherSnapshot?.().catch?.(() => null) ?? null;
+      return engine.startSession({ weatherSnapshot });
     },
     endSession: () => {
       requireGM();
       return engine.endSession();
+    },
+    deleteSession: sessionId => {
+      requireGM();
+      return engine.deleteSession(sessionId);
     },
     createTracker: data => {
       requireGM();

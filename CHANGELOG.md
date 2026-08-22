@@ -1,3 +1,41 @@
+## 0.7.2 hotfix – Live active-session changes
+
+- Active sessions now render their current change log immediately below the live session card instead of only exposing changes after the session is closed.
+- Manual live-session entries retain their Edit/Delete controls while the session is active.
+- Active-session change counts now use the same structural-change visibility filter as the displayed live log, keeping the counter and visible rows consistent.
+- Added regression coverage for active-session live rendering.
+
+## 0.7.2 - Weather Snapshot & Entry Label Hotfix
+
+
+### v0.7.2 hotfix – Session list & entry checkbox layout
+
+- The currently active session is no longer rendered a second time in the historical session list. The top active-session card remains the single live-session view; the list below now contains closed sessions only.
+- Active/Visible fields in the campaign entry editor use a fixed two-column checkbox/label grid so Foundry/theme form styles cannot separate labels from their checkboxes.
+
+- Hardened Weather Forge snapshot capture against Weather Forge 1.1.x runtimes where `module.api` is available but the hidden `weatherState` setting is not registered. Campaign Forge now uses the public API when safe and otherwise reads the already-persisted Weather Forge world state as a read-only compatibility fallback, with latest history as a secondary fallback.
+- Avoids noisy `ClientSettings.get()` warnings for the known unregistered-setting path and still never registers or writes Weather Forge settings itself.
+- Reworked the entry `Active` / `Visible` controls into an explicit boolean field row with labels prepared in application context and module-scoped high-contrast CSS so Foundry theme/form rules cannot hide the captions.
+- Added regression coverage for unregistered Weather Forge settings and visible entry checkbox labels.
+
+## 0.7.2 - Context Fix
+
+- Fixed session-start Weather Forge capture by attempting the live provider read directly instead of gating it on a potentially stale capability snapshot.
+- Added a safe Weather Forge `getWeather()` fallback and a visible warning if an active Weather Forge still cannot provide context.
+- Made the `Active` and `Visible` labels in the campaign entry editor explicitly visible and readable.
+- Added deletion of completed sessions with a destructive confirmation warning. Active sessions cannot be deleted.
+- Deleting a session repairs Keyplayer `lastSeenSessionId` references and, if another session is active, logs the deletion as a structural change.
+
+## 0.7.2 - Creature & Weather Context
+
+- Added Creature Forge context integration for Campaign entries. Existing creature/NPC Actors can be dropped onto an entry, opened directly, or created through the public embedded Creature Forge editor and automatically linked back to the entry.
+- Added a dedicated ApplicationV2 host for the Creature Forge embedded editor so its native scroll/footer layout remains intact.
+- Added Weather Forge context snapshots. Starting a session automatically records the current Weather Forge context when available, including weather, game date/daypart, City Forge provenance, and mismatch state.
+- Event entries can capture, replace, or clear an explicit current-weather snapshot and can open Weather Forge directly.
+- Weather snapshots are historical copies rather than live references, so later weather changes do not rewrite past sessions or events.
+- Extended provider capability detection and public integration helpers for Creature Forge actor creation and Weather Forge context capture.
+- Added DE/EN localization and regression coverage for Creature/Weather integration and snapshot normalization.
+
 ## 0.7.1 hotfix - NPC Forge embedded scrolling
 
 ### NPC Forge embedded host hardening

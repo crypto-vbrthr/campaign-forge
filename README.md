@@ -1,6 +1,21 @@
-# Campaign Forge v0.7.1
+# Campaign Forge v0.7.2
+
+### v0.7.2 compatibility hotfix
+
+- Session weather capture now tolerates a Weather Forge 1.1.x runtime in which its API is exposed before/without the hidden `weatherState` setting being registered. Campaign Forge falls back read-only to Weather Forge's persisted world state/history and does not register foreign settings.
+- The Campaign entry `Active` and `Visible` checkboxes now use explicit prepared labels and hardened module-scoped styling so their captions remain visible across Foundry themes.
 
 Campaign Forge is a GM-facing Foundry VTT module for tracking campaign structure, knowledge, quests, events, sessions, long-term campaign values, important NPCs, and rule-driven campaign state changes.
+
+## v0.7.2 Creature & Weather Context
+
+- Campaign entries can link existing Foundry creature/NPC Actors by drag & drop as Creature Forge references. Linked Actors remain owned by Foundry/Creature Forge and can be opened directly from Campaign Forge.
+- A saved Campaign entry can open the public embedded Creature Forge editor in a dedicated ApplicationV2 host. Creating the Actor from that host automatically adds the resulting Actor UUID as an external Campaign reference.
+- The Creature Forge integration uses the stable public `api.ui.creatureEditor.create()` and `api.createActor()` contracts and does not duplicate Creature Forge generation logic.
+- Starting a Campaign Forge session automatically captures the current Weather Forge context when available. The stored snapshot includes current weather, game date/daypart, optional City Forge place provenance, provider version, and mismatch state.
+- Event entries can explicitly capture, refresh, or clear a Weather Forge snapshot. Snapshots are historical copies, not live weather links, so later weather changes never rewrite the recorded event/session context.
+- Weather Forge and Creature Forge remain optional. Missing or inactive providers do not prevent Campaign Forge from loading or using already-stored historical snapshots and references.
+- Added German/English localization and regression tests for Creature Forge host integration, Actor references, session/event snapshots, provider capability detection, and Weather Forge normalization.
 
 
 ## v0.7.1 Reward Providers
@@ -92,3 +107,9 @@ Journal embeds are references rather than copies. Renamed entries, status change
 
 ### NPC Forge embedding
 Campaign Forge mounts NPC Forge through its public embedded-editor session in a dedicated ApplicationV2 host. This preserves NPC Forge's native independent scrolling for controls and preview while Campaign Forge owns the Generate / Commit / Cancel footer.
+
+### v0.7.2 context fixes
+
+- Session start captures the current Weather Forge context directly and falls back to Weather Forge's current weather state when the richer context read is unavailable.
+- Completed sessions can be deleted from the Sessions tab after a destructive confirmation. Active sessions must be ended first.
+- Campaign entry `Active` and `Visible` checkboxes use explicit localized labels.

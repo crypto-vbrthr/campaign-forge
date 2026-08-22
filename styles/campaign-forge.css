@@ -357,13 +357,43 @@
   min-height: 85px;
 }
 
-.campaign-forge .cf-checkbox-row{
-  flex-direction: row !important;
+.campaign-forge .cf-entry-boolean-fields{
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
   align-items: center;
+  justify-content: start;
+  gap: .55rem 1.35rem;
 }
 
-.campaign-forge .cf-checkbox-row input{
-  flex: 0 0 auto;
+.campaign-forge .cf-checkbox-row{
+  display: inline-grid !important;
+  grid-template-columns: 1.15rem max-content;
+  align-items: center !important;
+  justify-content: start !important;
+  column-gap: .45rem;
+  width: max-content !important;
+  margin: 0 !important;
+}
+
+.campaign-forge .cf-checkbox-row input[type="checkbox"]{
+  width: 1rem !important;
+  min-width: 1rem !important;
+  height: 1rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: none !important;
+}
+
+.campaign-forge .cf-checkbox-row > .cf-checkbox-label{
+  display: inline !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  min-width: 0;
+  white-space: nowrap;
+  line-height: 1.1;
+  color: var(--color-text-light-highlight, #f0f0e8) !important;
+  font-size: .9em;
+  font-weight: 500;
 }
 
 .campaign-forge .cf-editor-footer{
@@ -1844,4 +1874,122 @@
 
 .campaign-forge.cf-npc-forge-host-app .cf-npc-forge-host-actions [data-action="npcGenerate"]{
   margin-right: auto;
+}
+
+/* 0.7.2 Creature Forge embedded host and Weather context */
+.campaign-forge .cf-creature-link-builder,
+.campaign-forge .cf-weather-context-editor {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border-light-primary, rgba(128, 128, 128, 0.35));
+}
+
+.campaign-forge .cf-integration-mini-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.campaign-forge .cf-integration-mini-heading > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.campaign-forge .cf-creature-drop-zone {
+  margin-bottom: 0.5rem;
+}
+
+.campaign-forge .cf-weather-snapshot,
+.campaign-forge .cf-session-weather-context {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--color-border-light-primary, rgba(128, 128, 128, 0.35));
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.campaign-forge .cf-weather-snapshot-main,
+.campaign-forge .cf-session-weather-context > span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.campaign-forge .cf-weather-snapshot-main > span,
+.campaign-forge .cf-weather-snapshot-main > small,
+.campaign-forge .cf-session-weather-context small {
+  opacity: 0.8;
+}
+
+.campaign-forge .cf-weather-snapshot-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.campaign-forge .cf-session-weather-context {
+  justify-content: flex-start;
+  align-items: center;
+  margin: 0.45rem 0 0.65rem;
+}
+
+.campaign-forge .cf-session-weather-context.is-history {
+  margin: 0;
+  border-width: 0 0 1px 0;
+  border-radius: 0;
+  padding: 0.55rem 0.75rem;
+}
+
+.campaign-forge.cf-creature-forge-host-app .window-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.campaign-forge.cf-creature-forge-host-app .cf-creature-forge-app-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.campaign-forge.cf-creature-forge-host-app .cf-creature-forge-host {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.campaign-forge.cf-creature-forge-host-app .cf-creature-forge-host-actions {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border-top: 1px solid var(--color-border-light-primary, rgba(128, 128, 128, 0.35));
+  background: var(--color-cool-5-90, rgba(30, 30, 30, 0.08));
+}
+
+
+.campaign-forge .cf-session-entry-actions{
+  display: flex;
+  justify-content: flex-end;
+  padding: .45rem .65rem 0;
+}
+
+.campaign-forge .cf-danger-action{
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
 }

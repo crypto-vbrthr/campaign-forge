@@ -239,6 +239,49 @@ function lootForgeConfigSummary(config = {}) {
   return format("CAMPAIGN_FORGE.Rewards.LootForgeConfigSummary", { level, theme, environment });
 }
 
+function optionalLocalized(key, fallback = "") {
+  if (!key) return fallback;
+  const value = game.i18n.localize(key);
+  return value && value !== key ? value : fallback;
+}
+
+function weatherForgeLabel(category, value) {
+  if (!value) return "";
+  const key = `pf2e-weather-forge.${category}.${value}`;
+  return optionalLocalized(key, String(value));
+}
+
+function weatherSnapshotView(snapshot) {
+  if (!snapshot?.weather) return null;
+  const weather = snapshot.weather;
+  const location = snapshot.location ?? {};
+  const descriptionKey = weather.descriptionKey
+    ? `pf2e-weather-forge.${String(weather.descriptionKey).replace(/^pf2e-weather-forge\./, "")}`
+    : null;
+  const locationLabel = location.locationName || location.districtName || location.settlementName || "";
+  const dateParts = [];
+  if (weather.weekday) dateParts.push(weatherForgeLabel("weekday", weather.weekday));
+  if (weather.dayOfMonth != null && weather.month) {
+    dateParts.push(`${weather.dayOfMonth}. ${weatherForgeLabel("month", weather.month)}`);
+  }
+  if (weather.year != null) dateParts.push(String(weather.year));
+  const metrics = [];
+  if (weather.temperature != null) metrics.push(`${weather.temperature} °C`);
+  if (weather.precipitation) metrics.push(weatherForgeLabel("precipitation", weather.precipitation));
+  if (weather.windStrength != null) metrics.push(format("CAMPAIGN_FORGE.Integrations.Weather.Wind", { value: weather.windStrength }));
+  return {
+    ...snapshot,
+    description: descriptionKey ? optionalLocalized(descriptionKey, weather.precipitation ? weatherForgeLabel("precipitation", weather.precipitation) : "") : "",
+    daypartLabel: weatherForgeLabel("time", weather.timeSegment),
+    seasonLabel: weatherForgeLabel("season", weather.season),
+    climateLabel: weatherForgeLabel("climate", weather.climateZone),
+    dateLabel: dateParts.filter(Boolean).join(" · "),
+    locationLabel,
+    metricsLabel: metrics.filter(Boolean).join(" · "),
+    mismatchLabel: snapshot.mismatch ? localize("CAMPAIGN_FORGE.Integrations.Weather.ContextMismatch") : ""
+  };
+}
+
 function itemForgeRequestSummary(request = {}, previewName = "") {
   if (previewName) return previewName;
   const mode = request?.mode ?? "—";
@@ -431,6 +474,12 @@ function actionSummary(change) {
       return format("CAMPAIGN_FORGE.Changes.ExternalLinkUpdated", { title: change.targetTitle });
     case "entry.externalLink.removed":
       return format("CAMPAIGN_FORGE.Changes.ExternalLinkRemoved", { title: change.targetTitle });
+    case "entry.weather.captured":
+      return format("CAMPAIGN_FORGE.Changes.WeatherCaptured", { title: change.targetTitle });
+    case "entry.weather.cleared":
+      return format("CAMPAIGN_FORGE.Changes.WeatherCleared", { title: change.targetTitle });
+    case "session.deleted":
+      return format("CAMPAIGN_FORGE.Changes.SessionDeleted", { title: change.targetTitle });
     case "provider.action":
       return format("CAMPAIGN_FORGE.Changes.ProviderAction", {
         provider: localize(`CAMPAIGN_FORGE.Integrations.Providers.${change.details?.provider ?? "cityForge"}`),
@@ -599,6 +648,75 @@ class CampaignNpcForgeHostApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 }
 
+class CampaignCreatureForgeHostApp extends HandlebarsApplicationMixin(ApplicationV2) {
+  static DEFAULT_OPTIONS = {
+    id: "campaign-forge-creature-editor",
+    classes: ["campaign-forge", "cf-creature-forge-host-app"],
+    tag: "section",
+    window: {
+      title: "CAMPAIGN_FORGE.Integrations.Creature.CreateTitle",
+      icon: "fa-solid fa-dragon",
+      resizable: true
+    },
+    position: { width: 1120, height: 820 },
+    actions: {
+      creatureCreateLink: this._actionCreateLink,
+      creatureCancel: this._actionCancel
+    }
+  };
+
+  static PARTS = {
+    main: { template: `modules/${MODULE_ID}/templates/creature-forge-host.hbs` }
+  };
+
+  constructor(editor, { onCreateLink = null, onClosed = null } = {}) {
+    super();
+    this.editor = editor;
+    this.onCreateLink = onCreateLink;
+    this.onClosed = onClosed;
+    this._mountedHost = null;
+    this._cleanedUp = false;
+    this._busy = false;
+  }
+
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    const host = this.element?.querySelector?.("[data-cf-creature-forge-host]");
+    if (!host || host === this._mountedHost) return;
+    this._mountedHost = host;
+    await this.editor?.mount?.(host, { layout: "full", minHeight: 620 });
+  }
+
+  static async _actionCreateLink() {
+    if (this._busy) return;
+    this._busy = true;
+    try {
+      const blueprint = this.editor?.value;
+      if (!blueprint) throw new Error("Creature Forge did not provide a creature blueprint.");
+      await this.onCreateLink?.(blueprint);
+    } catch (error) {
+      console.error("campaign-forge | Creature Forge create/link failed", error);
+      ui.notifications.error(localize("CAMPAIGN_FORGE.Integrations.Creature.ActionFailed"));
+    } finally {
+      this._busy = false;
+    }
+  }
+
+  static _actionCancel() {
+    return this.close();
+  }
+
+  async close(options = {}) {
+    if (!this._cleanedUp) {
+      this._cleanedUp = true;
+      try { this.editor?.destroy?.(); } catch {}
+      this._mountedHost = null;
+      try { this.onClosed?.(); } catch {}
+    }
+    return super.close(options);
+  }
+}
+
 export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "campaign-forge",
@@ -652,6 +770,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       addSessionChange: this._actionAddSessionChange,
       editSessionChange: this._actionEditSessionChange,
       deleteSessionChange: this._actionDeleteSessionChange,
+      deleteSession: this._actionDeleteSession,
       createTracker: this._actionCreateTracker,
       editTracker: this._actionEditTracker,
       adjustTracker: this._actionAdjustTracker,
@@ -676,7 +795,12 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       removeExternalLink: this._actionRemoveExternalLink,
       openExternalLink: this._actionOpenExternalLink,
       createKeyPlayerWithNpcForge: this._actionCreateKeyPlayerWithNpcForge,
-      openNpcForge: this._actionOpenNpcForge
+      openNpcForge: this._actionOpenNpcForge,
+      createCreatureWithForge: this._actionCreateCreatureWithForge,
+      openCreatureForge: this._actionOpenCreatureForge,
+      captureEntryWeather: this._actionCaptureEntryWeather,
+      clearEntryWeather: this._actionClearEntryWeather,
+      openWeatherForge: this._actionOpenWeatherForge
     }
   };
 
@@ -705,6 +829,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this._cityLinkDraft = null;
     this._npcEditorSession = null;
     this._npcEditorDialog = null;
+    this._creatureEditor = null;
+    this._creatureEditorHost = null;
     this._lootRewardEditorSession = null;
     this._lootRewardEditorDialog = null;
     this._itemRewardEditorSession = null;
@@ -733,6 +859,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         .map(([id]) => localize(`CAMPAIGN_FORGE.Integrations.Capabilities.${id}`))
     }));
     const npcForgeStatus = integrationStatuses.find(status => status.id === "npcForge") ?? null;
+    const creatureForgeStatus = integrationStatuses.find(status => status.id === "creatureForge") ?? null;
+    const weatherForgeStatus = integrationStatuses.find(status => status.id === "weatherForge") ?? null;
 
     const campaignRows = [];
     const seen = new Set();
@@ -801,35 +929,47 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
     pushChildren(null, 0);
 
+    const sessionChangesView = (session) => {
+      const rawChanges = session.changes.filter(change => showStructural || !change.structural);
+      const transactionGroups = [];
+      for (const change of rawChanges) {
+        const previous = transactionGroups[transactionGroups.length - 1];
+        if (change.transactionId && previous?.transactionId === change.transactionId) previous.items.push(change);
+        else transactionGroups.push({ transactionId: change.transactionId ?? null, items: [change] });
+      }
+      return transactionGroups
+        .reverse()
+        .flatMap(group => group.items.map((change, index) => ({
+          ...change,
+          timeLabel: localeTime(change.timestamp),
+          summary: actionSummary(change),
+          structural: Boolean(change.structural),
+          isConsequence: Boolean(group.transactionId && index > 0 && change.source === "transition"),
+          detailsText: change.action === "session.manual" ? String(change.details?.description ?? "") : "",
+          canEdit: session.status === "active" && change.action === "session.manual",
+          canDelete: session.status === "active" && change.action === "session.manual"
+        })));
+    };
+
     const sessions = [...state.sessions]
+      .filter(session => session.status === "closed")
       .sort((a, b) => b.number - a.number)
-      .map(session => {
-        const rawChanges = session.changes.filter(change => showStructural || !change.structural);
-        const transactionGroups = [];
-        for (const change of rawChanges) {
-          const previous = transactionGroups[transactionGroups.length - 1];
-          if (change.transactionId && previous?.transactionId === change.transactionId) previous.items.push(change);
-          else transactionGroups.push({ transactionId: change.transactionId ?? null, items: [change] });
-        }
-        const changes = transactionGroups
-          .reverse()
-          .flatMap(group => group.items.map((change, index) => ({
-            ...change,
-            timeLabel: localeTime(change.timestamp),
-            summary: actionSummary(change),
-            structural: Boolean(change.structural),
-            isConsequence: Boolean(group.transactionId && index > 0 && change.source === "transition"),
-            detailsText: change.action === "session.manual" ? String(change.details?.description ?? "") : "",
-            canEdit: session.status === "active" && change.action === "session.manual",
-            canDelete: session.status === "active" && change.action === "session.manual"
-          })));
-        return {
-          ...session,
-          startedLabel: localeDate(session.startedAt),
-          endedLabel: session.endedAt ? localeDate(session.endedAt) : localize("CAMPAIGN_FORGE.Session.Active"),
-          changes
-        };
-      });
+      .map(session => ({
+        ...session,
+        startedLabel: localeDate(session.startedAt),
+        endedLabel: session.endedAt ? localeDate(session.endedAt) : localize("CAMPAIGN_FORGE.Session.Active"),
+        weatherSnapshotView: weatherSnapshotView(session.weatherSnapshot),
+        canDeleteSession: true,
+        changes: sessionChangesView(session)
+      }));
+
+    const activeSessionView = activeSession ? {
+      ...activeSession,
+      startedLabel: localeTime(activeSession.startedAt),
+      weatherSnapshotView: weatherSnapshotView(activeSession.weatherSnapshot),
+      changes: sessionChangesView(activeSession)
+    } : null;
+    if (activeSessionView) activeSessionView.changeCount = activeSessionView.changes.length;
 
     const trackers = [...state.trackers]
       .sort((a, b) => a.sort - b.sort)
@@ -987,12 +1127,10 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       overviewPins,
       integrationStatuses,
       npcForgeStatus,
+      creatureForgeStatus,
+      weatherForgeStatus,
       countByType,
-      activeSession: activeSession ? {
-        ...activeSession,
-        startedLabel: localeTime(activeSession.startedAt),
-        changeCount: activeSession.changes.length
-      } : null,
+      activeSession: activeSessionView,
       editor: contextEditor,
       overview: {
         entries: state.entries.length,
@@ -1045,14 +1183,27 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       const type = source?.type ?? "quest";
       const status = source?.status ?? ENTRY_TYPES[type].statuses[0];
 
-      const externalLinks = (source?.externalLinks ?? []).map(link => ({
-        ...link,
-        providerLabel: localize(`CAMPAIGN_FORGE.Integrations.Providers.${link.provider}`),
-        kindLabel: link.provider === "cityForge"
-          ? localize(`CAMPAIGN_FORGE.Integrations.City.ReferenceKinds.${link.kind}`)
-          : link.kind,
-        displayLabel: link.label || link.meta?.settlementName || link.targetId,
-        canOpen: link.provider === "cityForge" && Boolean(this.providers?.supports?.("cityForge", "open"))
+      const externalLinks = await Promise.all((source?.externalLinks ?? []).map(async link => {
+        let liveLabel = link.label || link.meta?.settlementName || link.targetId;
+        let missing = false;
+        if (link.provider === "creatureForge" && link.kind === "actor") {
+          const actor = await resolveActor(link.targetId);
+          liveLabel = actor?.name ?? liveLabel;
+          missing = !actor;
+        }
+        return {
+          ...link,
+          providerLabel: localize(`CAMPAIGN_FORGE.Integrations.Providers.${link.provider}`),
+          kindLabel: link.provider === "cityForge"
+            ? localize(`CAMPAIGN_FORGE.Integrations.City.ReferenceKinds.${link.kind}`)
+            : (link.provider === "creatureForge" && link.kind === "actor"
+              ? localize("CAMPAIGN_FORGE.Integrations.Creature.ActorReference")
+              : link.kind),
+          displayLabel: liveLabel,
+          missing,
+          canOpen: (link.provider === "cityForge" && Boolean(this.providers?.supports?.("cityForge", "open")))
+            || (link.provider === "creatureForge" && link.kind === "actor")
+        };
       }));
 
       let cityIntegration = { ready: false };
@@ -1120,6 +1271,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         parentId: source?.parentId ?? this._editor.parentId ?? null,
         active: source?.active ?? true,
         visible: source?.visible ?? true,
+        activeLabel: localize("CAMPAIGN_FORGE.Fields.Active"),
+        visibleLabel: localize("CAMPAIGN_FORGE.Fields.Visible"),
         types: entryTypeOptions(type),
         statuses: statusOptions(type, status),
         canManageJournalLinks: Boolean(source),
@@ -1140,6 +1293,18 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         externalLinks,
         hasExternalLinks: externalLinks.length > 0,
         cityIntegration,
+        creatureIntegration: {
+          ready: Boolean(source && this.providers?.supports?.("creatureForge", "embeddedEditor")),
+          canOpen: Boolean(this.providers?.supports?.("creatureForge", "open")),
+          canCreate: Boolean(source && this.providers?.supports?.("creatureForge", "embeddedEditor") && this.providers?.supports?.("creatureForge", "createActor"))
+        },
+        weatherIntegration: {
+          ready: Boolean(source && type === "event" && (this.providers?.supports?.("weatherForge", "currentContext") || this.providers?.supports?.("weatherForge", "weatherState"))),
+          canOpen: Boolean(this.providers?.supports?.("weatherForge", "open")),
+          isEvent: type === "event",
+          snapshot: weatherSnapshotView(source?.weatherSnapshot),
+          hasSnapshot: Boolean(source?.weatherSnapshot)
+        },
         heading: localize(source ? "CAMPAIGN_FORGE.Editor.EditEntry" : "CAMPAIGN_FORGE.Editor.NewEntry")
       };
     }
@@ -1993,6 +2158,15 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       dropZone.addEventListener("drop", event => this._onJournalLinkDrop(event, dropZone));
     });
 
+    root.querySelectorAll("[data-cf-creature-link-drop]").forEach(dropZone => {
+      dropZone.addEventListener("dragover", event => {
+        event.preventDefault();
+        dropZone.classList.add("cf-drop-target");
+      });
+      dropZone.addEventListener("dragleave", () => dropZone.classList.remove("cf-drop-target"));
+      dropZone.addEventListener("drop", event => this._onCreatureLinkDrop(event, dropZone));
+    });
+
     root.querySelectorAll("[data-cf-draggable]").forEach(row => {
       row.draggable = true;
       row.addEventListener("dragstart", event => this._onDragStart(event, row));
@@ -2151,6 +2325,36 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       this._activeTab = "keyPlayers";
       this._editor = { kind: "keyPlayer", id: keyPlayer.id };
       this._focusKey = `keyPlayer:${keyPlayer.id}`;
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  async _onCreatureLinkDrop(event, dropZone) {
+    event.preventDefault();
+    event.stopPropagation();
+    dropZone.classList.remove("cf-drop-target");
+    if (this._editor?.kind !== "entry" || !this._editor.id) return;
+    const dragData = this._readFoundryDragData(event);
+    const uuid = dragData?.uuid || (dragData?.type === "Actor" && dragData?.id ? `Actor.${dragData.id}` : null);
+    if (!uuid) {
+      ui.notifications.warn(localize("CAMPAIGN_FORGE.Integrations.Creature.DropActorOnly"));
+      return;
+    }
+    const actor = await resolveActor(uuid);
+    if (!actor) {
+      ui.notifications.warn(localize("CAMPAIGN_FORGE.Errors.ACTOR_NOT_FOUND"));
+      return;
+    }
+    try {
+      await this.engine.addExternalLink(this._editor.id, {
+        provider: "creatureForge",
+        kind: "actor",
+        targetId: actor.uuid,
+        label: actor.name ?? "",
+        meta: { actorType: actor.type ?? "" }
+      });
       await this.render();
     } catch (error) {
       this._handleError(error);
@@ -2876,7 +3080,109 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       const provider = target.dataset.provider;
       if (provider === "cityForge") {
         await this.providers?.openCitySettlement?.(target.dataset.targetId);
+      } else if (provider === "creatureForge") {
+        const actor = await this.providers?.openCreatureActor?.(target.dataset.targetId);
+        if (!actor) ui.notifications.warn(localize("CAMPAIGN_FORGE.Integrations.Creature.ActorMissing"));
       }
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static _actionOpenCreatureForge() {
+    try {
+      const result = this.providers?.openCreatureForge?.();
+      if (!result) ui.notifications.warn(localize("CAMPAIGN_FORGE.Integrations.Creature.Unavailable"));
+      return result;
+    } catch (error) {
+      this._handleError(error);
+      return null;
+    }
+  }
+
+  static async _actionCreateCreatureWithForge() {
+    if (this._editor?.kind !== "entry" || !this._editor.id) return null;
+    const entryId = this._editor.id;
+    try {
+      let hostApp = null;
+      const editor = this.providers?.createCreatureEditor?.({
+        mode: "create",
+        layout: "full",
+        capabilities: {
+          generation: true,
+          actorCreation: false,
+          sourceSelection: true,
+          persistSourceSelection: false,
+          advancedEditing: true
+        }
+      });
+      if (!editor) {
+        ui.notifications.warn(localize("CAMPAIGN_FORGE.Integrations.Creature.Unavailable"));
+        return null;
+      }
+      hostApp = new CampaignCreatureForgeHostApp(editor, {
+        onCreateLink: async blueprint => {
+          const result = await this.providers?.createCreatureActor?.(blueprint, { renderSheet: false });
+          const actor = result?.actor ?? result;
+          if (!actor?.uuid) throw new Error("Creature Forge did not return a created Actor.");
+          await this.engine.addExternalLink(entryId, {
+            provider: "creatureForge",
+            kind: "actor",
+            targetId: actor.uuid,
+            label: actor.name ?? "",
+            meta: { actorType: actor.type ?? "", generatedBy: "creatureForge" }
+          });
+          ui.notifications.info(format("CAMPAIGN_FORGE.Integrations.Creature.LinkedCreated", { name: actor.name ?? "" }));
+          await hostApp.close();
+          if (this.rendered) await this.render();
+        },
+        onClosed: () => {
+          if (this._creatureEditor === editor) this._creatureEditor = null;
+          if (this._creatureEditorHost === hostApp) this._creatureEditorHost = null;
+        }
+      });
+      this._creatureEditor = editor;
+      this._creatureEditorHost = hostApp;
+      await hostApp.render({ force: true });
+      return hostApp;
+    } catch (error) {
+      this._handleError(error);
+      return null;
+    }
+  }
+
+  static _actionOpenWeatherForge() {
+    try {
+      const result = this.providers?.openWeatherForge?.();
+      if (!result) ui.notifications.warn(localize("CAMPAIGN_FORGE.Integrations.Weather.Unavailable"));
+      return result;
+    } catch (error) {
+      this._handleError(error);
+      return null;
+    }
+  }
+
+  static async _actionCaptureEntryWeather() {
+    if (this._editor?.kind !== "entry" || !this._editor.id) return;
+    try {
+      const snapshot = await this.providers?.getCurrentWeatherSnapshot?.();
+      if (!snapshot) {
+        ui.notifications.warn(localize("CAMPAIGN_FORGE.Integrations.Weather.Unavailable"));
+        return;
+      }
+      await this.engine.setEntryWeatherSnapshot(this._editor.id, snapshot);
+      ui.notifications.info(localize("CAMPAIGN_FORGE.Integrations.Weather.Captured"));
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionClearEntryWeather() {
+    if (this._editor?.kind !== "entry" || !this._editor.id) return;
+    try {
+      await this.engine.setEntryWeatherSnapshot(this._editor.id, null);
+      await this.render();
     } catch (error) {
       this._handleError(error);
     }
@@ -3089,7 +3395,25 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   static async _actionStartSession() {
     try {
-      await this.engine.startSession();
+      let weatherSnapshot = null;
+      // Do not gate snapshot capture on cached capability detection. Weather Forge
+      // exposes its API during ready and an already-open Campaign Forge window can
+      // otherwise carry a stale capability view. The provider method is itself
+      // safe and simply returns null when Weather Forge is unavailable.
+      try {
+        weatherSnapshot = await this.providers?.getCurrentWeatherSnapshot?.({
+          sceneUuid: globalThis.canvas?.scene?.uuid ?? null
+        }) ?? null;
+      } catch (error) {
+        console.warn(`${MODULE_ID} | Could not capture Weather Forge session context`, error);
+      }
+
+      const weatherStatus = this.providers?.inspect?.("weatherForge");
+      if (!weatherSnapshot && weatherStatus?.active) {
+        ui.notifications?.warn?.(localize("CAMPAIGN_FORGE.Integrations.Weather.SessionCaptureUnavailable"));
+      }
+
+      await this.engine.startSession({ weatherSnapshot });
       this._activeTab = "sessions";
       await this.render();
     } catch (error) {
@@ -3114,6 +3438,23 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!confirmed) return;
     try {
       await this.engine.deleteManualSessionChange(target.dataset.changeId);
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionDeleteSession(event, target) {
+    const sessionId = target.dataset.sessionId;
+    if (!sessionId) return;
+    const state = await this.engine.getState();
+    const session = state.sessions.find(candidate => candidate.id === sessionId);
+    if (!session || session.status === "active") return;
+
+    const confirmed = await this._confirm("CAMPAIGN_FORGE.Confirm.DeleteSession", { number: session.number });
+    if (!confirmed) return;
+    try {
+      await this.engine.deleteSession(sessionId);
       await this.render();
     } catch (error) {
       this._handleError(error);

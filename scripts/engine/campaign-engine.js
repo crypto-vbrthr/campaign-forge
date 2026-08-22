@@ -1090,6 +1090,7 @@ export class CampaignEngine {
         tags: [],
         journalLinks: [],
         externalLinks: [],
+        weatherSnapshot: null,
         relations: [],
         transitionRules: [],
         rewardRules: [],
@@ -1134,6 +1135,7 @@ export class CampaignEngine {
         entry.rewardRules = (entry.rewardRules ?? []).filter(rule =>
           statuses.includes(rule.fromStatus) && statuses.includes(rule.toStatus)
         );
+        if (entry.type !== "event") entry.weatherSnapshot = null;
       }
 
       if (patch.status !== undefined) {
@@ -1337,6 +1339,27 @@ export class CampaignEngine {
         structural: true
       });
       return cloneData(link);
+    });
+  }
+
+  async setEntryWeatherSnapshot(entryId, snapshot = null, { source = "manual" } = {}) {
+    return this._mutate(state => {
+      const entry = this._findEntry(state, entryId);
+      if (entry.type !== "event") throw new CampaignEngineError("WEATHER_SNAPSHOT_EVENT_ONLY", { entryId });
+      const before = cloneData(entry.weatherSnapshot ?? null);
+      entry.weatherSnapshot = snapshot && typeof snapshot === "object" ? cloneData(snapshot) : null;
+      entry.updatedAt = new Date(this._now()).toISOString();
+      this._recordChange(state, {
+        action: entry.weatherSnapshot ? "entry.weather.captured" : "entry.weather.cleared",
+        targetType: "entry",
+        targetId: entry.id,
+        targetTitle: entry.title,
+        before,
+        after: entry.weatherSnapshot,
+        source,
+        structural: false
+      });
+      return cloneData(entry.weatherSnapshot);
     });
   }
 
@@ -1721,7 +1744,7 @@ export class CampaignEngine {
     });
   }
 
-  async startSession() {
+  async startSession({ weatherSnapshot = null } = {}) {
     return this._mutate(state => {
       if (this._activeSession(state)) throw new CampaignEngineError("SESSION_ALREADY_ACTIVE");
       const session = {
@@ -1732,6 +1755,7 @@ export class CampaignEngine {
         endedAt: null,
         gameTimeStart: this._gameTime(),
         gameTimeEnd: null,
+        weatherSnapshot: weatherSnapshot && typeof weatherSnapshot === "object" ? cloneData(weatherSnapshot) : null,
         changes: [],
         notes: ""
       };
@@ -1748,6 +1772,50 @@ export class CampaignEngine {
       session.endedAt = this._now();
       session.gameTimeEnd = this._gameTime();
       return cloneData(session);
+    });
+  }
+
+  async deleteSession(sessionId) {
+    return this._mutate(state => {
+      const index = state.sessions.findIndex(session => session.id === sessionId);
+      if (index < 0) throw new CampaignEngineError("SESSION_NOT_FOUND", { sessionId });
+      const session = state.sessions[index];
+      if (session.status === "active") throw new CampaignEngineError("ACTIVE_SESSION_CANNOT_BE_DELETED", { sessionId });
+
+      const deleted = cloneData(session);
+      state.sessions.splice(index, 1);
+
+      // Keep key-player history internally consistent. If the deleted session was
+      // the recorded last appearance, fall back to the latest remaining session
+      // that actually logged an appearance for that key player.
+      for (const keyPlayer of state.keyPlayers) {
+        if (keyPlayer.lastSeenSessionId !== sessionId) continue;
+        const previous = [...state.sessions]
+          .filter(candidate => candidate.changes?.some(change =>
+            change.action === "keyPlayer.appeared" && change.targetId === keyPlayer.id
+          ))
+          .sort((a, b) => Number(b.number ?? 0) - Number(a.number ?? 0))[0] ?? null;
+        keyPlayer.lastSeenSessionId = previous?.id ?? null;
+        keyPlayer.updatedAt = new Date(this._now()).toISOString();
+      }
+
+      // If another session is currently running, record the administrative
+      // deletion there as a structural change.
+      const active = this._activeSession(state);
+      if (active) {
+        this._recordChange(state, {
+          action: "session.deleted",
+          targetType: "session",
+          targetId: sessionId,
+          targetTitle: `#${deleted.number}`,
+          before: { number: deleted.number, startedAt: deleted.startedAt, endedAt: deleted.endedAt },
+          after: null,
+          source: "manual",
+          structural: true
+        });
+      }
+
+      return deleted;
     });
   }
 

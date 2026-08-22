@@ -38,7 +38,8 @@
       "UnpinFromOverview": "Remove from overview",
       "OpenOverviewTarget": "Jump to element",
       "MarkKeyPlayerSeen": "Mark as appeared in current session",
-      "OpenActor": "Open Actor"
+      "OpenActor": "Open Actor",
+      "DeleteSession": "Delete session"
     },
     "Session": {
       "Session": "Session",
@@ -208,7 +209,10 @@
       "ExternalLinkAdded": "External link added to “{title}”.",
       "ExternalLinkUpdated": "External link updated for “{title}”.",
       "ExternalLinkRemoved": "External link removed from “{title}”.",
-      "ProviderAction": "{provider}: “{title}” was updated by a transition rule."
+      "ProviderAction": "{provider}: “{title}” was updated by a transition rule.",
+      "WeatherCaptured": "Captured weather context for “{title}”.",
+      "WeatherCleared": "Removed weather context from “{title}”.",
+      "SessionDeleted": "Session {title} was deleted."
     },
     "Confirm": {
       "Title": "Campaign Forge",
@@ -219,7 +223,8 @@
       "DeleteJournalLink": "Remove this Journal link?",
       "DeleteRewardRule": "Delete this reward rule?",
       "SkipReward": "Skip this reward?",
-      "ResetReward": "Reset this reward status? Previously granted game values or items are not automatically taken back."
+      "ResetReward": "Reset this reward status? Previously granted game values or items are not automatically taken back.",
+      "DeleteSession": "Really permanently delete session #{number}? Its session log and stored weather context will be removed. This action cannot be undone."
     },
     "Errors": {
       "Generic": "The action could not be completed. Details are available in the console.",
@@ -304,7 +309,10 @@
       "EXTERNAL_LINK_EXISTS": "This external link already exists.",
       "EXTERNAL_LINK_NOT_FOUND": "The external link could not be found.",
       "REWARD_PROVIDER_CAPABILITY_UNAVAILABLE": "The required reward-provider capability is unavailable.",
-      "REWARD_ITEM_FORGE_RESULT_INVALID": "Item Forge did not return a usable item result."
+      "REWARD_ITEM_FORGE_RESULT_INVALID": "Item Forge did not return a usable item result.",
+      "WEATHER_SNAPSHOT_EVENT_ONLY": "Weather snapshots can only be assigned to Event entries.",
+      "SESSION_NOT_FOUND": "The session could not be found.",
+      "ACTIVE_SESSION_CANNOT_BE_DELETED": "An active session cannot be deleted. End it first."
     },
     "SessionChangeKinds": {
       "note": "Note",
@@ -555,7 +563,8 @@
         "actorDelivery": "Actor delivery",
         "preview": "Preview",
         "currentContext": "Current context",
-        "weatherState": "Weather state"
+        "weatherState": "Weather state",
+        "createActor": "Actor creation"
       },
       "ExternalLinks": {
         "Title": "External Links",
@@ -612,7 +621,35 @@
         "Unavailable": "NPC Forge is currently unavailable.",
         "CreateTitle": "Create key player with NPC Forge",
         "Generate": "Generate",
-        "Commit": "Use NPC"
+        "Commit": "Use NPC",
+        "ActionFailed": "NPC Forge action failed. See the console for details."
+      },
+      "Creature": {
+        "ActorReference": "Creature / Actor",
+        "DropActor": "Drop a creature Actor here to link it to this entry.",
+        "DropActorOnly": "Only an Actor can be dropped here.",
+        "CreateAndLink": "Create with Creature Forge",
+        "CreateTitle": "Create creature with Creature Forge",
+        "CreateActorAndLink": "Create Actor & link",
+        "Open": "Open Creature Forge",
+        "Unavailable": "Creature Forge is currently unavailable.",
+        "ActorMissing": "The linked creature Actor could not be found.",
+        "ActionFailed": "Creature Forge action failed. See the console for details.",
+        "LinkedCreated": "{name} was created and linked to the campaign entry."
+      },
+      "Weather": {
+        "EventTitle": "Weather context",
+        "EventHint": "Stores the current weather as a historical snapshot for this event. Later weather changes do not alter the snapshot.",
+        "CaptureSnapshot": "Capture current weather",
+        "ReplaceSnapshot": "Refresh snapshot",
+        "ClearSnapshot": "Remove weather snapshot",
+        "Captured": "Current weather context was captured.",
+        "Open": "Open Weather Forge",
+        "Unavailable": "Weather Forge is currently unavailable or does not expose current weather context.",
+        "SessionContext": "Weather at session start",
+        "ContextMismatch": "Weather Forge reported a mismatched place/climate context when this snapshot was captured.",
+        "Wind": "Wind {value}",
+        "SessionCaptureUnavailable": "Weather Forge is active, but no weather snapshot could be captured when the session started. The session was started anyway."
       }
     }
   },

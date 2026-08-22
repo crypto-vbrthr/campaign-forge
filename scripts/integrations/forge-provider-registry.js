@@ -29,7 +29,8 @@ const DEFINITIONS = Object.freeze({
     capabilities(api) {
       return {
         open: Boolean(api?.ui?.openCreatureForge),
-        embeddedEditor: Boolean(api?.ui?.creatureEditor?.create || api?.ui?.creatureEditor?.createSession)
+        embeddedEditor: Boolean(api?.ui?.creatureEditor?.create || api?.ui?.creatureEditor?.createSession),
+        createActor: Boolean(api?.createActor)
       };
     }
   }),
@@ -74,6 +75,31 @@ function clone(value) {
   if (value === undefined) return undefined;
   if (globalThis.structuredClone) return globalThis.structuredClone(value);
   return JSON.parse(JSON.stringify(value));
+}
+
+function registeredSetting(fullKey) {
+  return Boolean(globalThis.game?.settings?.settings?.has?.(fullKey));
+}
+
+function storedWorldSetting(moduleId, key) {
+  const fullKey = `${moduleId}.${key}`;
+  const storage = globalThis.game?.settings?.storage?.get?.("world");
+  if (!storage) return null;
+
+  let record = storage.get?.(fullKey) ?? null;
+  if (!record && typeof storage.find === "function") {
+    record = storage.find(candidate => candidate?.key === fullKey || candidate?._source?.key === fullKey) ?? null;
+  }
+
+  let value = record?.value ?? record?._source?.value ?? null;
+  for (let i = 0; i < 2 && typeof value === "string"; i += 1) {
+    try { value = JSON.parse(value); } catch { break; }
+  }
+  return value && typeof value === "object" ? clone(value) : null;
+}
+
+function isUnregisteredSettingError(error) {
+  return /not a registered game setting/i.test(String(error?.message ?? error ?? ""));
 }
 
 function moduleRecord(moduleId) {
@@ -296,6 +322,130 @@ export class FoundryForgeProviderRegistry {
   openItemForge(options = {}) {
     return this.getApi("itemForge")?.open?.(options) ?? null;
   }
+
+  openCreatureForge(options = {}) {
+    return this.getApi("creatureForge")?.ui?.openCreatureForge?.(options) ?? null;
+  }
+
+  createCreatureEditor(options = {}) {
+    const api = this.getApi("creatureForge");
+    if (!api?.ui?.creatureEditor?.create) return null;
+    return api.ui.creatureEditor.create(options);
+  }
+
+  async createCreatureActor(blueprint, options = {}) {
+    const api = this.getApi("creatureForge");
+    if (!api?.createActor) return null;
+    return api.createActor(blueprint, options);
+  }
+
+  async openCreatureActor(uuid) {
+    if (!uuid || typeof globalThis.fromUuid !== "function") return null;
+    try {
+      const actor = await globalThis.fromUuid(uuid);
+      if (!actor || actor.documentName !== "Actor") return null;
+      actor.sheet?.render?.(true);
+      return actor;
+    } catch {
+      return null;
+    }
+  }
+
+  openWeatherForge(options = {}) {
+    return this.getApi("weatherForge")?.open?.(options) ?? null;
+  }
+
+  async getCurrentWeatherSnapshot(options = {}) {
+    // Resolve lazily at call time. This matters when Campaign Forge rendered before
+    // Weather Forge finished its ready hook and attached module.api.
+    let api = this.getApi("weatherForge");
+    if (!api) {
+      await Promise.resolve();
+      api = this.getApi("weatherForge");
+    }
+    if (!api) return null;
+
+    // Weather Forge 1.1.x can expose module.api even when its hidden weatherState
+    // setting was not registered successfully during init. Calling the public getter
+    // in that state throws from ClientSettings.get(). Campaign Forge therefore treats
+    // the API as preferred, but can read the already-persisted world setting as a
+    // read-only compatibility fallback. It never registers or writes another module's
+    // settings.
+    const weatherSettingKey = "pf2e-weather-forge.weatherState";
+    const registrationRegistryAvailable = typeof globalThis.game?.settings?.settings?.has === "function";
+    const weatherSettingReady = !registrationRegistryAvailable || registeredSetting(weatherSettingKey);
+
+    let context = null;
+    if (weatherSettingReady && typeof api.getCurrentWeatherContext === "function") {
+      try { context = await api.getCurrentWeatherContext(options); }
+      catch (error) {
+        if (!isUnregisteredSettingError(error)) {
+          console.warn?.("campaign-forge | Weather Forge current context failed; using stored weather fallback", error);
+        }
+        context = null;
+      }
+    }
+
+    let currentWeather = null;
+    if (weatherSettingReady && typeof api.getWeather === "function") {
+      try { currentWeather = await api.getWeather(); }
+      catch (error) {
+        if (!isUnregisteredSettingError(error)) {
+          console.warn?.("campaign-forge | Weather Forge getWeather() failed; using stored weather fallback", error);
+        }
+        currentWeather = null;
+      }
+    }
+
+    currentWeather ??= storedWorldSetting("pf2e-weather-forge", "weatherState");
+    if (!currentWeather) {
+      const history = storedWorldSetting("pf2e-weather-forge", "weatherHistory");
+      if (Array.isArray(history) && history.length) currentWeather = clone(history.at(-1));
+    }
+    const weather = clone(context?.weather ?? currentWeather);
+    if (!weather) return null;
+    const resolution = clone(context?.climateResolution ?? null);
+    const provenance = clone(context?.provenance ?? weather?.weatherForgeCityContext ?? null);
+    const cityContext = provenance ?? {};
+    return {
+      schema: "campaign-forge/weather-snapshot",
+      version: 1,
+      capturedAt: new Date().toISOString(),
+      provider: "weatherForge",
+      providerVersion: String(this.inspect("weatherForge")?.version ?? ""),
+      weather: {
+        timeSegment: weather.timeSegment ?? null,
+        climateZone: weather.climateZone ?? null,
+        temperature: Number.isFinite(Number(weather.temperature)) ? Number(weather.temperature) : null,
+        precipitation: weather.precipitation ?? null,
+        humidity: Number.isFinite(Number(weather.humidity)) ? Number(weather.humidity) : null,
+        cloudDensity: Number.isFinite(Number(weather.cloudDensity)) ? Number(weather.cloudDensity) : null,
+        windStrength: Number.isFinite(Number(weather.windStrength)) ? Number(weather.windStrength) : null,
+        weekday: weather.weekday ?? null,
+        dayOfMonth: Number.isFinite(Number(weather.dayOfMonth)) ? Number(weather.dayOfMonth) : null,
+        month: weather.month ?? null,
+        year: Number.isFinite(Number(weather.year)) ? Number(weather.year) : null,
+        moonPhase: weather.moonPhase ?? null,
+        season: weather.season ?? null,
+        descriptionKey: weather.descriptionKey ?? null,
+        extremeWeather: clone(weather.extremeWeather ?? null)
+      },
+      location: {
+        sceneUuid: cityContext.sceneUuid ?? resolution?.sceneUuid ?? null,
+        settlementId: cityContext.settlementId ?? resolution?.context?.settlement?.id ?? null,
+        settlementName: cityContext.settlementName ?? resolution?.context?.settlement?.name ?? null,
+        districtId: cityContext.districtId ?? resolution?.context?.scope?.district?.id ?? null,
+        districtName: cityContext.districtName ?? resolution?.context?.scope?.district?.name ?? null,
+        locationId: cityContext.locationId ?? resolution?.context?.scope?.location?.id ?? null,
+        locationName: cityContext.locationName ?? resolution?.context?.scope?.location?.name ?? null,
+        region: cityContext.region ?? resolution?.context?.geography?.region ?? null,
+        terrain: cityContext.terrain ?? resolution?.context?.geography?.terrain ?? null
+      },
+      source: resolution?.source ?? weather?.weatherForgeClimateSource ?? null,
+      mismatch: Boolean(context?.mismatch)
+    };
+  }
+
 }
 
 export function providerDefinitions() {

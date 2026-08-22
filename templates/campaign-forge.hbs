@@ -348,14 +348,16 @@
                   <span>{{localize "CAMPAIGN_FORGE.Fields.Description"}}</span>
                   <textarea name="description" rows="8">{{editor.description}}</textarea>
                 </label>
-                <label class="cf-checkbox-row">
-                  <input type="checkbox" name="active" {{#if editor.active}}checked{{/if}}>
-                  <span>{{localize "CAMPAIGN_FORGE.Fields.Active"}}</span>
-                </label>
-                <label class="cf-checkbox-row">
-                  <input type="checkbox" name="visible" {{#if editor.visible}}checked{{/if}}>
-                  <span>{{localize "CAMPAIGN_FORGE.Fields.Visible"}}</span>
-                </label>
+                <div class="cf-entry-boolean-fields">
+                  <label class="cf-checkbox-row">
+                    <input type="checkbox" name="active" {{#if editor.active}}checked{{/if}}>
+                    <span class="cf-checkbox-label">{{editor.activeLabel}}</span>
+                  </label>
+                  <label class="cf-checkbox-row">
+                    <input type="checkbox" name="visible" {{#if editor.visible}}checked{{/if}}>
+                    <span class="cf-checkbox-label">{{editor.visibleLabel}}</span>
+                  </label>
+                </div>
 
                 <section class="cf-journal-links-editor">
                   <div class="cf-journal-links-heading">
@@ -474,10 +476,70 @@
                     {{else}}
                       <small class="cf-external-links-empty">{{localize "CAMPAIGN_FORGE.Integrations.City.NotAvailableForLinks"}}</small>
                     {{/if}}
+
+                    <div class="cf-creature-link-builder">
+                      <div class="cf-integration-mini-heading">
+                        <span><i class="fa-solid fa-dragon"></i> {{localize "CAMPAIGN_FORGE.Integrations.Providers.creatureForge"}}</span>
+                        {{#if editor.creatureIntegration.canOpen}}
+                          <button type="button" class="icon" data-action="openCreatureForge" title="{{localize "CAMPAIGN_FORGE.Integrations.Creature.Open"}}"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+                        {{/if}}
+                      </div>
+                      {{#if editor.creatureIntegration.ready}}
+                        <div class="cf-drop-zone cf-creature-drop-zone" data-cf-creature-link-drop>
+                          <i class="fa-solid fa-paw"></i>
+                          <span>{{localize "CAMPAIGN_FORGE.Integrations.Creature.DropActor"}}</span>
+                        </div>
+                        {{#if editor.creatureIntegration.canCreate}}
+                          <button type="button" data-action="createCreatureWithForge">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            {{localize "CAMPAIGN_FORGE.Integrations.Creature.CreateAndLink"}}
+                          </button>
+                        {{/if}}
+                      {{else}}
+                        <small class="cf-external-links-empty">{{localize "CAMPAIGN_FORGE.Integrations.Creature.Unavailable"}}</small>
+                      {{/if}}
+                    </div>
                   {{else}}
                     <small>{{localize "CAMPAIGN_FORGE.Integrations.ExternalLinks.SaveFirst"}}</small>
                   {{/if}}
                 </section>
+
+                {{#if editor.weatherIntegration.isEvent}}
+                  <section class="cf-weather-context-editor">
+                    <div class="cf-journal-links-heading">
+                      <div>
+                        <strong><i class="fa-solid fa-cloud-sun-rain"></i> {{localize "CAMPAIGN_FORGE.Integrations.Weather.EventTitle"}}</strong>
+                        <small>{{localize "CAMPAIGN_FORGE.Integrations.Weather.EventHint"}}</small>
+                      </div>
+                      {{#if editor.weatherIntegration.canOpen}}
+                        <button type="button" class="icon" data-action="openWeatherForge" title="{{localize "CAMPAIGN_FORGE.Integrations.Weather.Open"}}"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+                      {{/if}}
+                    </div>
+                    {{#if editor.weatherIntegration.hasSnapshot}}
+                      {{#with editor.weatherIntegration.snapshot}}
+                        <div class="cf-weather-snapshot">
+                          <div class="cf-weather-snapshot-main">
+                            <strong>{{#if description}}{{description}}{{else}}{{metricsLabel}}{{/if}}</strong>
+                            {{#if locationLabel}}<span><i class="fa-solid fa-location-dot"></i> {{locationLabel}}</span>{{/if}}
+                            {{#if metricsLabel}}<span>{{metricsLabel}}</span>{{/if}}
+                            {{#if dateLabel}}<span>{{dateLabel}}{{#if daypartLabel}} · {{daypartLabel}}{{/if}}</span>{{else}}{{#if daypartLabel}}<span>{{daypartLabel}}</span>{{/if}}{{/if}}
+                            {{#if mismatchLabel}}<small class="cf-integration-warning">{{mismatchLabel}}</small>{{/if}}
+                          </div>
+                          <div class="cf-weather-snapshot-actions">
+                            {{#if ../ready}}<button type="button" data-action="captureEntryWeather"><i class="fa-solid fa-camera-rotate"></i> {{localize "CAMPAIGN_FORGE.Integrations.Weather.ReplaceSnapshot"}}</button>{{/if}}
+                            <button type="button" class="icon" data-action="clearEntryWeather" title="{{localize "CAMPAIGN_FORGE.Integrations.Weather.ClearSnapshot"}}"><i class="fa-solid fa-trash"></i></button>
+                          </div>
+                        </div>
+                      {{/with}}
+                    {{else}}
+                      {{#if editor.weatherIntegration.ready}}
+                        <button type="button" data-action="captureEntryWeather"><i class="fa-solid fa-camera"></i> {{localize "CAMPAIGN_FORGE.Integrations.Weather.CaptureSnapshot"}}</button>
+                      {{else}}
+                        <small class="cf-external-links-empty">{{localize "CAMPAIGN_FORGE.Integrations.Weather.Unavailable"}}</small>
+                      {{/if}}
+                    {{/if}}
+                  </section>
+                {{/if}}
               {{/if}}
 
               {{#if (eq editor.kind "rules")}}
@@ -1058,7 +1120,53 @@
                 </button>
               </div>
             </article>
+            {{#if activeSession.weatherSnapshotView}}
+              {{#with activeSession.weatherSnapshotView}}
+                <div class="cf-session-weather-context">
+                  <i class="fa-solid fa-cloud-sun-rain"></i>
+                  <span>
+                    <strong>{{localize "CAMPAIGN_FORGE.Integrations.Weather.SessionContext"}}</strong>
+                    <small>{{#if locationLabel}}{{locationLabel}} · {{/if}}{{metricsLabel}}{{#if daypartLabel}} · {{daypartLabel}}{{/if}}{{#if dateLabel}} · {{dateLabel}}{{/if}}</small>
+                  </span>
+                </div>
+              {{/with}}
+            {{/if}}
             <p class="cf-session-help">{{localize "CAMPAIGN_FORGE.Sessions.ManualChangeHint"}}</p>
+            <div class="cf-change-list cf-active-change-list">
+              {{#if activeSession.changes.length}}
+                {{#each activeSession.changes}}
+                  <div class="cf-change-row {{#if structural}}is-structural{{/if}} {{#if isConsequence}}is-consequence{{/if}}">
+                    <time>{{timeLabel}}</time>
+                    <span class="cf-change-content">
+                      <span>{{summary}}</span>
+                      {{#if detailsText}}<small>{{detailsText}}</small>{{/if}}
+                    </span>
+                    {{#if canEdit}}
+                      <span class="cf-change-actions">
+                        <button type="button" class="icon" data-action="editSessionChange" data-change-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Edit"}}">
+                          <i class="fa-solid fa-pen"></i>
+                        </button>
+                        {{#if canDelete}}
+                          <button type="button" class="icon" data-action="deleteSessionChange" data-change-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Delete"}}">
+                            <i class="fa-solid fa-trash"></i>
+                          </button>
+                        {{/if}}
+                      </span>
+                    {{else}}
+                      {{#if canDelete}}
+                        <span class="cf-change-actions">
+                          <button type="button" class="icon" data-action="deleteSessionChange" data-change-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Actions.Delete"}}">
+                            <i class="fa-solid fa-trash"></i>
+                          </button>
+                        </span>
+                      {{/if}}
+                    {{/if}}
+                  </div>
+                {{/each}}
+              {{else}}
+                <p class="cf-empty">{{localize "CAMPAIGN_FORGE.Sessions.NoChanges"}}</p>
+              {{/if}}
+            </div>
           {{/if}}
 
           <div class="cf-session-list">
@@ -1072,6 +1180,25 @@
                     </span>
                     <span class="cf-session-summary-count">{{changes.length}} {{localize "CAMPAIGN_FORGE.Common.Changes"}}</span>
                   </summary>
+                  {{#if canDeleteSession}}
+                    <div class="cf-session-entry-actions">
+                      <button type="button" class="cf-danger-action" data-action="deleteSession" data-session-id="{{id}}">
+                        <i class="fa-solid fa-trash"></i>
+                        {{localize "CAMPAIGN_FORGE.Actions.DeleteSession"}}
+                      </button>
+                    </div>
+                  {{/if}}
+                  {{#if weatherSnapshotView}}
+                    {{#with weatherSnapshotView}}
+                      <div class="cf-session-weather-context is-history">
+                        <i class="fa-solid fa-cloud-sun-rain"></i>
+                        <span>
+                          <strong>{{localize "CAMPAIGN_FORGE.Integrations.Weather.SessionContext"}}</strong>
+                          <small>{{#if locationLabel}}{{locationLabel}} · {{/if}}{{metricsLabel}}{{#if daypartLabel}} · {{daypartLabel}}{{/if}}{{#if dateLabel}} · {{dateLabel}}{{/if}}</small>
+                        </span>
+                      </div>
+                    {{/with}}
+                  {{/if}}
                   <div class="cf-change-list">
                     {{#if changes.length}}
                       {{#each changes}}
