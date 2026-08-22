@@ -16,7 +16,7 @@ import {
   TRANSITION_CONDITION_MODES,
   TRANSITION_CONDITION_TYPES
 } from "../core/constants.js";
-import { cloneData, getChildren, getGroupProgress, nextSort, normalizeState } from "../data/state.js";
+import { auditStateIntegrity, cloneData, getChildren, getGroupProgress, nextSort, normalizeState } from "../data/state.js";
 
 export class CampaignEngineError extends Error {
   constructor(code, details = {}) {
@@ -43,18 +43,48 @@ export class CampaignEngine {
     this._gameTime = gameTime;
     this._rewardExecutor = rewardExecutor;
     this._providerExecutor = providerExecutor;
+    // Serialize mutations issued by one client. Many Campaign Forge operations
+    // perform asynchronous provider work before saving the single world-state
+    // object; without a queue, rapid overlapping actions can overwrite each other.
+    this._mutationChain = Promise.resolve();
   }
 
   async getState() {
     return normalizeState(await this.repository.load());
   }
 
-  async _mutate(mutator) {
-    const state = await this.getState();
-    const result = await mutator(state);
-    state.meta.updatedAt = new Date(this._now()).toISOString();
-    await this.repository.save(state);
-    return result;
+  _mutate(mutator) {
+    const run = async () => {
+      const state = await this.getState();
+      const result = await mutator(state);
+      state.meta.updatedAt = new Date(this._now()).toISOString();
+      state.meta.revision = Math.max(0, Math.trunc(Number(state.meta.revision ?? 0) || 0)) + 1;
+      await this.repository.save(state);
+      return result;
+    };
+
+    const operation = this._mutationChain.then(run, run);
+    // Keep the queue usable after a failed operation while preserving the error
+    // for the caller of this specific mutation.
+    this._mutationChain = operation.catch(() => undefined);
+    return operation;
+  }
+
+  replaceState(rawState) {
+    // Used by the guarded backup importer. normalizeState performs conservative
+    // migrations and safe reference repairs before the replacement is persisted.
+    const run = async () => {
+      const normalized = normalizeState(rawState);
+      const audit = auditStateIntegrity(normalized);
+      if (!audit.valid) throw new CampaignEngineError("IMPORT_INVALID_STATE", { audit });
+      normalized.meta.updatedAt = new Date(this._now()).toISOString();
+      normalized.meta.revision = Math.max(0, Math.trunc(Number(normalized.meta.revision ?? 0) || 0)) + 1;
+      await this.repository.save(normalized);
+      return cloneData(normalized);
+    };
+    const operation = this._mutationChain.then(run, run);
+    this._mutationChain = operation.catch(() => undefined);
+    return operation;
   }
 
   _newId() {

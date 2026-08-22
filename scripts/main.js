@@ -40,7 +40,7 @@ function exposeApi() {
   if (!module) return;
 
   module.api = {
-    version: "0.8.0",
+    version: "0.9.0",
     open: openCampaignForge,
     openPlayerView: openPlayerCampaignForge,
     getState: async () => {
@@ -48,6 +48,14 @@ function exposeApi() {
       return game.user?.isGM ? state : buildPlayerProjection(state);
     },
     getPlayerState: async () => buildPlayerProjection(await engine.getState()),
+    exportState: async () => {
+      requireGM();
+      return engine.getState();
+    },
+    importState: rawState => {
+      requireGM();
+      return engine.replaceState(rawState);
+    },
     getJournalEmbedSyntax: (entryId, mode = "card") => campaignEntryEmbedSyntax(entryId, mode),
     createGroup: data => {
       requireGM();

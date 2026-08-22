@@ -83,7 +83,8 @@
       "NoChanges": "No visible changes.",
       "EmptyTitle": "No sessions yet",
       "EmptyText": "Start the first session when the actual game begins.",
-      "ManualChangeHint": "Changes to campaign entries and trackers are still recorded automatically. You can add extra events, decisions, or notes here manually."
+      "ManualChangeHint": "Changes to campaign entries and trackers are still recorded automatically. You can add extra events, decisions, or notes here manually.",
+      "ShowMore": "Show older sessions ({count})"
     },
     "Trackers": {
       "Title": "Trackers",
@@ -225,7 +226,8 @@
       "DeleteRewardRule": "Delete this reward rule?",
       "SkipReward": "Skip this reward?",
       "ResetReward": "Reset this reward status? Previously granted game values or items are not automatically taken back.",
-      "DeleteSession": "Really permanently delete session #{number}? Its session log and stored weather context will be removed. This action cannot be undone."
+      "DeleteSession": "Really permanently delete session #{number}? Its session log and stored weather context will be removed. This action cannot be undone.",
+      "ImportBackup": "This backup contains {entries} entries and {sessions} sessions. The current Campaign Forge state will be completely replaced. Continue?"
     },
     "Errors": {
       "Generic": "The action could not be completed. Details are available in the console.",
@@ -313,7 +315,8 @@
       "REWARD_ITEM_FORGE_RESULT_INVALID": "Item Forge did not return a usable item result.",
       "WEATHER_SNAPSHOT_EVENT_ONLY": "Weather snapshots can only be assigned to Event entries.",
       "SESSION_NOT_FOUND": "The session could not be found.",
-      "ACTIVE_SESSION_CANNOT_BE_DELETED": "An active session cannot be deleted. End it first."
+      "ACTIVE_SESSION_CANNOT_BE_DELETED": "An active session cannot be deleted. End it first.",
+      "IMPORT_INVALID_STATE": "The backup contains conflicting or duplicate IDs and was not imported."
     },
     "SessionChangeKinds": {
       "note": "Note",
@@ -706,6 +709,55 @@
       "KeyPlayersDescription": "Important people known to the party and relevant to the campaign.",
       "NoKeyPlayersTitle": "No published key players yet",
       "NoKeyPlayersText": "The GM has not published any key players to this view yet."
+    },
+    "Filters": {
+      "SearchPlaceholder": "Search campaign …",
+      "Type": "Entry type",
+      "ScopeLabel": "View",
+      "AllTypes": "All types",
+      "Clear": "Clear filters",
+      "ReorderDisabled": "Manual reordering is disabled while a filter is active.",
+      "Scope": {
+        "all": "All entries",
+        "active": "Active only",
+        "inactive": "Inactive only",
+        "player": "Visible to players",
+        "gm": "GM-only"
+      },
+      "NoResultsTitle": "No matching entries",
+      "NoResultsText": "The current search and filter criteria return no matches."
+    },
+    "Hardening": {
+      "Title": "Data Integrity & Backup",
+      "Description": "Checks internal references and linked Foundry documents and provides complete JSON backups.",
+      "Refresh": "Run check again",
+      "Healthy": "No problems found",
+      "IssuesFound": "The check found items to review",
+      "HealthCounts": "{errors} errors · {warnings} warnings · {infos} notices",
+      "OpenTarget": "Open affected element",
+      "BackupTitle": "Campaign backup",
+      "BackupHint": "Exports the complete Campaign Forge state. Importing replaces the current state in full.",
+      "ExportBackup": "Export backup",
+      "ImportBackup": "Import backup",
+      "BackupExported": "Campaign Forge backup exported.",
+      "BackupImported": "Campaign Forge backup imported.",
+      "BackupImportFailed": "The backup could not be imported. Check the file and format.",
+      "Severity": {
+        "error": "Error",
+        "warning": "Warning",
+        "info": "Notice"
+      },
+      "HealthIssues": {
+        "missingId": "Object has no stable ID",
+        "duplicateId": "Duplicate ID in campaign data",
+        "multipleActiveSessions": "More than one session is marked active",
+        "duplicateSessionNumber": "Session number is used more than once",
+        "missingJournal": "Linked Journal was not found",
+        "missingCreatureActor": "Linked creature Actor was not found",
+        "missingKeyPlayerActor": "Key-player Actor was not found",
+        "missingRewardItem": "Linked reward Item was not found",
+        "providerUnavailable": "Referenced Forge is currently inactive"
+      }
     }
   },
   "CAMPAIGN_FORGE.Integrations.Npc.ActionFailed": "NPC Forge action failed. See the console for details."

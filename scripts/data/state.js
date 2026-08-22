@@ -21,6 +21,7 @@ export function createDefaultState() {
     sessions: [],
     meta: {
       nextSessionNumber: 1,
+      revision: 0,
       createdAt: nowIso(),
       updatedAt: nowIso()
     }
@@ -43,6 +44,7 @@ export function normalizeState(raw) {
     1,
     Number(state.meta.nextSessionNumber ?? 1)
   );
+  state.meta.revision = Math.max(0, Math.trunc(Number(state.meta.revision ?? 0) || 0));
 
   for (const group of state.groups) {
     group.kind = group.kind === "chapter" ? "chapter" : "group";
@@ -259,9 +261,80 @@ export function normalizeState(raw) {
       : null;
   }
 
+  // Repair safe hierarchy/reference issues that can otherwise make content disappear
+  // from the UI after older imports or interrupted edits. Ambiguous corruption such
+  // as duplicate IDs is deliberately left untouched and reported by the auditor.
+  const groupIds = new Set(state.groups.map(group => group.id).filter(Boolean));
+  for (const group of state.groups) {
+    if (group.kind === "chapter") {
+      group.parentId = null;
+      continue;
+    }
+    if (group.parentId && (!groupIds.has(group.parentId) || group.parentId === group.id)) group.parentId = null;
+  }
+  // Break group cycles deterministically by re-homing the first repeated node.
+  for (const group of state.groups) {
+    const seenParents = new Set([group.id]);
+    let current = group;
+    while (current?.parentId) {
+      if (seenParents.has(current.parentId)) {
+        group.parentId = null;
+        break;
+      }
+      seenParents.add(current.parentId);
+      current = state.groups.find(candidate => candidate.id === current.parentId) ?? null;
+    }
+  }
+  for (const entry of state.entries) {
+    if (entry.parentId && !groupIds.has(entry.parentId)) entry.parentId = null;
+  }
+
   const trackerIds = new Set(state.trackers.map(tracker => tracker.id));
   const entryIds = new Set(state.entries.map(entry => entry.id));
+  const keyPlayerIds = new Set(state.keyPlayers.map(keyPlayer => keyPlayer.id));
   const sessionIds = new Set(state.sessions.map(session => session.id));
+
+  // Overview pins are pure references, so stale or duplicate pins are safe to
+  // discard during normalization.
+  const seenPins = new Set();
+  state.overviewPins = state.overviewPins.filter(pin => {
+    const key = `${pin.targetType}:${pin.targetId}`;
+    if (seenPins.has(key)) return false;
+    const exists = pin.targetType === "entry" ? entryIds.has(pin.targetId)
+      : pin.targetType === "group" ? groupIds.has(pin.targetId)
+        : pin.targetType === "tracker" ? trackerIds.has(pin.targetId)
+          : pin.targetType === "keyPlayer" ? keyPlayerIds.has(pin.targetId)
+            : false;
+    if (!exists) return false;
+    seenPins.add(key);
+    return true;
+  });
+
+  // Invalid rule references are disabled instead of being made broader or
+  // throwing during a later transition. The rule remains visible/editable.
+  for (const entry of state.entries) {
+    for (const rule of entry.transitionRules ?? []) {
+      const invalidCondition = (rule.conditions ?? []).some(condition => {
+        if (condition.type === "trackerValue") return !trackerIds.has(condition.targetId);
+        if (condition.type === "groupProgress") return !groupIds.has(condition.targetId);
+        return !entryIds.has(condition.targetId);
+      });
+      const invalidAction = (rule.actions ?? []).some(action => {
+        if (action.type === "adjustTracker") return !trackerIds.has(action.targetId);
+        if (["setEntryStatus", "setEntryActive", "setEntryVisible"].includes(action.type)) return !entryIds.has(action.targetId);
+        return false;
+      });
+      if (invalidCondition || invalidAction) rule.enabled = false;
+    }
+    for (const rule of entry.rewardRules ?? []) {
+      for (const reward of rule.rewards ?? []) {
+        if (reward.type === "tracker" && reward.trackerId && !trackerIds.has(reward.trackerId)) {
+          reward.state = "locked";
+          reward.lastError = "TRACKER_NOT_FOUND";
+        }
+      }
+    }
+  }
   for (const keyPlayer of state.keyPlayers) {
     if (keyPlayer.relationshipTrackerId && !trackerIds.has(keyPlayer.relationshipTrackerId)) {
       keyPlayer.relationshipTrackerId = null;
@@ -301,16 +374,27 @@ export function getDescendantEntries(state, groupId) {
   const entries = [];
   const pending = [groupId];
   const seen = new Set();
+  const entriesByParent = new Map();
+  const groupsByParent = new Map();
+
+  for (const entry of state.entries ?? []) {
+    const list = entriesByParent.get(entry.parentId) ?? [];
+    list.push(entry);
+    entriesByParent.set(entry.parentId, list);
+  }
+  for (const group of state.groups ?? []) {
+    const list = groupsByParent.get(group.parentId) ?? [];
+    list.push(group);
+    groupsByParent.set(group.parentId, list);
+  }
 
   while (pending.length) {
     const current = pending.shift();
     if (!current || seen.has(current)) continue;
     seen.add(current);
 
-    entries.push(...state.entries.filter(entry => entry.parentId === current));
-    for (const child of state.groups.filter(group => group.parentId === current)) {
-      pending.push(child.id);
-    }
+    entries.push(...(entriesByParent.get(current) ?? []));
+    for (const child of groupsByParent.get(current) ?? []) pending.push(child.id);
   }
 
   return entries;
@@ -328,3 +412,53 @@ export function getGroupProgress(state, groupId) {
     percent: total ? Math.round((reached / total) * 100) : 0
   };
 }
+
+/**
+ * Inspect state for ambiguous or unsafe integrity problems. Safe orphan repairs are
+ * handled by normalizeState; this auditor intentionally focuses on conditions that
+ * should be surfaced to a GM instead of guessed away.
+ */
+export function auditStateIntegrity(rawState) {
+  const state = rawState && typeof rawState === "object" ? rawState : {};
+  const issues = [];
+  const checkIds = (items, targetType) => {
+    const seen = new Set();
+    for (const item of items ?? []) {
+      const id = String(item?.id ?? "");
+      if (!id) {
+        issues.push({ severity: "error", code: "missingId", targetType, targetId: "", title: String(item?.title ?? item?.actorName ?? "") });
+        continue;
+      }
+      if (seen.has(id)) issues.push({ severity: "error", code: "duplicateId", targetType, targetId: id, title: String(item?.title ?? item?.actorName ?? id) });
+      seen.add(id);
+    }
+  };
+
+  checkIds(state.groups, "group");
+  checkIds(state.entries, "entry");
+  checkIds(state.trackers, "tracker");
+  checkIds(state.keyPlayers, "keyPlayer");
+  checkIds(state.sessions, "session");
+
+  const activeSessions = (state.sessions ?? []).filter(session => session?.status === "active");
+  if (activeSessions.length > 1) {
+    issues.push({ severity: "error", code: "multipleActiveSessions", targetType: "session", targetId: "", title: String(activeSessions.length) });
+  }
+
+  const sessionNumbers = new Map();
+  for (const session of state.sessions ?? []) {
+    const number = Number(session?.number ?? 0);
+    if (!number) continue;
+    const previous = sessionNumbers.get(number);
+    if (previous) issues.push({ severity: "warning", code: "duplicateSessionNumber", targetType: "session", targetId: String(session?.id ?? ""), title: String(number) });
+    else sessionNumbers.set(number, session?.id);
+  }
+
+  return {
+    valid: !issues.some(issue => issue.severity === "error"),
+    errors: issues.filter(issue => issue.severity === "error").length,
+    warnings: issues.filter(issue => issue.severity === "warning").length,
+    issues
+  };
+}
+

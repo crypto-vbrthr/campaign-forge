@@ -83,7 +83,8 @@
       "NoChanges": "Keine anzuzeigenden Änderungen.",
       "EmptyTitle": "Noch keine Sitzungen",
       "EmptyText": "Beginne die erste Sitzung, wenn die Spielrunde tatsächlich startet.",
-      "ManualChangeHint": "Änderungen an Kampagneneinträgen und Kampagnenwerten werden weiterhin automatisch protokolliert. Zusätzliche Ereignisse, Entscheidungen oder Notizen kannst du hier manuell ergänzen."
+      "ManualChangeHint": "Änderungen an Kampagneneinträgen und Kampagnenwerten werden weiterhin automatisch protokolliert. Zusätzliche Ereignisse, Entscheidungen oder Notizen kannst du hier manuell ergänzen.",
+      "ShowMore": "Ältere Sitzungen anzeigen ({count})"
     },
     "Trackers": {
       "Title": "Kampagnenwerte",
@@ -225,7 +226,8 @@
       "DeleteRewardRule": "Diese Belohnungsregel wirklich löschen?",
       "SkipReward": "Diese Belohnung wirklich überspringen?",
       "ResetReward": "Den Vergabestatus dieser Belohnung zurücksetzen? Bereits vergebene Spielwerte oder Gegenstände werden dadurch nicht automatisch zurückgenommen.",
-      "DeleteSession": "Sitzung #{number} wirklich dauerhaft löschen? Das Sitzungsprotokoll und der gespeicherte Wetterkontext werden entfernt. Diese Aktion kann nicht rückgängig gemacht werden."
+      "DeleteSession": "Sitzung #{number} wirklich dauerhaft löschen? Das Sitzungsprotokoll und der gespeicherte Wetterkontext werden entfernt. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "ImportBackup": "Diese Sicherung enthält {entries} Einträge und {sessions} Sitzungen. Der aktuelle Campaign-Forge-Datenstand wird vollständig ersetzt. Fortfahren?"
     },
     "Errors": {
       "Generic": "Die Aktion konnte nicht ausgeführt werden. Details stehen in der Konsole.",
@@ -313,7 +315,8 @@
       "REWARD_ITEM_FORGE_RESULT_INVALID": "Item Forge hat kein verwendbares Gegenstandsergebnis zurückgegeben.",
       "WEATHER_SNAPSHOT_EVENT_ONLY": "Wetter-Snapshots können nur Ereignissen zugeordnet werden.",
       "SESSION_NOT_FOUND": "Die Sitzung wurde nicht gefunden.",
-      "ACTIVE_SESSION_CANNOT_BE_DELETED": "Eine laufende Sitzung kann nicht gelöscht werden. Beende sie zuerst."
+      "ACTIVE_SESSION_CANNOT_BE_DELETED": "Eine laufende Sitzung kann nicht gelöscht werden. Beende sie zuerst.",
+      "IMPORT_INVALID_STATE": "Die Sicherung enthält widersprüchliche oder doppelte IDs und wurde nicht importiert."
     },
     "SessionChangeKinds": {
       "note": "Notiz",
@@ -706,6 +709,55 @@
       "KeyPlayersDescription": "Wichtige Personen, die der Gruppe bekannt und für die Kampagne relevant sind.",
       "NoKeyPlayersTitle": "Noch keine freigegebenen Schlüsselpersonen",
       "NoKeyPlayersText": "Die Spielleitung hat noch keine Schlüsselpersonen für diese Ansicht veröffentlicht."
+    },
+    "Filters": {
+      "SearchPlaceholder": "Kampagne durchsuchen …",
+      "Type": "Eintragstyp",
+      "ScopeLabel": "Anzeige",
+      "AllTypes": "Alle Typen",
+      "Clear": "Filter zurücksetzen",
+      "ReorderDisabled": "Während ein Filter aktiv ist, ist das manuelle Verschieben deaktiviert.",
+      "Scope": {
+        "all": "Alle Einträge",
+        "active": "Nur aktive",
+        "inactive": "Nur inaktive",
+        "player": "Für Spieler sichtbar",
+        "gm": "Nur SL-intern"
+      },
+      "NoResultsTitle": "Keine passenden Einträge",
+      "NoResultsText": "Die aktuellen Such- und Filterkriterien liefern keine Treffer."
+    },
+    "Hardening": {
+      "Title": "Datenintegrität & Sicherung",
+      "Description": "Prüft interne Referenzen sowie verknüpfte Foundry-Dokumente und ermöglicht vollständige JSON-Sicherungen.",
+      "Refresh": "Prüfung erneut ausführen",
+      "Healthy": "Keine Probleme gefunden",
+      "IssuesFound": "Prüfung hat Hinweise gefunden",
+      "HealthCounts": "{errors} Fehler · {warnings} Warnungen · {infos} Hinweise",
+      "OpenTarget": "Betroffenes Element öffnen",
+      "BackupTitle": "Kampagnensicherung",
+      "BackupHint": "Exportiert den vollständigen Campaign-Forge-Datenstand. Beim Import wird der aktuelle Stand vollständig ersetzt.",
+      "ExportBackup": "Sicherung exportieren",
+      "ImportBackup": "Sicherung importieren",
+      "BackupExported": "Campaign-Forge-Sicherung wurde exportiert.",
+      "BackupImported": "Campaign-Forge-Sicherung wurde importiert.",
+      "BackupImportFailed": "Die Sicherung konnte nicht importiert werden. Datei und Format prüfen.",
+      "Severity": {
+        "error": "Fehler",
+        "warning": "Warnung",
+        "info": "Hinweis"
+      },
+      "HealthIssues": {
+        "missingId": "Objekt besitzt keine stabile ID",
+        "duplicateId": "Doppelte ID im Kampagnendatenbestand",
+        "multipleActiveSessions": "Mehr als eine Sitzung ist als aktiv markiert",
+        "duplicateSessionNumber": "Sitzungsnummer ist mehrfach vorhanden",
+        "missingJournal": "Verknüpftes Journal wurde nicht gefunden",
+        "missingCreatureActor": "Verknüpfter Kreaturen-Actor wurde nicht gefunden",
+        "missingKeyPlayerActor": "Actor der Schlüsselperson wurde nicht gefunden",
+        "missingRewardItem": "Als Belohnung verknüpfter Gegenstand wurde nicht gefunden",
+        "providerUnavailable": "Zugehörige Forge ist derzeit nicht aktiv"
+      }
     }
   },
   "CAMPAIGN_FORGE.Integrations.Npc.ActionFailed": "NPC-Forge-Aktion fehlgeschlagen. Details stehen in der Konsole."

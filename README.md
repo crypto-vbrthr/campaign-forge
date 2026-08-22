@@ -1,9 +1,26 @@
-# Campaign Forge v0.8.0
+# Campaign Forge v0.9.0
+
+## v0.9.0 Hardening & UX Review
+
+- Added fast campaign-tree search across entry titles, descriptions, tags, and group text, plus entry-type and scope filters for active/inactive, player-visible, and GM-only content. Filtering expands matching branches automatically without changing saved collapse state.
+- Manual reordering is intentionally disabled while filters are active so a temporary filtered projection cannot accidentally rewrite the canonical campaign order.
+- Large session histories now render in batches of 20 closed sessions with an explicit **Show older sessions** action, reducing initial DOM load in long-running campaigns.
+- Added a **Data Integrity & Backup** section to Settings. It audits structural integrity plus missing Journal, Actor, reward-Item, and optional-provider references and can navigate directly to affected Campaign Forge objects.
+- Added JSON backup export/import with normalization and integrity validation. Invalid imports are rejected before replacing the active campaign state.
+- State normalization now repairs safe orphan/cycle cases deterministically and disables transition rules whose targets no longer exist instead of allowing broken automation to execute.
+- Campaign mutations are serialized on the client and state revisions are incremented, preventing rapid overlapping asynchronous edits from overwriting each other.
+- Added guarded public GM-only state export/import helpers for recovery and tooling.
+- Optimized campaign-tree and descendant traversal with indexed parent lookups, improving behavior for large chapter/group structures.
+- Added regression coverage for concurrent mutations, state repair/audit, guarded imports, large group progress, filters, diagnostics, backups, and UX hardening. Full regression suite: **103 tests**.
+
+### Player-view storage note
+
+The player-facing application and public API expose only the filtered Player View projection. The canonical Campaign Forge state is currently persisted in a **non-configurable world-scoped Foundry setting**. World-scoped settings are synchronized at World scope and should not be treated as a cryptographic or adversarial secrecy boundary against a user deliberately inspecting client-side data. A move of GM-secret canonical storage to an ownership-protected Foundry document is therefore tracked as a pre-release architecture hardening item rather than being folded into this migration-heavy release.
 
 ## v0.8.0 Player View
 
 - Players can open a dedicated read-only Campaign Forge view from the Journal sidebar. GMs can open the same view from the new **Player View / Spieleransicht** tab as a preview.
-- Player View contains **Overview**, **Campaign**, and **Key Players** tabs and never exposes session logs, GM notes, transition/reward rules, or Forge provider payloads.
+- Player View contains **Overview**, **Campaign**, and **Key Players** tabs. Its application projection omits session logs, GM notes, transition/reward rules, and Forge provider payloads.
 - Entries use the existing visibility flag, now labelled explicitly as player visibility. Chapters/groups, campaign values, key players, and overview pins must be explicitly published separately.
 - Values and key players have separate player-facing text fields so GM descriptions and notes can remain private.
 - Group progress is privacy-safe: only visible entries are counted, preventing hidden clues from being inferred through progress totals.
@@ -110,11 +127,11 @@ Campaign Forge is a GM-facing Foundry VTT module for tracking campaign structure
 
 ## Storage
 
-Campaign data is stored in a hidden world setting. UI collapse state and display preferences are client-scoped. Overview pins, Actor links, and transition targets store references rather than copies of Campaign Forge content.
+Campaign data is stored in a non-configurable world setting. UI collapse state and display preferences are client-scoped. Overview pins, Actor links, and transition targets store references rather than copies of Campaign Forge content.
 
 ## Next planned blocks
 
-Further Journal polish, player-facing permissions/overview, larger campaign-data storage/migration hardening, and additional provider actions only where another Forge exposes a stable public contract.
+Pre-release canonical-storage hardening, further large-campaign/performance review, and additional provider actions only where another Forge exposes a stable public contract.
 
 
 ## Journal integration

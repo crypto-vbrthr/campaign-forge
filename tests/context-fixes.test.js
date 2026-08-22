@@ -120,7 +120,7 @@ test("entry active/visible labels are prepared as text and forced visible by mod
 
 test("active session is shown only in the live session card, not duplicated in session history", () => {
   const app = fs.readFileSync(new URL("../scripts/app/campaign-forge-app.js", import.meta.url), "utf8");
-  assert.match(app, /const sessions = \[\.\.\.state\.sessions\][\s\S]*?\.filter\(session => session\.status === "closed"\)[\s\S]*?\.sort\(/);
+  assert.match(app, /const closedSessions = \[\.\.\.state\.sessions\][\s\S]*?\.filter\(session => session\.status === "closed"\)[\s\S]*?\.sort\(/);
 });
 
 test("entry active/visible checkbox layout pins each label beside its checkbox", () => {

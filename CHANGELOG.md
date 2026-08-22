@@ -1,3 +1,19 @@
+## 0.9.0 - Hardening & UX Review
+
+- Added campaign-tree text search, type filtering, and scope filtering for active/inactive, player-visible, and GM-only content. Matching branches auto-expand while saved collapse state remains untouched.
+- Disabled manual campaign reordering while a filter is active to protect canonical ordering from filtered-view drag operations.
+- Closed-session history now renders 20 sessions at a time with an explicit load-more action for long-running campaigns.
+- Added a Settings **Data Integrity & Backup** panel with structural audit results plus missing Journal, Creature Actor, Key Player Actor, reward Item, and inactive-provider diagnostics.
+- Added direct navigation from integrity issues to the affected Campaign Forge object when possible.
+- Added JSON backup export/import. Imports are normalized, audited, and rejected atomically if duplicate IDs, multiple active sessions, duplicate session numbers, or other fatal integrity faults are present.
+- Hardened state normalization: orphaned groups/entries are safely re-homed, group cycles are broken deterministically, stale overview pins are removed, and transition rules with missing targets are disabled.
+- Added serialized client-side mutation execution and state revision increments to prevent overlapping asynchronous edits from losing updates.
+- Added GM-only public API helpers for state export/import.
+- Optimized group/entry traversal with indexed parent lookups and added large-data regression coverage.
+- Added DE/EN localization for all hardening and filter UI.
+- Documented that the player-facing projection is filtered but the canonical world-setting persistence is not an adversarial secrecy boundary; ownership-protected canonical storage remains a pre-release architecture item.
+- Full regression suite: **103 tests**.
+
 ## 0.8.0 - Player View
 
 - Added a dedicated read-only Campaign Forge player application, available to non-GM users from the Journal sidebar and to GMs as a preview.

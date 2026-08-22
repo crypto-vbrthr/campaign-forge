@@ -18,7 +18,7 @@ import {
   TRANSITION_CONDITION_TYPES,
 } from "../core/constants.js";
 import { CampaignEngineError } from "../engine/campaign-engine.js";
-import { getGroupProgress } from "../data/state.js";
+import { auditStateIntegrity, getGroupProgress } from "../data/state.js";
 import { campaignEntryEmbedSyntax, EMBED_MIME } from "../integrations/journal-entries.js";
 import { getPlayerCharacterActors } from "../integrations/reward-provider.js";
 
@@ -376,6 +376,109 @@ async function resolveItem(uuid) {
   } catch {
     return null;
   }
+}
+
+function normalizeSearch(value) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase(game.i18n.lang ?? undefined)
+    .trim();
+}
+
+function entryMatchesCampaignFilter(entry, filter) {
+  if (!entry) return false;
+  if (filter.type !== "all" && entry.type !== filter.type) return false;
+  if (filter.scope === "active" && entry.active === false) return false;
+  if (filter.scope === "inactive" && entry.active !== false) return false;
+  if (filter.scope === "player" && entry.visible === false) return false;
+  if (filter.scope === "gm" && entry.visible !== false) return false;
+  if (!filter.query) return true;
+  const haystack = normalizeSearch([entry.title, entry.description, ...(entry.tags ?? [])].join(" "));
+  return haystack.includes(filter.query);
+}
+
+function groupMatchesCampaignQuery(group, query) {
+  if (!query) return true;
+  return normalizeSearch([group?.title, group?.description].join(" ")).includes(query);
+}
+
+function healthIssueLabel(issue) {
+  const key = `CAMPAIGN_FORGE.Hardening.HealthIssues.${issue.code}`;
+  const localized = localize(key);
+  const base = localized === key ? issue.code : localized;
+  if (issue.detail) return `${base}: ${issue.detail}`;
+  return base;
+}
+
+async function buildReferenceHealth(state, providers) {
+  const audit = auditStateIntegrity(state);
+  const issues = [...audit.issues.map(issue => ({ ...issue, category: "integrity" }))];
+  const checks = [];
+
+  for (const entry of state.entries ?? []) {
+    for (const link of entry.journalLinks ?? []) {
+      if (!link.uuid) continue;
+      checks.push((async () => {
+        if (await resolveJournalTarget(link.uuid)) return;
+        issues.push({
+          severity: "warning", category: "reference", code: "missingJournal",
+          targetType: "entry", targetId: entry.id, title: entry.title, detail: link.label || link.uuid
+        });
+      })());
+    }
+    for (const link of entry.externalLinks ?? []) {
+      if (link.provider === "creatureForge" && link.kind === "actor" && link.targetId) {
+        checks.push((async () => {
+          if (await resolveActor(link.targetId)) return;
+          issues.push({
+            severity: "warning", category: "reference", code: "missingCreatureActor",
+            targetType: "entry", targetId: entry.id, title: entry.title, detail: link.label || link.targetId
+          });
+        })());
+      } else if (link.provider && !providers?.inspect?.(link.provider)?.active) {
+        issues.push({
+          severity: "info", category: "provider", code: "providerUnavailable",
+          targetType: "entry", targetId: entry.id, title: entry.title, detail: link.provider
+        });
+      }
+    }
+    for (const rule of entry.rewardRules ?? []) {
+      for (const reward of rule.rewards ?? []) {
+        if (reward.type === "item" && reward.itemUuid) {
+          checks.push((async () => {
+            if (await resolveItem(reward.itemUuid)) return;
+            issues.push({
+              severity: "warning", category: "reference", code: "missingRewardItem",
+              targetType: "entry", targetId: entry.id, title: entry.title, detail: reward.itemName || reward.itemUuid
+            });
+          })());
+        }
+      }
+    }
+  }
+
+  for (const keyPlayer of state.keyPlayers ?? []) {
+    if (!keyPlayer.actorUuid) continue;
+    checks.push((async () => {
+      if (await resolveActor(keyPlayer.actorUuid)) return;
+      issues.push({
+        severity: "warning", category: "reference", code: "missingKeyPlayerActor",
+        targetType: "keyPlayer", targetId: keyPlayer.id, title: keyPlayer.actorName || keyPlayer.actorUuid, detail: keyPlayer.actorUuid
+      });
+    })());
+  }
+
+  await Promise.all(checks);
+  const severityRank = { error: 0, warning: 1, info: 2 };
+  issues.sort((a, b) => (severityRank[a.severity] ?? 9) - (severityRank[b.severity] ?? 9) || String(a.title ?? "").localeCompare(String(b.title ?? "")));
+  return {
+    issues,
+    errors: issues.filter(issue => issue.severity === "error").length,
+    warnings: issues.filter(issue => issue.severity === "warning").length,
+    infos: issues.filter(issue => issue.severity === "info").length,
+    healthy: !issues.some(issue => issue.severity === "error" || issue.severity === "warning")
+  };
 }
 
 function actionSummary(change) {
@@ -807,7 +910,13 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       clearEntryWeather: this._actionClearEntryWeather,
       openWeatherForge: this._actionOpenWeatherForge,
       toggleOverviewPlayerVisible: this._actionToggleOverviewPlayerVisible,
-      openPlayerView: this._actionOpenPlayerView
+      openPlayerView: this._actionOpenPlayerView,
+      clearCampaignFilter: this._actionClearCampaignFilter,
+      exportBackup: this._actionExportBackup,
+      importBackup: this._actionImportBackup,
+      refreshDataHealth: this._actionRefreshDataHealth,
+      openHealthTarget: this._actionOpenHealthTarget,
+      showMoreSessions: this._actionShowMoreSessions
     }
   };
 
@@ -843,6 +952,10 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this._lootRewardEditorDialog = null;
     this._itemRewardEditorSession = null;
     this._itemRewardEditorDialog = null;
+    this._campaignFilter = { query: "", type: "all", scope: "all" };
+    this._filterRenderTimer = null;
+    this._dataHealthCache = null;
+    this._sessionHistoryLimit = 20;
   }
 
   async _prepareContext(options) {
@@ -878,14 +991,84 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
     const campaignRows = [];
     const seen = new Set();
+    const groupById = new Map(state.groups.map(group => [group.id, group]));
+    const entryById = new Map(state.entries.map(entry => [entry.id, entry]));
+    const groupsByParent = new Map();
+    const entriesByParent = new Map();
+    const pushIndexed = (map, parentId, value) => {
+      const key = parentId ?? null;
+      const list = map.get(key) ?? [];
+      list.push(value);
+      map.set(key, list);
+    };
+    for (const group of state.groups) pushIndexed(groupsByParent, group.parentId, group);
+    for (const entry of state.entries) pushIndexed(entriesByParent, entry.parentId, entry);
+    for (const list of groupsByParent.values()) list.sort((a, b) => a.sort - b.sort);
+    for (const list of entriesByParent.values()) list.sort((a, b) => a.sort - b.sort);
+
+    const campaignFilter = {
+      query: normalizeSearch(this._campaignFilter?.query ?? ""),
+      rawQuery: String(this._campaignFilter?.query ?? ""),
+      type: ENTRY_TYPES[this._campaignFilter?.type] ? this._campaignFilter.type : "all",
+      scope: ["all", "active", "inactive", "player", "gm"].includes(this._campaignFilter?.scope) ? this._campaignFilter.scope : "all"
+    };
+    campaignFilter.active = Boolean(campaignFilter.query || campaignFilter.type !== "all" || campaignFilter.scope !== "all");
+    this._campaignFilter.active = campaignFilter.active;
+
+    const includedEntries = new Set();
+    const includedGroups = new Set();
+    const directGroupMatches = new Set();
+    if (campaignFilter.active) {
+      for (const entry of state.entries) {
+        if (!entryMatchesCampaignFilter(entry, campaignFilter)) continue;
+        includedEntries.add(entry.id);
+        let parentId = entry.parentId;
+        const lineage = new Set();
+        while (parentId && !lineage.has(parentId)) {
+          lineage.add(parentId);
+          includedGroups.add(parentId);
+          parentId = groupById.get(parentId)?.parentId ?? null;
+        }
+      }
+
+      // A text hit on a group is useful even when no child title contains the
+      // search term. Include the full matching branch when entry-specific filters
+      // are not narrowing the result set.
+      if (campaignFilter.query && campaignFilter.type === "all" && campaignFilter.scope === "all") {
+        for (const group of state.groups) {
+          if (!groupMatchesCampaignQuery(group, campaignFilter.query)) continue;
+          directGroupMatches.add(group.id);
+          includedGroups.add(group.id);
+          let parentId = group.parentId;
+          const lineage = new Set();
+          while (parentId && !lineage.has(parentId)) {
+            lineage.add(parentId);
+            includedGroups.add(parentId);
+            parentId = groupById.get(parentId)?.parentId ?? null;
+          }
+          const pending = [group.id];
+          const descendants = new Set();
+          while (pending.length) {
+            const current = pending.shift();
+            if (!current || descendants.has(current)) continue;
+            descendants.add(current);
+            for (const childGroup of groupsByParent.get(current) ?? []) {
+              includedGroups.add(childGroup.id);
+              pending.push(childGroup.id);
+            }
+            for (const childEntry of entriesByParent.get(current) ?? []) includedEntries.add(childEntry.id);
+          }
+        }
+      }
+    }
 
     const pushChildren = (parentId, depth) => {
-      const groups = state.groups
-        .filter(g => g.parentId === parentId)
-        .map(g => ({ nodeType: "group", id: g.id, sort: g.sort, data: g }));
-      const entries = state.entries
-        .filter(e => e.parentId === parentId)
-        .map(e => ({ nodeType: "entry", id: e.id, sort: e.sort, data: e }));
+      const groups = (groupsByParent.get(parentId ?? null) ?? [])
+        .filter(group => !campaignFilter.active || includedGroups.has(group.id))
+        .map(group => ({ nodeType: "group", id: group.id, sort: group.sort, data: group }));
+      const entries = (entriesByParent.get(parentId ?? null) ?? [])
+        .filter(entry => !campaignFilter.active || includedEntries.has(entry.id))
+        .map(entry => ({ nodeType: "entry", id: entry.id, sort: entry.sort, data: entry }));
       const children = [...groups, ...entries].sort((a, b) => a.sort - b.sort);
 
       for (const child of children) {
@@ -895,7 +1078,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
         if (child.nodeType === "group") {
           const group = child.data;
-          const isCollapsed = collapsed.has(group.id);
+          const isCollapsed = !campaignFilter.active && collapsed.has(group.id);
           campaignRows.push({
             nodeType: "group",
             id: group.id,
@@ -909,7 +1092,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
             icon: group.kind === "chapter" ? "fa-solid fa-bookmark" : "fa-solid fa-folder",
             hasDescription: Boolean(group.description),
             overviewPinned: pinnedTargets.has(`group:${group.id}`),
-            focusKey: `group:${group.id}`
+            focusKey: `group:${group.id}`,
+            filterMatch: directGroupMatches.has(group.id)
           });
           if (!isCollapsed) pushChildren(group.id, depth + 1);
         } else {
@@ -942,6 +1126,17 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     };
 
     pushChildren(null, 0);
+    campaignFilter.resultCount = campaignFilter.active ? includedEntries.size : state.entries.length;
+    campaignFilter.totalCount = state.entries.length;
+    campaignFilter.typeOptions = [
+      { id: "all", label: localize("CAMPAIGN_FORGE.Filters.AllTypes"), selected: campaignFilter.type === "all" },
+      ...Object.entries(ENTRY_TYPES).map(([id, def]) => ({ id, label: localize(def.label), selected: campaignFilter.type === id }))
+    ];
+    campaignFilter.scopeOptions = ["all", "active", "inactive", "player", "gm"].map(id => ({
+      id,
+      label: localize(`CAMPAIGN_FORGE.Filters.Scope.${id}`),
+      selected: campaignFilter.scope === id
+    }));
 
     const sessionChangesView = (session) => {
       const rawChanges = session.changes.filter(change => showStructural || !change.structural);
@@ -965,17 +1160,24 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         })));
     };
 
-    const sessions = [...state.sessions]
+    const closedSessions = [...state.sessions]
       .filter(session => session.status === "closed")
-      .sort((a, b) => b.number - a.number)
-      .map(session => ({
-        ...session,
-        startedLabel: localeDate(session.startedAt),
-        endedLabel: session.endedAt ? localeDate(session.endedAt) : localize("CAMPAIGN_FORGE.Session.Active"),
-        weatherSnapshotView: weatherSnapshotView(session.weatherSnapshot),
-        canDeleteSession: true,
-        changes: sessionChangesView(session)
-      }));
+      .sort((a, b) => b.number - a.number);
+    const visibleClosedSessions = closedSessions.slice(0, this._sessionHistoryLimit);
+    const sessions = visibleClosedSessions.map(session => ({
+      ...session,
+      startedLabel: localeDate(session.startedAt),
+      endedLabel: session.endedAt ? localeDate(session.endedAt) : localize("CAMPAIGN_FORGE.Session.Active"),
+      weatherSnapshotView: weatherSnapshotView(session.weatherSnapshot),
+      canDeleteSession: true,
+      changes: sessionChangesView(session)
+    }));
+    const sessionHistory = {
+      shown: sessions.length,
+      total: closedSessions.length,
+      hasMore: sessions.length < closedSessions.length,
+      remaining: Math.max(0, closedSessions.length - sessions.length)
+    };
 
     const activeSessionView = activeSession ? {
       ...activeSession,
@@ -1122,6 +1324,25 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       icon: ENTRY_TYPES[type].icon
     })).filter(x => x.count > 0);
 
+    let dataHealth = null;
+    if (this._activeTab === "settings") {
+      const providerSignature = integrationStatuses.map(status => `${status.id}:${status.active}:${status.version ?? ""}`).join("|");
+      const cacheKey = `${state.meta?.updatedAt ?? ""}:${state.meta?.revision ?? 0}:${providerSignature}`;
+      if (!this._dataHealthCache || this._dataHealthCache.key !== cacheKey) {
+        const report = await buildReferenceHealth(state, this.providers);
+        this._dataHealthCache = { key: cacheKey, report };
+      }
+      dataHealth = {
+        ...this._dataHealthCache.report,
+        issues: this._dataHealthCache.report.issues.map(issue => ({
+          ...issue,
+          message: healthIssueLabel(issue),
+          severityLabel: localize(`CAMPAIGN_FORGE.Hardening.Severity.${issue.severity}`),
+          canOpen: ["entry", "group", "tracker", "keyPlayer"].includes(issue.targetType) && Boolean(issue.targetId)
+        }))
+      };
+    }
+
     const contextEditor = await this._buildEditor(state);
 
     return {
@@ -1138,7 +1359,10 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       ],
       state,
       campaignRows,
+      campaignFilter,
+      dataHealth,
       sessions,
+      sessionHistory,
       trackers,
       keyPlayers,
       overviewPins,
@@ -1162,7 +1386,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         showJournalButton: game.settings.get(MODULE_ID, SETTINGS.SHOW_JOURNAL_BUTTON),
         showStructuralChanges: game.settings.get(MODULE_ID, SETTINGS.SHOW_STRUCTURAL_CHANGES)
       },
-      version: game.modules.get(MODULE_ID)?.version ?? "0.5.1",
+      version: game.modules.get(MODULE_ID)?.version ?? "0.9.0",
       labels: {
         title: localize("CAMPAIGN_FORGE.Title"),
         noActiveSession: localize("CAMPAIGN_FORGE.Session.NoneActive")
@@ -1752,6 +1976,28 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const root = this.element;
     if (!root) return;
 
+    const campaignQuery = root.querySelector("[data-cf-campaign-query]");
+    if (campaignQuery) {
+      campaignQuery.addEventListener("input", event => {
+        this._campaignFilter.query = event.currentTarget.value ?? "";
+        globalThis.clearTimeout?.(this._filterRenderTimer);
+        this._filterRenderTimer = globalThis.setTimeout?.(() => {
+          this._filterRenderTimer = null;
+          this.render();
+        }, 180);
+      });
+    }
+    const campaignTypeFilter = root.querySelector("[data-cf-campaign-type-filter]");
+    if (campaignTypeFilter) campaignTypeFilter.addEventListener("change", async event => {
+      this._campaignFilter.type = event.currentTarget.value || "all";
+      await this.render();
+    });
+    const campaignScopeFilter = root.querySelector("[data-cf-campaign-scope-filter]");
+    if (campaignScopeFilter) campaignScopeFilter.addEventListener("change", async event => {
+      this._campaignFilter.scope = event.currentTarget.value || "all";
+      await this.render();
+    });
+
     root.querySelectorAll(".cf-entry-status").forEach(select => {
       select.addEventListener("change", async event => {
         const entryId = event.currentTarget.dataset.entryId;
@@ -2213,7 +2459,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     });
 
     root.querySelectorAll("[data-cf-draggable]").forEach(row => {
-      row.draggable = true;
+      row.draggable = !this._campaignFilter.active;
+      if (this._campaignFilter.active) return;
       row.addEventListener("dragstart", event => this._onDragStart(event, row));
       row.addEventListener("dragover", event => {
         event.preventDefault();
@@ -3776,4 +4023,126 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       this._handleError(error);
     }
   }
+  static async _actionShowMoreSessions() {
+    this._sessionHistoryLimit += 20;
+    await this.render();
+  }
+
+  static async _actionClearCampaignFilter() {
+    this._campaignFilter = { query: "", type: "all", scope: "all", active: false };
+    await this.render();
+  }
+
+  static async _actionExportBackup() {
+    try {
+      const state = await this.engine.getState();
+      const payload = {
+        format: "campaign-forge-backup",
+        formatVersion: 1,
+        moduleVersion: game.modules.get(MODULE_ID)?.version ?? "0.9.0",
+        exportedAt: new Date().toISOString(),
+        state
+      };
+      const text = JSON.stringify(payload, null, 2);
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const filename = `campaign-forge-backup-${stamp}.json`;
+      if (typeof globalThis.saveDataToFile === "function") {
+        globalThis.saveDataToFile(text, "application/json", filename);
+      } else {
+        const blob = new Blob([text], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        anchor.click();
+        URL.revokeObjectURL(url);
+      }
+      ui.notifications.info(localize("CAMPAIGN_FORGE.Hardening.BackupExported"));
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionImportBackup() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json,application/json";
+    input.addEventListener("change", async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const text = typeof globalThis.readTextFromFile === "function"
+          ? await globalThis.readTextFromFile(file)
+          : await file.text();
+        const parsed = JSON.parse(text);
+        const candidate = parsed?.format === "campaign-forge-backup" ? parsed.state : parsed;
+        if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) throw new Error("INVALID_BACKUP");
+        const confirmed = await this._confirm("CAMPAIGN_FORGE.Confirm.ImportBackup", {
+          entries: Array.isArray(candidate.entries) ? candidate.entries.length : 0,
+          sessions: Array.isArray(candidate.sessions) ? candidate.sessions.length : 0
+        });
+        if (!confirmed) return;
+        await this.engine.replaceState(candidate);
+        this._editor = null;
+        this._ruleEditor = null;
+        this._rewardEditor = null;
+        this._dataHealthCache = null;
+        this._campaignFilter = { query: "", type: "all", scope: "all", active: false };
+        ui.notifications.info(localize("CAMPAIGN_FORGE.Hardening.BackupImported"));
+        await this.render({ force: true });
+      } catch (error) {
+        console.error(`${MODULE_ID} | Backup import failed`, error);
+        if (error instanceof CampaignEngineError) return this._handleError(error);
+        ui.notifications.error(localize("CAMPAIGN_FORGE.Hardening.BackupImportFailed"));
+      }
+    }, { once: true });
+    input.click();
+  }
+
+  static async _actionRefreshDataHealth() {
+    this._dataHealthCache = null;
+    await this.render();
+  }
+
+  static async _actionOpenHealthTarget(event, target) {
+    const targetType = target.dataset.targetType;
+    const targetId = target.dataset.targetId;
+    if (!targetType || !targetId) return;
+    try {
+      if (targetType === "keyPlayer") {
+        this._activeTab = "keyPlayers";
+        this._focusKey = `keyPlayer:${targetId}`;
+        this._editor = { kind: "keyPlayer", id: targetId };
+        return this.render();
+      }
+      if (targetType === "tracker") {
+        this._activeTab = "trackers";
+        this._focusKey = `tracker:${targetId}`;
+        this._editor = { kind: "tracker", id: targetId };
+        return this.render();
+      }
+      if (targetType === "entry" || targetType === "group") {
+        const state = await this.engine.getState();
+        const collapsed = new Set(game.settings.get(MODULE_ID, SETTINGS.COLLAPSED_GROUPS) ?? []);
+        let currentId = targetType === "group"
+          ? state.groups.find(group => group.id === targetId)?.parentId
+          : state.entries.find(entry => entry.id === targetId)?.parentId;
+        const seen = new Set();
+        while (currentId && !seen.has(currentId)) {
+          seen.add(currentId);
+          collapsed.delete(currentId);
+          currentId = state.groups.find(group => group.id === currentId)?.parentId ?? null;
+        }
+        await game.settings.set(MODULE_ID, SETTINGS.COLLAPSED_GROUPS, [...collapsed]);
+        this._activeTab = "campaign";
+        this._campaignFilter = { query: "", type: "all", scope: "all", active: false };
+        this._focusKey = `${targetType}:${targetId}`;
+        this._editor = targetType === "entry" ? { kind: "entry", id: targetId } : { kind: "group", id: targetId };
+        return this.render();
+      }
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
 }
