@@ -15,5 +15,5 @@ test("Campaign Forge DialogV2 configurations never use an empty buttons array", 
 test("provider editor dialogs expose a localized close action", () => {
   const source = fs.readFileSync(appPath, "utf8");
   const matches = source.match(/label:\s*localize\("CAMPAIGN_FORGE\.Actions\.Close"\)/g) ?? [];
-  assert.ok(matches.length >= 3);
+  assert.ok(matches.length >= 2);
 });

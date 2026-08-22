@@ -1730,7 +1730,10 @@
 
 .campaign-forge.cf-npc-forge-dialog .window-content{
   padding: 0;
+  min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .campaign-forge .cf-npc-forge-host{
@@ -1749,4 +1752,96 @@
     align-items: flex-start;
     flex-wrap: wrap;
   }
+}
+
+/* 0.7.1 NPC Forge embedded host controls */
+.campaign-forge.cf-npc-forge-dialog .cf-npc-forge-shell{
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.campaign-forge.cf-npc-forge-dialog .cf-npc-forge-host{
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* NPC Forge owns the actual editor scroll panes. Its shared core requires
+   a height-constrained mount element so .npc-forge-controls-scroll and
+   .npc-forge-preview-scroll can calculate overflow and render scrollbars. */
+.campaign-forge.cf-npc-forge-dialog .cf-npc-forge-host > .npc-forge-shell{
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.campaign-forge.cf-npc-forge-dialog .cf-npc-forge-host-actions{
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+  padding: .55rem .7rem;
+  border-top: 1px solid var(--cf-border);
+  background: var(--cf-panel);
+}
+
+.campaign-forge.cf-npc-forge-dialog .cf-npc-forge-host-actions [data-cf-npc-host-action="generate"]{
+  margin-right: auto;
+}
+
+
+/* 0.7.1 NPC Forge dedicated ApplicationV2 host
+   DialogV2 wraps arbitrary content in an intrinsic-height form, which is not a
+   suitable layout root for NPC Forge's two independently scrolling panes. The
+   dedicated host application mirrors NPC Forge's own standalone ApplicationV2
+   shell and gives its editor a real, height-constrained mount element. */
+.campaign-forge.cf-npc-forge-host-app .window-content{
+  padding: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.campaign-forge.cf-npc-forge-host-app .cf-npc-forge-app-shell{
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.campaign-forge.cf-npc-forge-host-app .cf-npc-forge-host{
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.campaign-forge.cf-npc-forge-host-app .cf-npc-forge-host > .npc-forge-shell{
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.campaign-forge.cf-npc-forge-host-app .cf-npc-forge-host-actions{
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+  padding: .55rem .7rem;
+  border-top: 1px solid var(--cf-border);
+  background: var(--cf-panel);
+}
+
+.campaign-forge.cf-npc-forge-host-app .cf-npc-forge-host-actions [data-action="npcGenerate"]{
+  margin-right: auto;
 }

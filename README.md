@@ -88,3 +88,7 @@ Reward providers for Loot Forge and Item Forge, Creature Forge references, Weath
 Campaign entries can reference one or more Foundry Journals or individual Journal pages. A primary Journal can be opened directly from the Campaign tree. Existing entries can also be dragged into ProseMirror Journal text; after the Journal is saved, Campaign Forge enriches the lightweight reference into a live block. GM users can change the entry status from that block, and all transition rules continue to apply through the central Campaign Engine.
 
 Journal embeds are references rather than copies. Renamed entries, status changes, descriptions, and visibility therefore remain synchronized with Campaign Forge data.
+
+
+### NPC Forge embedding
+Campaign Forge mounts NPC Forge through its public embedded-editor session in a dedicated ApplicationV2 host. This preserves NPC Forge's native independent scrolling for controls and preview while Campaign Forge owns the Generate / Commit / Cancel footer.

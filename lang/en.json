@@ -610,8 +610,11 @@
         "Open": "Open NPC Forge",
         "OpenHint": "Opens NPC Forge separately.",
         "Unavailable": "NPC Forge is currently unavailable.",
-        "CreateTitle": "Create key player with NPC Forge"
+        "CreateTitle": "Create key player with NPC Forge",
+        "Generate": "Generate",
+        "Commit": "Use NPC"
       }
     }
-  }
+  },
+  "CAMPAIGN_FORGE.Integrations.Npc.ActionFailed": "NPC Forge action failed. See the console for details."
 }

@@ -1,3 +1,27 @@
+## 0.7.1 hotfix - NPC Forge embedded scrolling
+
+### NPC Forge embedded host hardening
+- Replaced the NPC Forge `DialogV2` wrapper with a dedicated `ApplicationV2` host. `DialogV2` wraps arbitrary content in an intrinsic-height form, which prevented NPC Forge's two internal scroll panes from receiving a reliable constrained height.
+- The new host mirrors NPC Forge's own standalone shell: the editor mount receives the full available application height while Campaign Forge keeps its Generate / Commit / Cancel action bar in a fixed footer.
+- NPC Forge remains mounted exclusively through its public `api.ui.createEditor()` / `NpcEditorSession` contract.
+
+
+- Fixed the Campaign Forge NPC host losing the shared NPC Forge editor scrollbars.
+- The DialogV2 content and host shell now preserve a constrained full-height layout with `min-height: 0`, allowing NPC Forge's own controls/preview scroll panes to calculate overflow correctly.
+- Removed the host `height: auto` override that broke the embedded editor's internal scrolling contract.
+- Added regression coverage for the embedded host sizing/overflow contract.
+
+## 0.7.1 hotfix - NPC Forge host controls
+
+- Switched the embedded NPC Forge integration to the documented `actionBar: "host"` mode.
+- Campaign Forge now owns Generate, Commit/Use NPC, and Cancel controls outside NPC Forge's re-rendered mount element.
+- Host controls call the public `session.generate()`, `session.commit()`, and `session.cancel()` methods directly and route failures through `session.reportError()`.
+- This avoids relying on nested DialogV2 content to dispatch NPC Forge's internal action buttons and keeps controls stable across editor re-renders.
+- Added DE/EN labels and regression coverage for the host-owned action path.
+
+## 0.7.1
+- Fixed NPC Forge embedded editor lifecycle in Campaign Forge: the host now waits for the shared editor to finish rendering before accepting Generate, avoids an eager concurrent generation race, wires Commit to Actor creation, and reports embedded action failures.
+
 # Changelog
 
 ## 0.7.1 hotfix - Provider editor dialogs

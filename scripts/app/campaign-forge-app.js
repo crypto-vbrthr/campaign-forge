@@ -528,6 +528,77 @@ function transitionConditionEvaluationLabel(condition) {
   return condition.targetTitle || condition.type || "";
 }
 
+
+class CampaignNpcForgeHostApp extends HandlebarsApplicationMixin(ApplicationV2) {
+  static DEFAULT_OPTIONS = {
+    id: "campaign-forge-npc-editor",
+    classes: ["campaign-forge", "cf-npc-forge-host-app"],
+    tag: "section",
+    window: {
+      title: "CAMPAIGN_FORGE.Integrations.Npc.CreateTitle",
+      icon: "fa-solid fa-user-gear",
+      resizable: true
+    },
+    position: { width: 1040, height: 760 },
+    actions: {
+      npcGenerate: this._actionGenerate,
+      npcCommit: this._actionCommit,
+      npcCancel: this._actionCancel
+    }
+  };
+
+  static PARTS = {
+    main: { template: `modules/${MODULE_ID}/templates/npc-forge-host.hbs` }
+  };
+
+  constructor(session, { onClosed = null } = {}) {
+    super();
+    this.session = session;
+    this.onClosed = onClosed;
+    this._mountedHost = null;
+    this._cleanedUp = false;
+  }
+
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    const host = this.element?.querySelector?.("[data-cf-npc-forge-host]");
+    if (!host || host === this._mountedHost) return;
+    this._mountedHost = host;
+    this.session?.mount?.(host);
+    await this.session?.whenRendered?.();
+  }
+
+  async _runSessionAction(action) {
+    try {
+      await this.session?.[action]?.();
+    } catch (error) {
+      await this.session?.reportError?.(action, error);
+    }
+  }
+
+  static _actionGenerate() {
+    return this._runSessionAction("generate");
+  }
+
+  static _actionCommit() {
+    return this._runSessionAction("commit");
+  }
+
+  static _actionCancel() {
+    return this._runSessionAction("cancel");
+  }
+
+  async close(options = {}) {
+    if (!this._cleanedUp) {
+      this._cleanedUp = true;
+      try { this.session?.destroy?.(); } catch {}
+      this._mountedHost = null;
+      try { this.onClosed?.(); } catch {}
+    }
+    return super.close(options);
+  }
+}
+
 export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "campaign-forge",
@@ -2824,9 +2895,17 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   static async _actionCreateKeyPlayerWithNpcForge() {
     try {
-      const session = this.providers?.createNpcEditorSession?.({
+      let session = null;
+      let hostApp = null;
+      const closeEmbeddedEditor = async () => {
+        try { await hostApp?.close?.(); } catch {}
+      };
+
+      session = this.providers?.createNpcEditorSession?.({
         mode: "embedded",
-        actionBar: "default",
+        actionBar: "host",
+        capabilities: { createActor: true, reroll: true, editInventory: true },
+        createActorOptions: { renderSheet: false },
         onActorCreated: async ({ actor }) => {
           if (!actor) return;
           const keyPlayer = await this.engine.createKeyPlayer({
@@ -2837,11 +2916,17 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           this._activeTab = "keyPlayers";
           this._editor = { kind: "keyPlayer", id: keyPlayer.id };
           this._focusKey = `keyPlayer:${keyPlayer.id}`;
-          try { this._npcEditorSession?.destroy?.(); } catch {}
-          this._npcEditorSession = null;
-          try { await this._npcEditorDialog?.close?.(); } catch {}
-          this._npcEditorDialog = null;
+          await closeEmbeddedEditor();
           await this.render();
+        },
+        onCommit: async () => {
+          if (!session?.getNpc?.()) await session?.generate?.();
+          await session?.createActor?.({ renderSheet: false });
+        },
+        onCancel: async () => closeEmbeddedEditor(),
+        onError: ({ action, error }) => {
+          console.error(`campaign-forge | NPC Forge embedded action failed: ${action}`, error);
+          ui.notifications.error(localize("CAMPAIGN_FORGE.Integrations.Npc.ActionFailed"));
         }
       });
       if (!session) {
@@ -2849,46 +2934,16 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         return null;
       }
 
-      const dialog = new DialogV2({
-        id: "campaign-forge-npc-editor",
-        classes: ["campaign-forge", "cf-npc-forge-dialog"],
-        window: {
-          title: localize("CAMPAIGN_FORGE.Integrations.Npc.CreateTitle"),
-          icon: "fa-solid fa-user-gear",
-          resizable: true
-        },
-        position: { width: 900, height: 760 },
-        modal: false,
-        content: '<div class="cf-npc-forge-host" data-cf-npc-forge-host></div>',
-        buttons: [{
-          action: "close",
-          label: localize("CAMPAIGN_FORGE.Actions.Close"),
-          icon: "fa-solid fa-xmark"
-        }]
+      hostApp = new CampaignNpcForgeHostApp(session, {
+        onClosed: () => {
+          if (this._npcEditorSession === session) this._npcEditorSession = null;
+          if (this._npcEditorDialog === hostApp) this._npcEditorDialog = null;
+        }
       });
       this._npcEditorSession = session;
-      this._npcEditorDialog = dialog;
-      const originalClose = dialog.close.bind(dialog);
-      dialog.close = async (...args) => {
-        if (this._npcEditorSession === session) {
-          try { session.destroy?.(); } catch {}
-          this._npcEditorSession = null;
-        }
-        if (this._npcEditorDialog === dialog) this._npcEditorDialog = null;
-        return originalClose(...args);
-      };
-      dialog.render({ force: true });
-      globalThis.setTimeout?.(async () => {
-        const host = dialog.element?.querySelector?.("[data-cf-npc-forge-host]");
-        if (!host) return;
-        try {
-          session.mount(host);
-          if (!session.getNpc?.()) await session.generate();
-        } catch (error) {
-          this._handleError(error);
-        }
-      }, 0);
-      return dialog;
+      this._npcEditorDialog = hostApp;
+      await hostApp.render({ force: true });
+      return hostApp;
     } catch (error) {
       this._handleError(error);
       return null;

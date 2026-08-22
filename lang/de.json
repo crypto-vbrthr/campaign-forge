@@ -610,8 +610,11 @@
         "Open": "NPC Forge öffnen",
         "OpenHint": "Öffnet NPC Forge separat.",
         "Unavailable": "NPC Forge ist derzeit nicht verfügbar.",
-        "CreateTitle": "Schlüsselperson mit NPC Forge erstellen"
+        "CreateTitle": "Schlüsselperson mit NPC Forge erstellen",
+        "Generate": "Generieren",
+        "Commit": "Übernehmen"
       }
     }
-  }
+  },
+  "CAMPAIGN_FORGE.Integrations.Npc.ActionFailed": "NPC-Forge-Aktion fehlgeschlagen. Details stehen in der Konsole."
 }
