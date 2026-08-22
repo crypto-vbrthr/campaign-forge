@@ -1,16 +1,18 @@
 # Changelog
 
-## 0.6.2
+## 0.7.0
 
-### Fixed
-- Fully scoped Campaign Forge CSS beneath `.campaign-forge`.
-- Generic `.cf-*` selectors no longer leak into other Forge modules.
-- Campaign Forge is now protected against City Forge or other Forge modules overriding its tabs, panels, toolbar, tree, editor, and overview layout through shared internal class names.
-
-### Compatibility
-- No campaign data schema changes.
-- Existing Campaign Forge API remains unchanged.
-- No migration is required.
+- Fixed CSS isolation so critical Campaign Forge application selectors are scoped beneath `.campaign-forge` and cannot leak into other Foundry/module UIs.
+- Added a CSS isolation regression test covering the toolbar, tabs, panels, tree rows, editors, row actions, and icon buttons.
+- Added a provider registry and capability detection layer for City Forge, NPC Forge, Creature Forge, Loot Forge, Item Forge, and Weather Forge.
+- Added a Settings integration-status panel showing installation/activity state, provider version, and available capabilities without introducing hard module dependencies.
+- Added generic external references to Campaign entries. City Forge references can currently target settlements, districts, locations, and factions and open the owning settlement directly.
+- Added City Forge as the first external transition-action provider. Rules can set the settlement dimensions prosperity, supply, security, order, mood, or health; enable/disable existing state conditions; and activate/deactivate existing threats.
+- City state changes are sent through City Forge's public campaign state-patch API and are included in Campaign Forge transition previews and active-session transaction logs.
+- Added NPC Forge integration to Key Players. GMs can open NPC Forge or use its embedded editor to generate/create a new NPC and automatically register the resulting Actor as a Campaign Forge key player.
+- Added provider-validation and external-link validation errors plus German and English localization for the complete integration foundation.
+- Creature Forge, Loot Forge, Item Forge, and Weather Forge are detected and surfaced in the provider registry for upcoming focused integration releases.
+- Regression suite expanded from 50 to 56 tests, including provider execution, City state-patch mapping, integration status, external references, and validation coverage.
 
 ## 0.6.1
 

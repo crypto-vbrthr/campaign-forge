@@ -90,6 +90,17 @@ export function normalizeState(raw) {
       if (primarySeen) link.primary = false;
       else primarySeen = true;
     }
+    entry.externalLinks = (Array.isArray(entry.externalLinks) ? entry.externalLinks : [])
+      .filter(link => link && typeof link === "object" && link.provider && link.targetId)
+      .map((link, index) => ({
+        id: String(link.id ?? `external-${entry.id}-${index + 1}`),
+        provider: String(link.provider),
+        kind: String(link.kind ?? "reference"),
+        targetId: String(link.targetId),
+        subTargetId: link.subTargetId == null ? null : String(link.subTargetId),
+        label: String(link.label ?? ""),
+        meta: link.meta && typeof link.meta === "object" ? cloneData(link.meta) : {}
+      }));
     entry.relations = Array.isArray(entry.relations) ? entry.relations : [];
     entry.transitionRules = Array.isArray(entry.transitionRules) ? entry.transitionRules : [];
     entry.rewardRules = Array.isArray(entry.rewardRules) ? entry.rewardRules : [];
@@ -132,7 +143,10 @@ export function normalizeState(raw) {
             targetId: String(action.targetId ?? ""),
             ...(action.status !== undefined ? { status: String(action.status) } : {}),
             ...(action.value !== undefined ? { value: Boolean(action.value) } : {}),
-            ...(action.delta !== undefined ? { delta: Number(action.delta) } : {})
+            ...(action.delta !== undefined ? { delta: Number(action.delta) } : {}),
+            ...(action.provider !== undefined ? { provider: String(action.provider) } : {}),
+            ...(action.action !== undefined ? { action: String(action.action) } : {}),
+            ...(action.payload !== undefined ? { payload: cloneData(action.payload ?? {}) } : {})
           }))
       }));
     entry.rewardRules = entry.rewardRules

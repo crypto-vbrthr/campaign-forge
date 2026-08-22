@@ -11,9 +11,18 @@ test("Campaign Forge critical UI rules are module-scoped", () => {
     ".campaign-forge .cf-tabs",
     ".campaign-forge .cf-toolbar",
     ".campaign-forge .cf-panel",
-    ".campaign-forge .cf-tree"
-  ]) assert.ok(css.includes(selector));
+    ".campaign-forge .cf-tree-row",
+    ".campaign-forge .cf-editor",
+    ".campaign-forge .cf-row-actions",
+    ".campaign-forge button.icon"
+  ]) assert.ok(css.includes(selector), selector);
 
-  assert.equal(/^\.cf-tabs\s*\{/m.test(css), false);
-  assert.equal(/^\.cf-toolbar\s*\{/m.test(css), false);
+  for (const selector of [
+    /^\.cf-tabs\s*\{/m,
+    /^\.cf-toolbar\s*\{/m,
+    /^\.cf-panel\s*\{/m,
+    /^\.cf-tree-row\s*\{/m,
+    /^\.cf-editor\s*\{/m,
+    /^button\.icon\s*[,\{]/m
+  ]) assert.equal(selector.test(css), false);
 });

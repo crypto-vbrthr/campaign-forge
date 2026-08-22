@@ -204,7 +204,11 @@
       "RewardGranted": "Belohnung für „{title}“ wurde vergeben.",
       "RewardSkipped": "Belohnung für „{title}“ wurde übersprungen.",
       "RewardFailed": "Belohnung für „{title}“ konnte nicht vergeben werden.",
-      "RewardReset": "Belohnung für „{title}“ wurde zurückgesetzt."
+      "RewardReset": "Belohnung für „{title}“ wurde zurückgesetzt.",
+      "ExternalLinkAdded": "Externe Verknüpfung für „{title}“ hinzugefügt.",
+      "ExternalLinkUpdated": "Externe Verknüpfung für „{title}“ bearbeitet.",
+      "ExternalLinkRemoved": "Externe Verknüpfung für „{title}“ entfernt.",
+      "ProviderAction": "{provider}: „{title}“ wurde durch eine Folgeregel aktualisiert."
     },
     "Confirm": {
       "Title": "Campaign Forge",
@@ -288,7 +292,17 @@
       "INVALID_TRANSITION_CONDITION_MODE": "Die Verknüpfung der Bedingungen ist ungültig.",
       "INVALID_TRANSITION_GROUP_METRIC": "Die gewählte Art des Gruppenfortschritts ist ungültig.",
       "REWARD_NO_PLAYER_CHARACTERS": "Es wurden keine Spielercharaktere gefunden, denen diese Belohnung zugewiesen werden kann.",
-      "REWARD_ITEM_TARGET_UNSUPPORTED": "Das gewählte Ziel unterstützt die automatische Gegenstandsvergabe nicht."
+      "REWARD_ITEM_TARGET_UNSUPPORTED": "Das gewählte Ziel unterstützt die automatische Gegenstandsvergabe nicht.",
+      "UNKNOWN_PROVIDER": "Diese Forge-Integration ist nicht bekannt.",
+      "INVALID_PROVIDER_ACTION": "Die konfigurierte Forge-Aktion ist unvollständig oder ungültig.",
+      "UNSUPPORTED_PROVIDER_ACTION": "Diese Aktion wird von der ausgewählten Forge-Integration nicht unterstützt.",
+      "PROVIDER_UNAVAILABLE": "Die benötigte Forge-Integration ist derzeit nicht verfügbar.",
+      "PROVIDER_CAPABILITY_UNAVAILABLE": "Die benötigte Funktion der Forge-Integration ist derzeit nicht verfügbar.",
+      "PROVIDER_ACTION_FAILED": "Die Aktion in der verbundenen Forge konnte nicht ausgeführt werden.",
+      "EXTERNAL_LINK_PROVIDER_REQUIRED": "Für eine externe Verknüpfung muss eine Forge-Integration angegeben werden.",
+      "EXTERNAL_LINK_TARGET_REQUIRED": "Für eine externe Verknüpfung muss ein Ziel ausgewählt werden.",
+      "EXTERNAL_LINK_EXISTS": "Diese externe Verknüpfung ist bereits vorhanden.",
+      "EXTERNAL_LINK_NOT_FOUND": "Die externe Verknüpfung wurde nicht gefunden."
     },
     "SessionChangeKinds": {
       "note": "Notiz",
@@ -377,13 +391,15 @@
       "ConditionPreviewStatus": "„{title}“: aktuell {actual}; Bedingung {operator} {expected}",
       "ConditionPreviewBoolean": "„{title}“: {field} ist {actual}; benötigt {expected}",
       "ConditionPreviewNumeric": "„{title}“: aktuell {actual}; Bedingung {operator} {expected}",
-      "ConditionPreviewGroup": "„{title}“: aktuell {actual} ({reached}/{total}); Bedingung {operator} {expected}"
+      "ConditionPreviewGroup": "„{title}“: aktuell {actual} ({reached}/{total}); Bedingung {operator} {expected}",
+      "PreviewProviderAction": "{provider}: {operation} bei „{target}“"
     },
     "TransitionActions": {
       "setEntryStatus": "Status eines Eintrags setzen",
       "setEntryActive": "Eintrag aktivieren/deaktivieren",
       "setEntryVisible": "Eintrag ein-/ausblenden",
-      "adjustTracker": "Kampagnenwert verändern"
+      "adjustTracker": "Kampagnenwert verändern",
+      "providerAction": "Forge-Integration ausführen"
     },
     "JournalLinks": {
       "Title": "Verknüpfte Journale",
@@ -488,6 +504,90 @@
     "TransitionGroupMetrics": {
       "reached": "Erreichte Einträge",
       "percent": "Fortschritt in Prozent"
+    },
+    "Integrations": {
+      "Title": "Forge-Integrationen",
+      "Description": "Optionale Verbindungen zu anderen Forge-Modulen. Campaign Forge bleibt auch ohne diese Module vollständig nutzbar.",
+      "Providers": {
+        "cityForge": "City Forge",
+        "npcForge": "NPC Forge",
+        "creatureForge": "Creature Forge",
+        "lootForge": "Loot Forge",
+        "itemForge": "Item Forge",
+        "weatherForge": "Weather Forge"
+      },
+      "Status": {
+        "ready": "Bereit",
+        "apiMissing": "API nicht verfügbar",
+        "inactive": "Installiert, aber inaktiv",
+        "notInstalled": "Nicht installiert"
+      },
+      "Capabilities": {
+        "references": "Referenzen",
+        "stateActions": "Zustandsaktionen",
+        "open": "Öffnen",
+        "embeddedEditor": "Eingebetteter Editor",
+        "generate": "Generierung",
+        "actorDelivery": "Actor-Übergabe",
+        "preview": "Vorschau",
+        "currentContext": "Aktueller Kontext",
+        "weatherState": "Wetterzustand"
+      },
+      "ExternalLinks": {
+        "Title": "Externe Verknüpfungen",
+        "Description": "Verweise auf Objekte anderer Forge-Module. Die Campaign Forge speichert nur die Referenz, nicht deren Fachdaten.",
+        "Open": "Öffnen",
+        "Remove": "Entfernen",
+        "AddCity": "City-Forge-Verknüpfung hinzufügen",
+        "SaveFirst": "Speichere den neuen Kampagneneintrag zuerst, bevor externe Verknüpfungen hinzugefügt werden."
+      },
+      "City": {
+        "Settlement": "Ortschaft",
+        "ReferenceType": "Art der Verknüpfung",
+        "Target": "Ziel",
+        "Action": "City-Forge-Aktion",
+        "Dimension": "Zustandswert",
+        "StateLevel": "Zielwert",
+        "Condition": "Bedingung",
+        "Enabled": "Aktiviert",
+        "Threat": "Bedrohung",
+        "Active": "Aktiv",
+        "NotAvailableForLinks": "City Forge ist nicht verfügbar oder stellt keine Kampagnenreferenzen bereit.",
+        "StateActionsUnavailable": "City Forge ist nicht verfügbar oder stellt keine Zustandsaktionen bereit.",
+        "Actions": {
+          "setDimension": "Zustandswert setzen",
+          "setConditionEnabled": "Bedingung aktivieren/deaktivieren",
+          "setThreatActive": "Bedrohung aktivieren/deaktivieren"
+        },
+        "ReferenceKinds": {
+          "settlement": "Ortschaft",
+          "district": "Bezirk",
+          "location": "Ort",
+          "faction": "Fraktion"
+        },
+        "Dimensions": {
+          "prosperity": "Wohlstand",
+          "supply": "Versorgung",
+          "security": "Sicherheit",
+          "order": "Ordnung",
+          "mood": "Stimmung",
+          "health": "Gesundheit"
+        },
+        "StateLevels": {
+          "very-poor": "Sehr schlecht",
+          "poor": "Schlecht",
+          "normal": "Normal",
+          "good": "Gut",
+          "very-good": "Sehr gut"
+        }
+      },
+      "Npc": {
+        "CreateKeyPlayer": "Mit NPC Forge erstellen",
+        "Open": "NPC Forge öffnen",
+        "OpenHint": "Öffnet NPC Forge separat.",
+        "Unavailable": "NPC Forge ist derzeit nicht verfügbar.",
+        "CreateTitle": "Schlüsselperson mit NPC Forge erstellen"
+      }
     }
   }
 }

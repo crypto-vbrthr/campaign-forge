@@ -204,7 +204,11 @@
       "RewardGranted": "Reward for “{title}” was granted.",
       "RewardSkipped": "Reward for “{title}” was skipped.",
       "RewardFailed": "Reward for “{title}” could not be granted.",
-      "RewardReset": "Reward for “{title}” was reset."
+      "RewardReset": "Reward for “{title}” was reset.",
+      "ExternalLinkAdded": "External link added to “{title}”.",
+      "ExternalLinkUpdated": "External link updated for “{title}”.",
+      "ExternalLinkRemoved": "External link removed from “{title}”.",
+      "ProviderAction": "{provider}: “{title}” was updated by a transition rule."
     },
     "Confirm": {
       "Title": "Campaign Forge",
@@ -288,7 +292,17 @@
       "INVALID_TRANSITION_CONDITION_MODE": "The condition combination mode is invalid.",
       "INVALID_TRANSITION_GROUP_METRIC": "The selected group progress metric is invalid.",
       "REWARD_NO_PLAYER_CHARACTERS": "No player characters were found that can receive this reward.",
-      "REWARD_ITEM_TARGET_UNSUPPORTED": "The selected target does not support automatic Item rewards."
+      "REWARD_ITEM_TARGET_UNSUPPORTED": "The selected target does not support automatic Item rewards.",
+      "UNKNOWN_PROVIDER": "This Forge integration is unknown.",
+      "INVALID_PROVIDER_ACTION": "The configured Forge action is incomplete or invalid.",
+      "UNSUPPORTED_PROVIDER_ACTION": "This action is not supported by the selected Forge integration.",
+      "PROVIDER_UNAVAILABLE": "The required Forge integration is currently unavailable.",
+      "PROVIDER_CAPABILITY_UNAVAILABLE": "The required capability of the Forge integration is currently unavailable.",
+      "PROVIDER_ACTION_FAILED": "The action in the connected Forge could not be completed.",
+      "EXTERNAL_LINK_PROVIDER_REQUIRED": "An external link requires a Forge integration.",
+      "EXTERNAL_LINK_TARGET_REQUIRED": "An external link requires a target.",
+      "EXTERNAL_LINK_EXISTS": "This external link already exists.",
+      "EXTERNAL_LINK_NOT_FOUND": "The external link could not be found."
     },
     "SessionChangeKinds": {
       "note": "Note",
@@ -377,13 +391,15 @@
       "ConditionPreviewStatus": "“{title}”: currently {actual}; condition {operator} {expected}",
       "ConditionPreviewBoolean": "“{title}”: {field} is {actual}; requires {expected}",
       "ConditionPreviewNumeric": "“{title}”: currently {actual}; condition {operator} {expected}",
-      "ConditionPreviewGroup": "“{title}”: currently {actual} ({reached}/{total}); condition {operator} {expected}"
+      "ConditionPreviewGroup": "“{title}”: currently {actual} ({reached}/{total}); condition {operator} {expected}",
+      "PreviewProviderAction": "{provider}: {operation} on “{target}”"
     },
     "TransitionActions": {
       "setEntryStatus": "Set entry status",
       "setEntryActive": "Activate/deactivate entry",
       "setEntryVisible": "Show/hide entry",
-      "adjustTracker": "Adjust campaign value"
+      "adjustTracker": "Adjust campaign value",
+      "providerAction": "Run Forge integration action"
     },
     "JournalLinks": {
       "Title": "Linked Journals",
@@ -488,6 +504,90 @@
     "TransitionGroupMetrics": {
       "reached": "Reached entries",
       "percent": "Progress percent"
+    },
+    "Integrations": {
+      "Title": "Forge Integrations",
+      "Description": "Optional connections to other Forge modules. Campaign Forge remains fully usable without them.",
+      "Providers": {
+        "cityForge": "City Forge",
+        "npcForge": "NPC Forge",
+        "creatureForge": "Creature Forge",
+        "lootForge": "Loot Forge",
+        "itemForge": "Item Forge",
+        "weatherForge": "Weather Forge"
+      },
+      "Status": {
+        "ready": "Ready",
+        "apiMissing": "API unavailable",
+        "inactive": "Installed but inactive",
+        "notInstalled": "Not installed"
+      },
+      "Capabilities": {
+        "references": "References",
+        "stateActions": "State actions",
+        "open": "Open",
+        "embeddedEditor": "Embedded editor",
+        "generate": "Generation",
+        "actorDelivery": "Actor delivery",
+        "preview": "Preview",
+        "currentContext": "Current context",
+        "weatherState": "Weather state"
+      },
+      "ExternalLinks": {
+        "Title": "External Links",
+        "Description": "References to objects owned by other Forge modules. Campaign Forge stores the reference, not a copy of their domain data.",
+        "Open": "Open",
+        "Remove": "Remove",
+        "AddCity": "Add City Forge link",
+        "SaveFirst": "Save the new campaign entry before adding external links."
+      },
+      "City": {
+        "Settlement": "Settlement",
+        "ReferenceType": "Reference type",
+        "Target": "Target",
+        "Action": "City Forge action",
+        "Dimension": "State dimension",
+        "StateLevel": "Target level",
+        "Condition": "Condition",
+        "Enabled": "Enabled",
+        "Threat": "Threat",
+        "Active": "Active",
+        "NotAvailableForLinks": "City Forge is unavailable or does not expose campaign references.",
+        "StateActionsUnavailable": "City Forge is unavailable or does not expose state actions.",
+        "Actions": {
+          "setDimension": "Set state dimension",
+          "setConditionEnabled": "Enable/disable condition",
+          "setThreatActive": "Activate/deactivate threat"
+        },
+        "ReferenceKinds": {
+          "settlement": "Settlement",
+          "district": "District",
+          "location": "Location",
+          "faction": "Faction"
+        },
+        "Dimensions": {
+          "prosperity": "Prosperity",
+          "supply": "Supply",
+          "security": "Security",
+          "order": "Order",
+          "mood": "Mood",
+          "health": "Health"
+        },
+        "StateLevels": {
+          "very-poor": "Very poor",
+          "poor": "Poor",
+          "normal": "Normal",
+          "good": "Good",
+          "very-good": "Very good"
+        }
+      },
+      "Npc": {
+        "CreateKeyPlayer": "Create with NPC Forge",
+        "Open": "Open NPC Forge",
+        "OpenHint": "Opens NPC Forge separately.",
+        "Unavailable": "NPC Forge is currently unavailable.",
+        "CreateTitle": "Create key player with NPC Forge"
+      }
     }
   }
 }

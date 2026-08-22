@@ -117,7 +117,8 @@ export const TRANSITION_ACTION_TYPES = Object.freeze({
   setEntryStatus: { label: "CAMPAIGN_FORGE.TransitionActions.setEntryStatus", icon: "fa-solid fa-arrow-right-arrow-left" },
   setEntryActive: { label: "CAMPAIGN_FORGE.TransitionActions.setEntryActive", icon: "fa-solid fa-power-off" },
   setEntryVisible: { label: "CAMPAIGN_FORGE.TransitionActions.setEntryVisible", icon: "fa-solid fa-eye" },
-  adjustTracker: { label: "CAMPAIGN_FORGE.TransitionActions.adjustTracker", icon: "fa-solid fa-chart-line" }
+  adjustTracker: { label: "CAMPAIGN_FORGE.TransitionActions.adjustTracker", icon: "fa-solid fa-chart-line" },
+  providerAction: { label: "CAMPAIGN_FORGE.TransitionActions.providerAction", icon: "fa-solid fa-plug-circle-bolt" }
 });
 
 export const MAX_TRANSITION_DEPTH = 24;
@@ -200,6 +201,9 @@ export const STRUCTURAL_ACTIONS = new Set([
   "entry.journal.added",
   "entry.journal.updated",
   "entry.journal.removed",
+  "entry.externalLink.added",
+  "entry.externalLink.updated",
+  "entry.externalLink.removed",
   "tracker.created",
   "tracker.updated",
   "tracker.deleted",

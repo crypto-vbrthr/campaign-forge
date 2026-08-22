@@ -6,9 +6,11 @@ import { CampaignForgeApp } from "./app/campaign-forge-app.js";
 import { injectJournalButton, registerJournalIntegration } from "./integrations/journal-sidebar.js";
 import { campaignEntryEmbedSyntax, refreshJournalEmbeds, registerJournalEntryIntegration } from "./integrations/journal-entries.js";
 import { FoundryRewardExecutor } from "./integrations/reward-provider.js";
+import { FoundryForgeProviderRegistry } from "./integrations/forge-provider-registry.js";
 
 let engine = null;
 let app = null;
+let providers = null;
 
 function requireGM() {
   if (!game.user?.isGM) {
@@ -21,7 +23,7 @@ export function openCampaignForge(target = null) {
     ui.notifications.warn(game.i18n.localize("CAMPAIGN_FORGE.Errors.GMOnly"));
     return null;
   }
-  if (!app) app = new CampaignForgeApp(engine);
+  if (!app) app = new CampaignForgeApp(engine, { providers });
   app.render({ force: true });
   if (target?.targetType && target?.targetId) app.focusTarget?.(target.targetType, target.targetId);
   return app;
@@ -32,7 +34,7 @@ function exposeApi() {
   if (!module) return;
 
   module.api = {
-    version: "0.6.0",
+    version: "0.7.0",
     open: openCampaignForge,
     getState: () => engine.getState(),
     getJournalEmbedSyntax: (entryId, mode = "card") => campaignEntryEmbedSyntax(entryId, mode),
@@ -52,6 +54,23 @@ function exposeApi() {
       requireGM();
       return engine.updateEntry(id, data);
     },
+    addExternalLink: (entryId, data) => {
+      requireGM();
+      return engine.addExternalLink(entryId, data);
+    },
+    updateExternalLink: (entryId, linkId, data) => {
+      requireGM();
+      return engine.updateExternalLink(entryId, linkId, data);
+    },
+    removeExternalLink: (entryId, linkId) => {
+      requireGM();
+      return engine.removeExternalLink(entryId, linkId);
+    },
+    getIntegrationStatus: () => providers?.listStatus?.() ?? [],
+    integrations: Object.freeze({
+      getStatus: () => providers?.listStatus?.() ?? [],
+      getApi: providerId => providers?.getApi?.(providerId) ?? null
+    }),
     addJournalLink: (entryId, data) => {
       requireGM();
       return engine.addJournalLink(entryId, data);
@@ -161,10 +180,12 @@ Hooks.once("init", () => {
 });
 
 Hooks.once("ready", async () => {
+  providers = new FoundryForgeProviderRegistry();
   engine = new CampaignEngine(new FoundryCampaignRepository(), {
     userId: () => game.user?.id ?? null,
     gameTime: () => game.time?.worldTime ?? null,
-    rewardExecutor: new FoundryRewardExecutor()
+    rewardExecutor: new FoundryRewardExecutor(),
+    providerExecutor: providers
   });
 
   exposeApi();

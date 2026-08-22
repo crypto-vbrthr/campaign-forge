@@ -1,6 +1,18 @@
-# Campaign Forge v0.6.1
+# Campaign Forge v0.7.0
 
 Campaign Forge is a GM-facing Foundry VTT module for tracking campaign structure, knowledge, quests, events, sessions, long-term campaign values, important NPCs, and rule-driven campaign state changes.
+
+
+## v0.7.0 Integration Foundation
+
+- Added a central Forge provider registry with capability detection for City Forge, NPC Forge, Creature Forge, Loot Forge, Item Forge, and Weather Forge. Optional modules remain optional and Campaign Forge keeps working when a provider is absent or inactive.
+- Added an integration status panel in Settings showing provider version, readiness, and exposed capabilities.
+- Campaign entries now support generic external references owned by other Forge modules. The first concrete reference provider is City Forge, with links to settlements, districts, locations, and factions.
+- Added City Forge transition actions. A Campaign Forge status transition can set a City Forge state dimension, enable/disable an existing city condition, or activate/deactivate an existing threat through City Forge's public campaign state-patch contract.
+- Provider actions participate in the normal transition preview and active-session transaction log.
+- Added NPC Forge integration for Key Players: open NPC Forge directly or create a new NPC in the embedded NPC editor and automatically register the created Actor as a Campaign Forge key player.
+- Creature Forge, Loot Forge, Item Forge, and Weather Forge are capability-detected in this foundation release and are prepared for the following integration blocks without creating hard dependencies.
+- Added German and English localization for all integration UI, validation, and session-history text.
 
 ## v0.6.1 Reward target polish
 
@@ -57,7 +69,7 @@ Campaign data is stored in a hidden world setting. UI collapse state and display
 
 ## Next planned blocks
 
-Further transition triggers and action types, provider integrations such as Loot Forge or Item Forge, further Journal polish, and player-facing permissions.
+Reward providers for Loot Forge and Item Forge, Creature Forge references, Weather Forge session/event context, further Journal polish, and player-facing permissions.
 
 
 ## Journal integration
@@ -65,8 +77,3 @@ Further transition triggers and action types, provider integrations such as Loot
 Campaign entries can reference one or more Foundry Journals or individual Journal pages. A primary Journal can be opened directly from the Campaign tree. Existing entries can also be dragged into ProseMirror Journal text; after the Journal is saved, Campaign Forge enriches the lightweight reference into a live block. GM users can change the entry status from that block, and all transition rules continue to apply through the central Campaign Engine.
 
 Journal embeds are references rather than copies. Renamed entries, status changes, descriptions, and visibility therefore remain synchronized with Campaign Forge data.
-
-
-## 0.6.2 CSS isolation hotfix
-
-All Campaign Forge UI rules are now scoped beneath the application's `.campaign-forge` root class. This prevents generic internal `.cf-*` class names from colliding with City Forge or other Forge-suite modules.

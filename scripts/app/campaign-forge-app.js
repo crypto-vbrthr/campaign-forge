@@ -24,6 +24,14 @@ import { getPlayerCharacterActors } from "../integrations/reward-provider.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 
+const CITY_ACTION_OPERATIONS = Object.freeze({
+  setDimension: "CAMPAIGN_FORGE.Integrations.City.Actions.setDimension",
+  setConditionEnabled: "CAMPAIGN_FORGE.Integrations.City.Actions.setConditionEnabled",
+  setThreatActive: "CAMPAIGN_FORGE.Integrations.City.Actions.setThreatActive"
+});
+const CITY_DIMENSIONS = Object.freeze(["prosperity", "supply", "security", "order", "mood", "health"]);
+const CITY_STATE_LEVELS = Object.freeze(["very-poor", "poor", "normal", "good", "very-good"]);
+
 function localize(key) {
   return game.i18n.localize(key);
 }
@@ -89,6 +97,38 @@ function keyPlayerStateOptions(selected = "active") {
   return Object.entries(KEY_PLAYER_STATES).map(([id, def]) => ({
     id,
     label: localize(def.label),
+    selected: id === selected
+  }));
+}
+
+function cityOperationOptions(selected = "setDimension") {
+  return Object.entries(CITY_ACTION_OPERATIONS).map(([id, labelKey]) => ({
+    id,
+    label: localize(labelKey),
+    selected: id === selected
+  }));
+}
+
+function cityDimensionOptions(selected = "prosperity") {
+  return CITY_DIMENSIONS.map(id => ({
+    id,
+    label: localize(`CAMPAIGN_FORGE.Integrations.City.Dimensions.${id}`),
+    selected: id === selected
+  }));
+}
+
+function cityStateLevelOptions(selected = "normal") {
+  return CITY_STATE_LEVELS.map(id => ({
+    id,
+    label: localize(`CAMPAIGN_FORGE.Integrations.City.StateLevels.${id}`),
+    selected: id === selected
+  }));
+}
+
+function cityReferenceKindOptions(selected = "settlement") {
+  return ["settlement", "district", "location", "faction"].map(id => ({
+    id,
+    label: localize(`CAMPAIGN_FORGE.Integrations.City.ReferenceKinds.${id}`),
     selected: id === selected
   }));
 }
@@ -336,6 +376,17 @@ function actionSummary(change) {
       return format("CAMPAIGN_FORGE.Changes.JournalLinkUpdated", { title: change.targetTitle });
     case "entry.journal.removed":
       return format("CAMPAIGN_FORGE.Changes.JournalLinkRemoved", { title: change.targetTitle });
+    case "entry.externalLink.added":
+      return format("CAMPAIGN_FORGE.Changes.ExternalLinkAdded", { title: change.targetTitle });
+    case "entry.externalLink.updated":
+      return format("CAMPAIGN_FORGE.Changes.ExternalLinkUpdated", { title: change.targetTitle });
+    case "entry.externalLink.removed":
+      return format("CAMPAIGN_FORGE.Changes.ExternalLinkRemoved", { title: change.targetTitle });
+    case "provider.action":
+      return format("CAMPAIGN_FORGE.Changes.ProviderAction", {
+        provider: localize(`CAMPAIGN_FORGE.Integrations.Providers.${change.details?.provider ?? "cityForge"}`),
+        title: change.targetTitle || change.targetId || ""
+      });
     case "session.manual": {
       const kind = change.details?.kind ?? "note";
       const kindLabel = localize(SESSION_CHANGE_KINDS[kind]?.label ?? SESSION_CHANGE_KINDS.note.label);
@@ -375,6 +426,15 @@ function transitionPlanActionLabel(action) {
       title: action.targetTitle,
       delta: delta >= 0 ? `+${delta}` : `${delta}`,
       value: action.after?.value ?? ""
+    });
+  }
+  if (action.kind === "provider.action") {
+    const providerLabel = localize(`CAMPAIGN_FORGE.Integrations.Providers.${action.provider ?? "cityForge"}`);
+    const operation = action.payload?.operation ? localize(CITY_ACTION_OPERATIONS[action.payload.operation] ?? action.payload.operation) : action.providerAction;
+    return format("CAMPAIGN_FORGE.Transitions.PreviewProviderAction", {
+      provider: providerLabel,
+      operation,
+      target: action.targetTitle || action.targetId || ""
     });
   }
   return action.targetTitle || action.kind;
@@ -489,7 +549,12 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       openJournalLink: this._actionOpenJournalLink,
       removeJournalLink: this._actionRemoveJournalLink,
       setJournalPrimary: this._actionSetJournalPrimary,
-      openPrimaryJournal: this._actionOpenPrimaryJournal
+      openPrimaryJournal: this._actionOpenPrimaryJournal,
+      addCityExternalLink: this._actionAddCityExternalLink,
+      removeExternalLink: this._actionRemoveExternalLink,
+      openExternalLink: this._actionOpenExternalLink,
+      createKeyPlayerWithNpcForge: this._actionCreateKeyPlayerWithNpcForge,
+      openNpcForge: this._actionOpenNpcForge
     }
   };
 
@@ -500,7 +565,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     }
   };
 
-  constructor(engine, options = {}) {
+  constructor(engine, { providers = null, ...options } = {}) {
     super({
       ...options,
       window: {
@@ -509,11 +574,15 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       }
     });
     this.engine = engine;
+    this.providers = providers;
     this._activeTab = "overview";
     this._editor = null;
     this._ruleEditor = null;
     this._rewardEditor = null;
     this._focusKey = null;
+    this._cityLinkDraft = null;
+    this._npcEditorSession = null;
+    this._npcEditorDialog = null;
   }
 
   async _prepareContext(options) {
@@ -523,6 +592,21 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const activeSession = state.sessions.find(s => s.status === "active") ?? null;
     const showStructural = game.settings.get(MODULE_ID, SETTINGS.SHOW_STRUCTURAL_CHANGES);
     const pinnedTargets = new Set(state.overviewPins.map(pin => `${pin.targetType}:${pin.targetId}`));
+    const integrationStatuses = (this.providers?.listStatus?.() ?? []).map(status => ({
+      ...status,
+      label: localize(status.labelKey),
+      statusLabel: localize(status.ready
+        ? "CAMPAIGN_FORGE.Integrations.Status.ready"
+        : (status.active
+          ? "CAMPAIGN_FORGE.Integrations.Status.apiMissing"
+          : (status.installed
+            ? "CAMPAIGN_FORGE.Integrations.Status.inactive"
+            : "CAMPAIGN_FORGE.Integrations.Status.notInstalled"))),
+      capabilityLabels: Object.entries(status.capabilities ?? {})
+        .filter(([, enabled]) => enabled)
+        .map(([id]) => localize(`CAMPAIGN_FORGE.Integrations.Capabilities.${id}`))
+    }));
+    const npcForgeStatus = integrationStatuses.find(status => status.id === "npcForge") ?? null;
 
     const campaignRows = [];
     const seen = new Set();
@@ -775,6 +859,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       trackers,
       keyPlayers,
       overviewPins,
+      integrationStatuses,
+      npcForgeStatus,
       countByType,
       activeSession: activeSession ? {
         ...activeSession,
@@ -832,6 +918,71 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         : null;
       const type = source?.type ?? "quest";
       const status = source?.status ?? ENTRY_TYPES[type].statuses[0];
+
+      const externalLinks = (source?.externalLinks ?? []).map(link => ({
+        ...link,
+        providerLabel: localize(`CAMPAIGN_FORGE.Integrations.Providers.${link.provider}`),
+        kindLabel: link.provider === "cityForge"
+          ? localize(`CAMPAIGN_FORGE.Integrations.City.ReferenceKinds.${link.kind}`)
+          : link.kind,
+        displayLabel: link.label || link.meta?.settlementName || link.targetId,
+        canOpen: link.provider === "cityForge" && Boolean(this.providers?.supports?.("cityForge", "open"))
+      }));
+
+      let cityIntegration = { ready: false };
+      const cityStatus = this.providers?.inspect?.("cityForge") ?? null;
+      if (source && cityStatus?.ready && cityStatus.capabilities?.references) {
+        const settlements = await this.providers.listCitySettlements();
+        if (!this._cityLinkDraft || this._cityLinkDraft.entryId !== source.id) {
+          this._cityLinkDraft = {
+            entryId: source.id,
+            settlementId: settlements[0]?.id ?? "",
+            kind: "settlement",
+            subTargetId: null
+          };
+        }
+        if (!settlements.some(settlement => settlement.id === this._cityLinkDraft.settlementId)) {
+          this._cityLinkDraft.settlementId = settlements[0]?.id ?? "";
+          this._cityLinkDraft.subTargetId = null;
+        }
+        const selectedSettlement = settlements.find(settlement => settlement.id === this._cityLinkDraft.settlementId) ?? null;
+        const cityContext = selectedSettlement
+          ? await this.providers.getCityCampaignContext(selectedSettlement.id)
+          : null;
+        const kind = ["settlement", "district", "location", "faction"].includes(this._cityLinkDraft.kind)
+          ? this._cityLinkDraft.kind
+          : "settlement";
+        this._cityLinkDraft.kind = kind;
+        let rawTargets = [];
+        if (kind === "settlement" && cityContext?.targets?.settlement) rawTargets = [cityContext.targets.settlement];
+        if (kind === "district") rawTargets = cityContext?.targets?.districts ?? [];
+        if (kind === "location") rawTargets = cityContext?.targets?.locations ?? [];
+        if (kind === "faction") rawTargets = cityContext?.targets?.factions ?? [];
+        if (kind === "settlement") this._cityLinkDraft.subTargetId = null;
+        else if (!rawTargets.some(target => target.id === this._cityLinkDraft.subTargetId)) {
+          this._cityLinkDraft.subTargetId = rawTargets[0]?.id ?? "";
+        }
+        const selectedTargetId = kind === "settlement" ? selectedSettlement?.id : this._cityLinkDraft.subTargetId;
+        cityIntegration = {
+          ready: true,
+          hasSettlements: settlements.length > 0,
+          settlements: settlements.map(settlement => ({
+            id: settlement.id,
+            label: settlement.definition?.identity?.name ?? settlement.name ?? settlement.id,
+            selected: settlement.id === this._cityLinkDraft.settlementId
+          })),
+          kinds: cityReferenceKindOptions(kind),
+          targets: rawTargets.map(target => ({
+            id: target.id,
+            label: target.name ?? target.label ?? target.id,
+            selected: target.id === selectedTargetId
+          })),
+          selectedKind: kind,
+          targetRequired: kind !== "settlement",
+          selectedSettlementName: selectedSettlement?.definition?.identity?.name ?? selectedSettlement?.name ?? ""
+        };
+      }
+
       return {
         kind: "entry",
         id: source?.id ?? "",
@@ -860,6 +1011,9 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           };
         })) : [],
         hasJournalLinks: Boolean(source?.journalLinks?.length),
+        externalLinks,
+        hasExternalLinks: externalLinks.length > 0,
+        cityIntegration,
         heading: localize(source ? "CAMPAIGN_FORGE.Editor.EditEntry" : "CAMPAIGN_FORGE.Editor.NewEntry")
       };
     }
@@ -946,9 +1100,56 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
               progressHint: isGroup && targetGroup ? getGroupProgress(state, targetGroup.id) : null
             };
           }),
-          actions: (draft.actions ?? []).map((action, index) => {
+          actions: await Promise.all((draft.actions ?? []).map(async (action, index) => {
             const targetEntry = state.entries.find(entry => entry.id === action.targetId) ?? sortedEntries[0] ?? null;
             const targetTracker = state.trackers.find(tracker => tracker.id === action.targetId) ?? sortedTrackers[0] ?? null;
+            const isProvider = action.type === "providerAction";
+            let city = null;
+            if (isProvider) {
+              const settlements = this.providers?.supports?.("cityForge", "stateActions")
+                ? await this.providers.listCitySettlements()
+                : [];
+              const selectedSettlement = settlements.find(settlement => settlement.id === action.targetId) ?? settlements[0] ?? null;
+              if (selectedSettlement && action.targetId !== selectedSettlement.id) action.targetId = selectedSettlement.id;
+              action.provider ||= "cityForge";
+              action.action ||= "applyStatePatch";
+              action.payload ??= { operation: "setDimension", dimension: "prosperity", value: "normal" };
+              const cityContext = selectedSettlement ? await this.providers.getCityCampaignContext(selectedSettlement.id) : null;
+              const operation = action.payload.operation ?? "setDimension";
+              const conditions = cityContext?.targets?.conditions ?? [];
+              const threats = cityContext?.targets?.threats ?? [];
+              if (operation === "setConditionEnabled" && !conditions.some(condition => condition.id === action.payload.conditionId)) {
+                action.payload.conditionId = conditions[0]?.id ?? "";
+              }
+              if (operation === "setThreatActive" && !threats.some(threat => threat.id === action.payload.threatId)) {
+                action.payload.threatId = threats[0]?.id ?? "";
+              }
+              city = {
+                ready: Boolean(selectedSettlement && this.providers?.supports?.("cityForge", "stateActions")),
+                settlements: settlements.map(settlement => ({
+                  id: settlement.id,
+                  label: settlement.definition?.identity?.name ?? settlement.name ?? settlement.id,
+                  selected: settlement.id === action.targetId
+                })),
+                operations: cityOperationOptions(operation),
+                isDimension: operation === "setDimension",
+                isCondition: operation === "setConditionEnabled",
+                isThreat: operation === "setThreatActive",
+                dimensions: cityDimensionOptions(action.payload.dimension ?? "prosperity"),
+                stateLevels: cityStateLevelOptions(action.payload.value ?? "normal"),
+                conditions: conditions.map(condition => ({
+                  id: condition.id,
+                  label: condition.label || condition.conditionType || condition.id,
+                  selected: condition.id === action.payload.conditionId
+                })),
+                threats: threats.map(threat => ({
+                  id: threat.id,
+                  label: threat.name || threat.id,
+                  selected: threat.id === action.payload.threatId
+                })),
+                enabledValues: booleanOptions(action.payload.enabled !== false)
+              };
+            }
             return {
               ...action,
               index,
@@ -956,6 +1157,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
               isActive: action.type === "setEntryActive",
               isVisible: action.type === "setEntryVisible",
               isTracker: action.type === "adjustTracker",
+              isProvider,
+              city,
               types: transitionActionTypeOptions(action.type),
               entryTargets: sortedEntries.map(entry => ({
                 id: entry.id,
@@ -970,9 +1173,9 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
               targetStatuses: targetEntry ? statusOptions(targetEntry.type, action.status ?? targetEntry.status) : [],
               values: booleanOptions(Boolean(action.value)),
               delta: action.delta ?? 0,
-              targetMissing: action.type === "adjustTracker" ? !targetTracker : !targetEntry
+              targetMissing: isProvider ? !city?.ready : (action.type === "adjustTracker" ? !targetTracker : !targetEntry)
             };
-          })
+          }))
         };
       }
 
@@ -1364,6 +1567,20 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           draftAction.delta = Number.isFinite(Number(draftAction.delta)) ? Number(draftAction.delta) : 1;
           delete draftAction.status;
           delete draftAction.value;
+          delete draftAction.provider;
+          delete draftAction.action;
+          delete draftAction.payload;
+        } else if (type === "providerAction") {
+          const settlements = this.providers?.supports?.("cityForge", "stateActions")
+            ? await this.providers.listCitySettlements()
+            : [];
+          draftAction.provider = "cityForge";
+          draftAction.action = "applyStatePatch";
+          draftAction.targetId = settlements[0]?.id ?? "";
+          draftAction.payload = { operation: "setDimension", dimension: "prosperity", value: "normal" };
+          delete draftAction.status;
+          delete draftAction.value;
+          delete draftAction.delta;
         } else {
           const entry = state.entries[0];
           draftAction.targetId = entry?.id ?? "";
@@ -1375,6 +1592,9 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
             delete draftAction.status;
           }
           delete draftAction.delta;
+          delete draftAction.provider;
+          delete draftAction.action;
+          delete draftAction.payload;
         }
         await this.render();
       });
@@ -1414,6 +1634,88 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         const index = Number(event.currentTarget.dataset.cfRuleActionDelta);
         const draftAction = this._ruleEditor?.draft?.actions?.[index];
         if (draftAction) draftAction.delta = Number(event.currentTarget.value);
+      });
+    });
+
+    root.querySelectorAll("[data-cf-provider-settlement]").forEach(select => {
+      select.addEventListener("change", async event => {
+        const index = Number(event.currentTarget.dataset.cfProviderSettlement);
+        const action = this._ruleEditor?.draft?.actions?.[index];
+        if (!action) return;
+        action.targetId = event.currentTarget.value;
+        action.payload ??= { operation: "setDimension", dimension: "prosperity", value: "normal" };
+        delete action.payload.conditionId;
+        delete action.payload.threatId;
+        await this.render();
+      });
+    });
+    root.querySelectorAll("[data-cf-provider-operation]").forEach(select => {
+      select.addEventListener("change", async event => {
+        const index = Number(event.currentTarget.dataset.cfProviderOperation);
+        const action = this._ruleEditor?.draft?.actions?.[index];
+        if (!action) return;
+        const operation = event.currentTarget.value;
+        action.payload = { operation };
+        if (operation === "setDimension") Object.assign(action.payload, { dimension: "prosperity", value: "normal" });
+        else Object.assign(action.payload, { enabled: true });
+        await this.render();
+      });
+    });
+    root.querySelectorAll("[data-cf-provider-dimension]").forEach(select => {
+      select.addEventListener("change", event => {
+        const index = Number(event.currentTarget.dataset.cfProviderDimension);
+        const action = this._ruleEditor?.draft?.actions?.[index];
+        if (action?.payload) action.payload.dimension = event.currentTarget.value;
+      });
+    });
+    root.querySelectorAll("[data-cf-provider-state-level]").forEach(select => {
+      select.addEventListener("change", event => {
+        const index = Number(event.currentTarget.dataset.cfProviderStateLevel);
+        const action = this._ruleEditor?.draft?.actions?.[index];
+        if (action?.payload) action.payload.value = event.currentTarget.value;
+      });
+    });
+    root.querySelectorAll("[data-cf-provider-condition]").forEach(select => {
+      select.addEventListener("change", event => {
+        const index = Number(event.currentTarget.dataset.cfProviderCondition);
+        const action = this._ruleEditor?.draft?.actions?.[index];
+        if (action?.payload) action.payload.conditionId = event.currentTarget.value;
+      });
+    });
+    root.querySelectorAll("[data-cf-provider-threat]").forEach(select => {
+      select.addEventListener("change", event => {
+        const index = Number(event.currentTarget.dataset.cfProviderThreat);
+        const action = this._ruleEditor?.draft?.actions?.[index];
+        if (action?.payload) action.payload.threatId = event.currentTarget.value;
+      });
+    });
+    root.querySelectorAll("[data-cf-provider-enabled]").forEach(select => {
+      select.addEventListener("change", event => {
+        const index = Number(event.currentTarget.dataset.cfProviderEnabled);
+        const action = this._ruleEditor?.draft?.actions?.[index];
+        if (action?.payload) action.payload.enabled = event.currentTarget.value === "true";
+      });
+    });
+
+    root.querySelectorAll("[data-cf-city-link-settlement]").forEach(select => {
+      select.addEventListener("change", async event => {
+        if (!this._cityLinkDraft) return;
+        this._cityLinkDraft.settlementId = event.currentTarget.value;
+        this._cityLinkDraft.subTargetId = null;
+        await this.render();
+      });
+    });
+    root.querySelectorAll("[data-cf-city-link-kind]").forEach(select => {
+      select.addEventListener("change", async event => {
+        if (!this._cityLinkDraft) return;
+        this._cityLinkDraft.kind = event.currentTarget.value;
+        this._cityLinkDraft.subTargetId = null;
+        await this.render();
+      });
+    });
+    root.querySelectorAll("[data-cf-city-link-target]").forEach(select => {
+      select.addEventListener("change", event => {
+        if (this._cityLinkDraft) this._cityLinkDraft.subTargetId = event.currentTarget.value;
       });
     });
 
@@ -1847,6 +2149,14 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   async _requestStatusChange(entryId, status) {
     const plan = await this.engine.previewEntryStatusTransition(entryId, status);
+    for (const action of plan.actions ?? []) {
+      if (action.kind === "provider.action" && action.provider === "cityForge") {
+        try {
+          const context = await this.providers?.getCityCampaignContext?.(action.targetId);
+          if (context?.settlement?.name) action.targetTitle = context.settlement.name;
+        } catch {}
+      }
+    }
     if (!plan.actions.length) return false;
     if (plan.blocked) throw new CampaignEngineError("TRANSITION_CYCLE");
 
@@ -2190,6 +2500,135 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!Number.isInteger(index) || index < 0 || index >= this._ruleEditor.draft.actions.length) return;
     this._ruleEditor.draft.actions.splice(index, 1);
     return this.render();
+  }
+
+  static async _actionAddCityExternalLink() {
+    if (this._editor?.kind !== "entry" || !this._editor.id || !this._cityLinkDraft?.settlementId) return;
+    try {
+      const context = await this.providers?.getCityCampaignContext?.(this._cityLinkDraft.settlementId);
+      if (!context) throw new CampaignEngineError("PROVIDER_UNAVAILABLE");
+      const kind = this._cityLinkDraft.kind ?? "settlement";
+      let target = context.targets?.settlement ?? null;
+      if (kind === "district") target = (context.targets?.districts ?? []).find(item => item.id === this._cityLinkDraft.subTargetId) ?? null;
+      if (kind === "location") target = (context.targets?.locations ?? []).find(item => item.id === this._cityLinkDraft.subTargetId) ?? null;
+      if (kind === "faction") target = (context.targets?.factions ?? []).find(item => item.id === this._cityLinkDraft.subTargetId) ?? null;
+      if (!target) throw new CampaignEngineError("EXTERNAL_LINK_TARGET_REQUIRED");
+      await this.engine.addExternalLink(this._editor.id, {
+        provider: "cityForge",
+        kind,
+        targetId: this._cityLinkDraft.settlementId,
+        subTargetId: kind === "settlement" ? null : target.id,
+        label: target.name ?? context.settlement?.name ?? target.id,
+        meta: {
+          settlementName: context.settlement?.name ?? "",
+          settlementUuid: context.settlement?.uuid ?? null
+        }
+      });
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionRemoveExternalLink(event, target) {
+    if (this._editor?.kind !== "entry" || !this._editor.id) return;
+    try {
+      await this.engine.removeExternalLink(this._editor.id, target.dataset.linkId);
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionOpenExternalLink(event, target) {
+    try {
+      const provider = target.dataset.provider;
+      if (provider === "cityForge") {
+        await this.providers?.openCitySettlement?.(target.dataset.targetId);
+      }
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static _actionOpenNpcForge() {
+    try {
+      const result = this.providers?.openNpcForge?.();
+      if (!result) ui.notifications.warn(localize("CAMPAIGN_FORGE.Integrations.Npc.Unavailable"));
+      return result;
+    } catch (error) {
+      this._handleError(error);
+      return null;
+    }
+  }
+
+  static async _actionCreateKeyPlayerWithNpcForge() {
+    try {
+      const session = this.providers?.createNpcEditorSession?.({
+        mode: "embedded",
+        actionBar: "default",
+        onActorCreated: async ({ actor }) => {
+          if (!actor) return;
+          const keyPlayer = await this.engine.createKeyPlayer({
+            actorUuid: actor.uuid,
+            actorName: actor.name ?? "",
+            actorImg: actor.img ?? ""
+          });
+          this._activeTab = "keyPlayers";
+          this._editor = { kind: "keyPlayer", id: keyPlayer.id };
+          this._focusKey = `keyPlayer:${keyPlayer.id}`;
+          try { this._npcEditorSession?.destroy?.(); } catch {}
+          this._npcEditorSession = null;
+          try { await this._npcEditorDialog?.close?.(); } catch {}
+          this._npcEditorDialog = null;
+          await this.render();
+        }
+      });
+      if (!session) {
+        ui.notifications.warn(localize("CAMPAIGN_FORGE.Integrations.Npc.Unavailable"));
+        return null;
+      }
+
+      const dialog = new DialogV2({
+        id: "campaign-forge-npc-editor",
+        classes: ["campaign-forge", "cf-npc-forge-dialog"],
+        window: {
+          title: localize("CAMPAIGN_FORGE.Integrations.Npc.CreateTitle"),
+          icon: "fa-solid fa-user-gear",
+          resizable: true
+        },
+        position: { width: 900, height: 760 },
+        modal: false,
+        content: '<div class="cf-npc-forge-host" data-cf-npc-forge-host></div>',
+        buttons: []
+      });
+      this._npcEditorSession = session;
+      this._npcEditorDialog = dialog;
+      const originalClose = dialog.close.bind(dialog);
+      dialog.close = async (...args) => {
+        if (this._npcEditorSession === session) {
+          try { session.destroy?.(); } catch {}
+          this._npcEditorSession = null;
+        }
+        if (this._npcEditorDialog === dialog) this._npcEditorDialog = null;
+        return originalClose(...args);
+      };
+      dialog.render({ force: true });
+      globalThis.setTimeout?.(async () => {
+        const host = dialog.element?.querySelector?.("[data-cf-npc-forge-host]");
+        if (!host) return;
+        try {
+          session.mount(host);
+          if (!session.getNpc?.()) await session.generate();
+        } catch (error) {
+          this._handleError(error);
+        }
+      }, 0);
+      return dialog;
+    } catch (error) {
+      this._handleError(error);
+      return null;
+    }
   }
 
   static _actionCancelEditor() {

@@ -404,6 +404,80 @@
                     <small>{{localize "CAMPAIGN_FORGE.JournalLinks.SaveFirst"}}</small>
                   {{/if}}
                 </section>
+
+                <section class="cf-external-links-editor">
+                  <div class="cf-journal-links-heading">
+                    <div>
+                      <strong>{{localize "CAMPAIGN_FORGE.Integrations.ExternalLinks.Title"}}</strong>
+                      <small>{{localize "CAMPAIGN_FORGE.Integrations.ExternalLinks.Description"}}</small>
+                    </div>
+                  </div>
+                  {{#if editor.canManageJournalLinks}}
+                    {{#if editor.hasExternalLinks}}
+                      <div class="cf-external-link-list">
+                        {{#each editor.externalLinks}}
+                          <article class="cf-external-link-row">
+                            <div class="cf-external-link-main">
+                              <strong>{{displayLabel}}</strong>
+                              <small>{{providerLabel}} · {{kindLabel}}{{#if meta.settlementName}} · {{meta.settlementName}}{{/if}}</small>
+                            </div>
+                            <div class="cf-journal-link-actions">
+                              {{#if canOpen}}
+                                <button type="button" class="icon" data-action="openExternalLink" data-provider="{{provider}}" data-target-id="{{targetId}}" title="{{localize "CAMPAIGN_FORGE.Integrations.ExternalLinks.Open"}}">
+                                  <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </button>
+                              {{/if}}
+                              <button type="button" class="icon" data-action="removeExternalLink" data-link-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Integrations.ExternalLinks.Remove"}}">
+                                <i class="fa-solid fa-trash"></i>
+                              </button>
+                            </div>
+                          </article>
+                        {{/each}}
+                      </div>
+                    {{/if}}
+
+                    {{#if editor.cityIntegration.ready}}
+                      <div class="cf-city-link-builder">
+                        <div class="cf-city-link-builder-grid">
+                          <label>
+                            <span>{{localize "CAMPAIGN_FORGE.Integrations.City.Settlement"}}</span>
+                            <select data-cf-city-link-settlement>
+                              {{#each editor.cityIntegration.settlements}}
+                                <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                              {{/each}}
+                            </select>
+                          </label>
+                          <label>
+                            <span>{{localize "CAMPAIGN_FORGE.Integrations.City.ReferenceType"}}</span>
+                            <select data-cf-city-link-kind>
+                              {{#each editor.cityIntegration.kinds}}
+                                <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                              {{/each}}
+                            </select>
+                          </label>
+                          {{#if editor.cityIntegration.targetRequired}}
+                            <label>
+                              <span>{{localize "CAMPAIGN_FORGE.Integrations.City.Target"}}</span>
+                              <select data-cf-city-link-target>
+                                {{#each editor.cityIntegration.targets}}
+                                  <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                                {{/each}}
+                              </select>
+                            </label>
+                          {{/if}}
+                        </div>
+                        <button type="button" data-action="addCityExternalLink" {{#unless editor.cityIntegration.hasSettlements}}disabled{{/unless}}>
+                          <i class="fa-solid fa-link"></i>
+                          {{localize "CAMPAIGN_FORGE.Integrations.ExternalLinks.AddCity"}}
+                        </button>
+                      </div>
+                    {{else}}
+                      <small class="cf-external-links-empty">{{localize "CAMPAIGN_FORGE.Integrations.City.NotAvailableForLinks"}}</small>
+                    {{/if}}
+                  {{else}}
+                    <small>{{localize "CAMPAIGN_FORGE.Integrations.ExternalLinks.SaveFirst"}}</small>
+                  {{/if}}
+                </section>
               {{/if}}
 
               {{#if (eq editor.kind "rules")}}
@@ -609,6 +683,79 @@
                             </button>
                           </div>
 
+                          {{#if isProvider}}
+                            {{#if city.ready}}
+                              <div class="cf-provider-action-editor">
+                                <div class="cf-provider-action-badge"><i class="fa-solid fa-city"></i> {{localize "CAMPAIGN_FORGE.Integrations.Providers.cityForge"}}</div>
+                                <label>
+                                  <span>{{localize "CAMPAIGN_FORGE.Integrations.City.Settlement"}}</span>
+                                  <select data-cf-provider-settlement="{{index}}">
+                                    {{#each city.settlements}}
+                                      <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                                    {{/each}}
+                                  </select>
+                                </label>
+                                <label>
+                                  <span>{{localize "CAMPAIGN_FORGE.Integrations.City.Action"}}</span>
+                                  <select data-cf-provider-operation="{{index}}">
+                                    {{#each city.operations}}
+                                      <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                                    {{/each}}
+                                  </select>
+                                </label>
+                                {{#if city.isDimension}}
+                                  <div class="cf-provider-action-grid">
+                                    <label>
+                                      <span>{{localize "CAMPAIGN_FORGE.Integrations.City.Dimension"}}</span>
+                                      <select data-cf-provider-dimension="{{index}}">
+                                        {{#each city.dimensions}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                      </select>
+                                    </label>
+                                    <label>
+                                      <span>{{localize "CAMPAIGN_FORGE.Integrations.City.StateLevel"}}</span>
+                                      <select data-cf-provider-state-level="{{index}}">
+                                        {{#each city.stateLevels}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                      </select>
+                                    </label>
+                                  </div>
+                                {{/if}}
+                                {{#if city.isCondition}}
+                                  <div class="cf-provider-action-grid">
+                                    <label>
+                                      <span>{{localize "CAMPAIGN_FORGE.Integrations.City.Condition"}}</span>
+                                      <select data-cf-provider-condition="{{index}}">
+                                        {{#each city.conditions}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                      </select>
+                                    </label>
+                                    <label>
+                                      <span>{{localize "CAMPAIGN_FORGE.Integrations.City.Enabled"}}</span>
+                                      <select data-cf-provider-enabled="{{index}}">
+                                        {{#each city.enabledValues}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                      </select>
+                                    </label>
+                                  </div>
+                                {{/if}}
+                                {{#if city.isThreat}}
+                                  <div class="cf-provider-action-grid">
+                                    <label>
+                                      <span>{{localize "CAMPAIGN_FORGE.Integrations.City.Threat"}}</span>
+                                      <select data-cf-provider-threat="{{index}}">
+                                        {{#each city.threats}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                      </select>
+                                    </label>
+                                    <label>
+                                      <span>{{localize "CAMPAIGN_FORGE.Integrations.City.Active"}}</span>
+                                      <select data-cf-provider-enabled="{{index}}">
+                                        {{#each city.enabledValues}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                      </select>
+                                    </label>
+                                  </div>
+                                {{/if}}
+                              </div>
+                            {{else}}
+                              <p class="cf-integration-warning"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "CAMPAIGN_FORGE.Integrations.City.StateActionsUnavailable"}}</p>
+                            {{/if}}
+                          {{else}}
                           {{#if isTracker}}
                             <label>
                               <span>{{localize "CAMPAIGN_FORGE.Transitions.TargetTracker"}}</span>
@@ -650,6 +797,7 @@
                                 </select>
                               </label>
                             {{/if}}
+                          {{/if}}
                           {{/if}}
                         </article>
                       {{/each}}
@@ -1094,6 +1242,20 @@
               <h2>{{localize "CAMPAIGN_FORGE.KeyPlayers.Title"}}</h2>
               <p>{{localize "CAMPAIGN_FORGE.KeyPlayers.Description"}}</p>
             </div>
+            {{#if npcForgeStatus.ready}}
+              <div class="cf-heading-actions">
+                {{#if npcForgeStatus.capabilities.embeddedEditor}}
+                  <button type="button" class="cf-primary-action" data-action="createKeyPlayerWithNpcForge">
+                    <i class="fa-solid fa-user-gear"></i>
+                    {{localize "CAMPAIGN_FORGE.Integrations.Npc.CreateKeyPlayer"}}
+                  </button>
+                {{/if}}
+                <button type="button" data-action="openNpcForge" title="{{localize "CAMPAIGN_FORGE.Integrations.Npc.OpenHint"}}">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                  {{localize "CAMPAIGN_FORGE.Integrations.Npc.Open"}}
+                </button>
+              </div>
+            {{/if}}
           </div>
 
           <div class="cf-keyplayer-drop" data-cf-keyplayer-drop>
@@ -1251,6 +1413,29 @@
             </span>
             <input type="checkbox" data-cf-setting="showStructuralChanges" {{#if settings.showStructuralChanges}}checked{{/if}}>
           </label>
+
+          <section class="cf-integration-settings">
+            <div class="cf-subsection-heading">
+              <div>
+                <h3>{{localize "CAMPAIGN_FORGE.Integrations.Title"}}</h3>
+                <p>{{localize "CAMPAIGN_FORGE.Integrations.Description"}}</p>
+              </div>
+            </div>
+            <div class="cf-integration-status-list">
+              {{#each integrationStatuses}}
+                <article class="cf-integration-status-row {{#if ready}}is-ready{{/if}}">
+                  <div class="cf-integration-status-main">
+                    <strong>{{label}}</strong>
+                    <small>{{moduleId}}{{#if version}} · v{{version}}{{/if}}</small>
+                    {{#if capabilityLabels.length}}
+                      <span class="cf-integration-capabilities">{{#each capabilityLabels}}<em class="cf-integration-capability">{{this}}</em>{{/each}}</span>
+                    {{/if}}
+                  </div>
+                  <span class="cf-integration-status-state {{#if ready}}is-ready{{/if}}">{{statusLabel}}</span>
+                </article>
+              {{/each}}
+            </div>
+          </section>
 
           <div class="cf-setting-row">
             <span>

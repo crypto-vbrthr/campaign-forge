@@ -33,7 +33,8 @@ export class CampaignEngine {
     idFactory = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
     userId = () => null,
     gameTime = () => null,
-    rewardExecutor = null
+    rewardExecutor = null,
+    providerExecutor = null
   } = {}) {
     this.repository = repository;
     this._now = now;
@@ -41,6 +42,7 @@ export class CampaignEngine {
     this._userId = userId;
     this._gameTime = gameTime;
     this._rewardExecutor = rewardExecutor;
+    this._providerExecutor = providerExecutor;
   }
 
   async getState() {
@@ -327,6 +329,25 @@ export class CampaignEngine {
 
       const targetId = String(raw?.targetId ?? "").trim();
       if (!targetId) throw new CampaignEngineError("TRANSITION_TARGET_REQUIRED", { type });
+
+      if (type === "providerAction") {
+        const provider = String(raw?.provider ?? "").trim();
+        const action = String(raw?.action ?? "").trim();
+        if (!provider || !action) throw new CampaignEngineError("INVALID_PROVIDER_ACTION", { provider, action });
+        const normalized = {
+          id: String(raw?.id ?? this._newId()),
+          type,
+          targetId,
+          provider,
+          action,
+          payload: cloneData(raw?.payload ?? {})
+        };
+        const validation = this._providerExecutor?.validateAction?.(normalized);
+        if (validation && validation.valid === false) {
+          throw new CampaignEngineError(validation.code || "INVALID_PROVIDER_ACTION", { provider, action });
+        }
+        return normalized;
+      }
 
       if (type === "adjustTracker") {
         this._findTracker(state, targetId);
@@ -696,6 +717,22 @@ export class CampaignEngine {
             continue;
           }
 
+          if (ruleAction.type === "providerAction") {
+            pushAction({
+              kind: "provider.action",
+              targetType: "provider",
+              targetId: ruleAction.targetId,
+              targetTitle: ruleAction.targetId,
+              provider: ruleAction.provider,
+              providerAction: ruleAction.action,
+              payload: cloneData(ruleAction.payload ?? {}),
+              ruleId: rule.id,
+              causedByEntryId: targetId,
+              depth: depth + 1
+            });
+            continue;
+          }
+
           if (ruleAction.type === "adjustTracker") {
             const tracker = this._findTracker(scratch, ruleAction.targetId);
             const previousValue = Number(tracker.value ?? 0);
@@ -830,6 +867,63 @@ export class CampaignEngine {
     }
   }
 
+  async _executeProviderActions(state, plan) {
+    const providerActions = (plan.actions ?? []).filter(action => action.kind === "provider.action");
+    if (!providerActions.length) return [];
+    if (!this._providerExecutor?.executeAction) {
+      throw new CampaignEngineError("PROVIDER_UNAVAILABLE");
+    }
+
+    const results = [];
+    for (const action of providerActions) {
+      const sourceEntry = action.causedByEntryId ? state.entries.find(entry => entry.id === action.causedByEntryId) : null;
+      try {
+        const result = await this._providerExecutor.executeAction({
+          provider: action.provider,
+          action: action.providerAction,
+          targetId: action.targetId,
+          payload: cloneData(action.payload ?? {})
+        }, {
+          transactionId: plan.transactionId,
+          ruleId: action.ruleId,
+          entryId: sourceEntry?.id ?? action.causedByEntryId ?? null,
+          entryTitle: sourceEntry?.title ?? ""
+        });
+        action.result = cloneData(result ?? null);
+        const providerTargetTitle = result?.state?.settlement?.name ?? action.targetTitle ?? action.targetId;
+        action.targetTitle = providerTargetTitle;
+        this._recordChange(state, {
+          action: "provider.action",
+          targetType: "provider",
+          targetId: action.targetId,
+          targetTitle: providerTargetTitle,
+          before: null,
+          after: { result: cloneData(result ?? null) },
+          source: "transition",
+          structural: false,
+          transactionId: plan.transactionId,
+          details: {
+            provider: action.provider,
+            providerAction: action.providerAction,
+            payload: cloneData(action.payload ?? {}),
+            ruleId: action.ruleId,
+            causedByEntryId: action.causedByEntryId,
+            depth: action.depth
+          }
+        });
+        results.push(cloneData(result ?? null));
+      } catch (error) {
+        throw new CampaignEngineError(error?.code || "PROVIDER_ACTION_FAILED", {
+          provider: action.provider,
+          action: action.providerAction,
+          targetId: action.targetId,
+          message: error?.message ?? String(error)
+        });
+      }
+    }
+    return results;
+  }
+
   _assertValidParent(state, parentId) {
     if (parentId === null || parentId === undefined || parentId === "") return null;
     return this._findGroup(state, parentId);
@@ -954,6 +1048,7 @@ export class CampaignEngine {
         sort: nextSort(state, parentId || null),
         tags: [],
         journalLinks: [],
+        externalLinks: [],
         relations: [],
         transitionRules: [],
         rewardRules: [],
@@ -1110,6 +1205,100 @@ export class CampaignEngine {
     });
   }
 
+  _normalizeExternalLink(data = {}, existing = null) {
+    const provider = String(data.provider ?? existing?.provider ?? "").trim();
+    const kind = String(data.kind ?? existing?.kind ?? "reference").trim() || "reference";
+    const targetId = String(data.targetId ?? existing?.targetId ?? "").trim();
+    const subTargetIdRaw = data.subTargetId !== undefined ? data.subTargetId : existing?.subTargetId;
+    const subTargetId = subTargetIdRaw == null || subTargetIdRaw === "" ? null : String(subTargetIdRaw);
+    if (!provider) throw new CampaignEngineError("EXTERNAL_LINK_PROVIDER_REQUIRED");
+    if (!targetId) throw new CampaignEngineError("EXTERNAL_LINK_TARGET_REQUIRED");
+    return {
+      id: String(existing?.id ?? data.id ?? this._newId()),
+      provider,
+      kind,
+      targetId,
+      subTargetId,
+      label: String(data.label ?? existing?.label ?? ""),
+      meta: cloneData(data.meta ?? existing?.meta ?? {})
+    };
+  }
+
+  async addExternalLink(entryId, data = {}) {
+    return this._mutate(state => {
+      const entry = this._findEntry(state, entryId);
+      const link = this._normalizeExternalLink(data);
+      const duplicate = (entry.externalLinks ?? []).some(existing =>
+        existing.provider === link.provider
+        && existing.kind === link.kind
+        && existing.targetId === link.targetId
+        && (existing.subTargetId ?? null) === (link.subTargetId ?? null)
+      );
+      if (duplicate) throw new CampaignEngineError("EXTERNAL_LINK_EXISTS");
+      entry.externalLinks ??= [];
+      entry.externalLinks.push(link);
+      entry.updatedAt = new Date(this._now()).toISOString();
+      this._recordChange(state, {
+        action: "entry.externalLink.added",
+        targetType: "entry",
+        targetId: entry.id,
+        targetTitle: entry.title,
+        after: link,
+        structural: true
+      });
+      return cloneData(link);
+    });
+  }
+
+  async updateExternalLink(entryId, linkId, patch = {}) {
+    return this._mutate(state => {
+      const entry = this._findEntry(state, entryId);
+      const index = (entry.externalLinks ?? []).findIndex(link => link.id === linkId);
+      if (index < 0) throw new CampaignEngineError("EXTERNAL_LINK_NOT_FOUND", { entryId, linkId });
+      const before = cloneData(entry.externalLinks[index]);
+      const link = this._normalizeExternalLink(patch, entry.externalLinks[index]);
+      const duplicate = (entry.externalLinks ?? []).some((existing, existingIndex) =>
+        existingIndex !== index
+        && existing.provider === link.provider
+        && existing.kind === link.kind
+        && existing.targetId === link.targetId
+        && (existing.subTargetId ?? null) === (link.subTargetId ?? null)
+      );
+      if (duplicate) throw new CampaignEngineError("EXTERNAL_LINK_EXISTS");
+      entry.externalLinks[index] = link;
+      entry.updatedAt = new Date(this._now()).toISOString();
+      this._recordChange(state, {
+        action: "entry.externalLink.updated",
+        targetType: "entry",
+        targetId: entry.id,
+        targetTitle: entry.title,
+        before,
+        after: link,
+        structural: true
+      });
+      return cloneData(link);
+    });
+  }
+
+  async removeExternalLink(entryId, linkId) {
+    return this._mutate(state => {
+      const entry = this._findEntry(state, entryId);
+      const index = (entry.externalLinks ?? []).findIndex(link => link.id === linkId);
+      if (index < 0) throw new CampaignEngineError("EXTERNAL_LINK_NOT_FOUND", { entryId, linkId });
+      const [link] = entry.externalLinks.splice(index, 1);
+      entry.updatedAt = new Date(this._now()).toISOString();
+      this._recordChange(state, {
+        action: "entry.externalLink.removed",
+        targetType: "entry",
+        targetId: entry.id,
+        targetTitle: entry.title,
+        before: link,
+        structural: true
+      });
+      return cloneData(link);
+    });
+  }
+
   async previewEntryStatusTransition(id, status) {
     const state = await this.getState();
     return cloneData(this._buildTransitionPlan(state, id, status));
@@ -1144,6 +1333,7 @@ export class CampaignEngine {
       const plan = this._buildTransitionPlan(state, id, status);
       if (plan.blocked) throw new CampaignEngineError("TRANSITION_CYCLE");
       this._applyTransitionPlan(state, plan, { source });
+      await this._executeProviderActions(state, plan);
 
       for (const offer of plan.rewardOffers ?? []) {
         const { reward } = this._findReward(state, offer.entryId, offer.ruleId, offer.rewardId);
