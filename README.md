@@ -1,7 +1,18 @@
-# Campaign Forge v0.7.0
+# Campaign Forge v0.7.1
 
 Campaign Forge is a GM-facing Foundry VTT module for tracking campaign structure, knowledge, quests, events, sessions, long-term campaign values, important NPCs, and rule-driven campaign state changes.
 
+
+## v0.7.1 Reward Providers
+
+- Added **Loot Forge** and **Item Forge** as optional Campaign Forge reward providers. Both remain runtime-only integrations with no hard module dependency.
+- Loot Forge rewards store the host-local Loot Forge generation configuration and can be edited through Loot Forge's public embedded editor in a dedicated Campaign Forge dialog. The reward is generated only when it is actually granted.
+- Item Forge rewards store a canonical Item Forge request and use the reusable embedded Item Forge editor for configuration and preview. Item Forge returns a creation-ready Item source which Campaign Forge delivers to the configured target when the reward is granted.
+- Both provider rewards can target an individual player character, **All players**, or a PF2e **Team inventory** Party Actor. All-player delivery duplicates the complete reward for each player rather than dividing it.
+- Provider reward previews are informational; payout uses the saved Forge configuration/request and generates a fresh result at grant time.
+- Loot Forge rewards optionally pass through the existing magic-item mystification setting.
+- Provider rewards participate in the existing reward lifecycle (`locked`, `pending`, `granted`, `skipped`, `failed`), duplicate-payout protection, reset/retry behavior, transition previews, Journal-triggered status changes, and session transaction logging.
+- Added German and English localization, provider configuration summaries, and regression coverage for Loot Forge delivery, Item Forge generation, and provider reward-rule persistence.
 
 ## v0.7.0 Integration Foundation
 

@@ -263,6 +263,39 @@ export class FoundryForgeProviderRegistry {
     if (!api?.ui?.createEditor) return null;
     return api.ui.createEditor(options);
   }
+
+  createLootRewardEditor(options = {}) {
+    const api = this.getApi("lootForge");
+    if (!api?.createEmbeddedEditor) return null;
+    return api.createEmbeddedEditor(options);
+  }
+
+  async createItemRewardEditor(options = {}) {
+    const api = this.getApi("itemForge");
+    if (!api) return null;
+
+    // Prefer a future public factory if Item Forge exposes one. The current
+    // v0.0.37 RC advertises the embedded editor contract but exposes the
+    // reusable editor class as a module asset rather than an API factory.
+    if (typeof api.createEmbeddedEditor === "function") {
+      return api.createEmbeddedEditor(options);
+    }
+
+    try {
+      const route = globalThis.foundry?.utils?.getRoute?.("modules/pf2e-item-forge/src/app/item-forge-editor.js")
+        ?? "/modules/pf2e-item-forge/src/app/item-forge-editor.js";
+      const module = await import(route);
+      if (typeof module?.ItemForgeEditor !== "function") return null;
+      return new module.ItemForgeEditor({ api, ...options });
+    } catch (error) {
+      console.warn("campaign-forge | Could not load the Item Forge embedded editor", error);
+      return null;
+    }
+  }
+
+  openItemForge(options = {}) {
+    return this.getApi("itemForge")?.open?.(options) ?? null;
+  }
 }
 
 export function providerDefinitions() {

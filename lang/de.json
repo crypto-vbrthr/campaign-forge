@@ -302,7 +302,9 @@
       "EXTERNAL_LINK_PROVIDER_REQUIRED": "Für eine externe Verknüpfung muss eine Forge-Integration angegeben werden.",
       "EXTERNAL_LINK_TARGET_REQUIRED": "Für eine externe Verknüpfung muss ein Ziel ausgewählt werden.",
       "EXTERNAL_LINK_EXISTS": "Diese externe Verknüpfung ist bereits vorhanden.",
-      "EXTERNAL_LINK_NOT_FOUND": "Die externe Verknüpfung wurde nicht gefunden."
+      "EXTERNAL_LINK_NOT_FOUND": "Die externe Verknüpfung wurde nicht gefunden.",
+      "REWARD_PROVIDER_CAPABILITY_UNAVAILABLE": "Die benötigte Funktion des Belohnungs-Providers ist nicht verfügbar.",
+      "REWARD_ITEM_FORGE_RESULT_INVALID": "Item Forge hat kein verwendbares Gegenstandsergebnis zurückgegeben."
     },
     "SessionChangeKinds": {
       "note": "Notiz",
@@ -463,7 +465,9 @@
         "xp": "EP",
         "currency": "Geld",
         "item": "Gegenstand",
-        "tracker": "Ruf / Kampagnenwert"
+        "tracker": "Ruf / Kampagnenwert",
+        "lootForge": "Loot Forge",
+        "itemForge": "Item Forge"
       },
       "States": {
         "locked": "Noch nicht fällig",
@@ -478,7 +482,27 @@
       "TeamInventoryNamed": "Teaminventar · {name}",
       "PreviewWithTarget": "{reward} → {target}",
       "AllPlayersWarningTitle": "Belohnung an alle Spieler",
-      "AllPlayersFullWarning": "Bei „Alle Spieler“ wird diese Geld- oder Gegenstandsbelohnung nicht aufgeteilt. Jeder Spielercharakter erhält die vollständige angegebene Menge."
+      "AllPlayersFullWarning": "Bei „Alle Spieler“ wird diese Belohnung nicht aufgeteilt. Jeder Spielercharakter erhält die vollständige konfigurierte Geldmenge, Gegenstandsanzahl beziehungsweise den vollständigen von Loot Forge erzeugten Beutesatz.",
+      "LootForge": "Loot-Forge-Belohnung",
+      "ItemForge": "Item-Forge-Belohnung",
+      "ConfigureLootForge": "Mit Loot Forge konfigurieren",
+      "ConfigureItemForge": "Mit Item Forge konfigurieren",
+      "ConfigureLootForgeTitle": "Loot-Forge-Belohnung konfigurieren",
+      "ConfigureItemForgeTitle": "Item-Forge-Belohnung konfigurieren",
+      "LootForgeUnavailable": "Loot Forge ist nicht aktiv oder stellt den benötigten eingebetteten Editor bzw. die Actor-Ausgabe nicht bereit.",
+      "ItemForgeUnavailable": "Item Forge ist nicht aktiv oder stellt die benötigte Generierungs- und Editor-Schnittstelle nicht bereit.",
+      "MystifyMagicItems": "Magische Gegenstände bei der Ausgabe mystifizieren",
+      "GenerateItemPreview": "Vorschau erzeugen",
+      "RerollItemPreview": "Vorschau neu würfeln",
+      "LootForgeConfigSummary": "Stufe {level} · Thema {theme} · Umgebung {environment}",
+      "ItemForgeConfigSummary": "{mode} · {category} · Stufe {level}",
+      "LootForgePreviewSummary": "Letzte Vorschau: {items} Gegenstände · {coins}",
+      "ItemForgePreviewSummary": "Letzte Vorschau: {name} · Stufe {level}",
+      "PreviewLootForge": "Loot Forge · {summary}",
+      "PreviewItemForge": "{quantity} × Item Forge · {summary}",
+      "NoCoins": "kein Geld",
+      "ProviderConfigHint": "Die Forge-Konfiguration wird gespeichert. Die eigentliche Belohnung wird erst bei der Vergabe neu erzeugt.",
+      "ProviderPreviewHint": "Eine angezeigte Vorschau dient nur zur Orientierung; bei der späteren Vergabe wird mit der gespeicherten Konfiguration neu generiert."
     },
     "TransitionConditionModes": {
       "all": "Alle Bedingungen müssen erfüllt sein",

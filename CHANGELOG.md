@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.7.1 hotfix - Provider editor dialogs
+
+- Fixed Loot Forge and Item Forge reward editor dialogs on Foundry versions where `DialogV2` requires at least one configured button.
+- Added a localized Close button to provider editor dialogs.
+- Applied the same hardening to the embedded NPC Forge dialog to prevent the identical failure path.
+- Added a regression test that rejects empty `DialogV2` button arrays.
+
+## 0.7.1 - Reward Providers
+
+- Added Loot Forge and Item Forge reward types to status-triggered Reward Rules.
+- Loot Forge rewards use the public embedded editor contract for host-local configuration and the public `generateLoot()` / `addLootToActor()` workflow for payout.
+- Item Forge rewards store canonical generation requests, provide an embedded configuration/preview dialog, generate creation-ready Item sources through the public API, and let Campaign Forge own delivery.
+- Added individual character, All players, and Party/Team Inventory destinations for both provider rewards. All-player provider rewards are duplicated in full rather than divided.
+- Added provider configuration and preview summaries plus the existing mass-payout warning for provider rewards.
+- Added optional Loot Forge magic-item mystification forwarding.
+- Provider reward data survives state normalization/migration and remains part of the existing pending/granted/skipped/failed/reset lifecycle and session transaction log.
+- Added provider-specific validation/errors and complete DE/EN localization.
+- Regression suite expanded from 57 to 61 tests.
+
+
 ## 0.7.0
 
 - Fixed CSS isolation so critical Campaign Forge application selectors are scoped beneath `.campaign-forge` and cannot leak into other Foundry/module UIs.

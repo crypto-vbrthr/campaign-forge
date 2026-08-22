@@ -130,6 +130,8 @@ export const REWARD_TYPES = Object.freeze({
   xp: { label: "CAMPAIGN_FORGE.Rewards.Types.xp", icon: "fa-solid fa-star" },
   currency: { label: "CAMPAIGN_FORGE.Rewards.Types.currency", icon: "fa-solid fa-coins" },
   item: { label: "CAMPAIGN_FORGE.Rewards.Types.item", icon: "fa-solid fa-gift" },
+  lootForge: { label: "CAMPAIGN_FORGE.Rewards.Types.lootForge", icon: "fa-solid fa-box-open" },
+  itemForge: { label: "CAMPAIGN_FORGE.Rewards.Types.itemForge", icon: "fa-solid fa-hammer" },
   tracker: { label: "CAMPAIGN_FORGE.Rewards.Types.tracker", icon: "fa-solid fa-chart-line" }
 });
 

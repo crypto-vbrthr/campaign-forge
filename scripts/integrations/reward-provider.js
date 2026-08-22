@@ -10,6 +10,13 @@ async function resolveDocument(uuid) {
   }
 }
 
+function cloneData(value) {
+  if (value === undefined) return undefined;
+  if (globalThis.foundry?.utils?.deepClone) return globalThis.foundry.utils.deepClone(value);
+  if (globalThis.structuredClone) return globalThis.structuredClone(value);
+  return JSON.parse(JSON.stringify(value));
+}
+
 function actorCollection() {
   return [...(globalThis.game?.actors?.contents ?? globalThis.game?.actors ?? [])];
 }
@@ -41,17 +48,46 @@ function cleanCoins(coins = {}) {
 function itemSourceWithQuantity(item, quantity) {
   const source = item.toObject();
   delete source._id;
-  if (source.system && Object.hasOwn(source.system, "quantity")) source.system.quantity = quantity;
+  source.system ??= {};
+  source.system.quantity = quantity;
   return source;
 }
 
+function generatedSourceWithQuantity(itemSource, quantity) {
+  const source = cloneData(itemSource ?? {});
+  delete source._id;
+  source.system ??= {};
+  source.system.quantity = quantity;
+  return source;
+}
+
+function lootSummary(loot = {}) {
+  return {
+    coins: cleanCoins(loot?.coins ?? {}),
+    pf2eItemCount: Array.isArray(loot?.pf2eItems) ? loot.pf2eItems.length : 0,
+    generatedItemCount: Array.isArray(loot?.generatedItems) ? loot.generatedItems.length : 0
+  };
+}
+
 export class FoundryRewardExecutor {
+  constructor({ providers = null } = {}) {
+    this.providers = providers;
+  }
+
   async execute(reward) {
     if (!reward?.type) throw new CampaignEngineError("INVALID_REWARD_TYPE");
     if (reward.type === "xp") return this._grantXp(reward);
     if (reward.type === "currency") return this._grantCurrency(reward);
     if (reward.type === "item") return this._grantItem(reward);
+    if (reward.type === "lootForge") return this._grantLootForge(reward);
+    if (reward.type === "itemForge") return this._grantItemForge(reward);
     throw new CampaignEngineError("REWARD_PROVIDER_UNAVAILABLE", { type: reward.type });
+  }
+
+  _providerApi(providerId) {
+    const api = this.providers?.getApi?.(providerId) ?? null;
+    if (!api) throw new CampaignEngineError("REWARD_PROVIDER_UNAVAILABLE", { type: providerId });
+    return api;
   }
 
   async _getActor(uuid) {
@@ -66,6 +102,11 @@ export class FoundryRewardExecutor {
     const actors = getPlayerCharacterActors();
     if (!actors.length) throw new CampaignEngineError("REWARD_NO_PLAYER_CHARACTERS");
     return actors;
+  }
+
+  async _resolveTargets(actorUuid) {
+    if (actorUuid === REWARD_TARGET_ALL_PLAYERS) return this._getAllPlayerCharacters();
+    return [await this._getActor(actorUuid)];
   }
 
   async _grantXp(reward) {
@@ -129,17 +170,13 @@ export class FoundryRewardExecutor {
     return this._grantCurrencyToActor(actor, coins);
   }
 
-  async _grantItemToActor(actor, item, quantity) {
-    const source = itemSourceWithQuantity(item, quantity);
-
+  async _grantSourceToActor(actor, source, details = {}) {
     if (typeof actor.inventory?.add === "function") {
       const created = await actor.inventory.add(source);
       return {
         actorUuid: actor.uuid,
         actorName: actor.name ?? "",
-        itemUuid: item.uuid,
-        itemName: item.name ?? "",
-        quantity,
+        ...details,
         createdIds: created?.map?.(entry => entry.id) ?? []
       };
     }
@@ -151,11 +188,18 @@ export class FoundryRewardExecutor {
     return {
       actorUuid: actor.uuid,
       actorName: actor.name ?? "",
-      itemUuid: item.uuid,
-      itemName: item.name ?? "",
-      quantity,
+      ...details,
       createdIds: created?.map?.(entry => entry.id) ?? []
     };
+  }
+
+  async _grantItemToActor(actor, item, quantity) {
+    const source = itemSourceWithQuantity(item, quantity);
+    return this._grantSourceToActor(actor, source, {
+      itemUuid: item.uuid,
+      itemName: item.name ?? "",
+      quantity
+    });
   }
 
   async _grantItem(reward) {
@@ -186,5 +230,76 @@ export class FoundryRewardExecutor {
 
     const actor = await this._getActor(reward.actorUuid);
     return this._grantItemToActor(actor, item, quantity);
+  }
+
+  async _grantLootForge(reward) {
+    const api = this._providerApi("lootForge");
+    if (typeof api.generateLoot !== "function" || typeof api.addLootToActor !== "function") {
+      throw new CampaignEngineError("REWARD_PROVIDER_CAPABILITY_UNAVAILABLE", { type: "lootForge" });
+    }
+
+    const targets = await this._resolveTargets(reward.actorUuid);
+    const loot = await api.generateLoot(cloneData(reward.lootConfig ?? {}));
+    const recipients = [];
+    for (const actor of targets) {
+      const created = await api.addLootToActor(actor, cloneData(loot), {
+        mystifyMagicItems: reward.mystifyMagicItems === true
+      });
+      recipients.push({
+        actorUuid: actor.uuid,
+        actorName: actor.name ?? "",
+        createdIds: created?.map?.(entry => entry.id) ?? []
+      });
+    }
+
+    return {
+      target: reward.actorUuid === REWARD_TARGET_ALL_PLAYERS ? "allPlayers" : "actor",
+      recipientCount: recipients.length,
+      provider: "lootForge",
+      summary: lootSummary(loot),
+      recipients
+    };
+  }
+
+  async _grantItemForge(reward) {
+    const api = this._providerApi("itemForge");
+    if (typeof api.generate !== "function") {
+      throw new CampaignEngineError("REWARD_PROVIDER_CAPABILITY_UNAVAILABLE", { type: "itemForge" });
+    }
+
+    const targets = await this._resolveTargets(reward.actorUuid);
+    for (const actor of targets) {
+      if (typeof actor.inventory?.add !== "function" && typeof actor.createEmbeddedDocuments !== "function") {
+        throw new CampaignEngineError("REWARD_ITEM_TARGET_UNSUPPORTED", { uuid: actor.uuid });
+      }
+    }
+
+    const generated = await api.generate(cloneData(reward.itemRequest ?? {}));
+    const itemSource = generated?.itemSource;
+    if (!itemSource || typeof itemSource !== "object") {
+      throw new CampaignEngineError("REWARD_ITEM_FORGE_RESULT_INVALID");
+    }
+
+    const quantity = Math.max(1, Math.trunc(Number(reward.quantity ?? 1) || 1));
+    const itemName = String(itemSource.name ?? reward.itemPreviewName ?? "");
+    const recipients = [];
+    for (const actor of targets) {
+      const source = generatedSourceWithQuantity(itemSource, quantity);
+      recipients.push(await this._grantSourceToActor(actor, source, {
+        provider: "itemForge",
+        itemName,
+        quantity
+      }));
+    }
+
+    return {
+      target: reward.actorUuid === REWARD_TARGET_ALL_PLAYERS ? "allPlayers" : "actor",
+      recipientCount: recipients.length,
+      provider: "itemForge",
+      itemName,
+      quantity,
+      metadata: cloneData(generated?.metadata ?? null),
+      recipients
+    };
   }
 }

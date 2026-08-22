@@ -469,6 +469,42 @@ export class CampaignEngine {
         };
       }
 
+      if (type === "lootForge") {
+        const actorUuid = String(raw?.actorUuid ?? "").trim();
+        if (!actorUuid) throw new CampaignEngineError("REWARD_ACTOR_REQUIRED", { type });
+        const lootConfig = raw?.lootConfig && typeof raw.lootConfig === "object" && !Array.isArray(raw.lootConfig)
+          ? cloneData(raw.lootConfig)
+          : cloneData(existing?.lootConfig ?? { level: 1, theme: "generic", environment: "generic" });
+        return {
+          id,
+          type,
+          actorUuid,
+          lootConfig,
+          mystifyMagicItems: raw?.mystifyMagicItems === true,
+          previewSummary: cloneData(raw?.previewSummary ?? existing?.previewSummary ?? null),
+          ...runtime
+        };
+      }
+
+      if (type === "itemForge") {
+        const actorUuid = String(raw?.actorUuid ?? "").trim();
+        if (!actorUuid) throw new CampaignEngineError("REWARD_ACTOR_REQUIRED", { type });
+        const itemRequest = raw?.itemRequest && typeof raw.itemRequest === "object" && !Array.isArray(raw.itemRequest)
+          ? cloneData(raw.itemRequest)
+          : cloneData(existing?.itemRequest ?? {});
+        const quantity = Math.max(1, Math.trunc(Number(raw?.quantity ?? 1) || 1));
+        return {
+          id,
+          type,
+          actorUuid,
+          itemRequest,
+          itemPreviewName: String(raw?.itemPreviewName ?? existing?.itemPreviewName ?? ""),
+          previewSummary: cloneData(raw?.previewSummary ?? existing?.previewSummary ?? null),
+          quantity,
+          ...runtime
+        };
+      }
+
       const trackerId = String(raw?.trackerId ?? raw?.targetId ?? "").trim();
       const delta = Number(raw?.delta);
       if (!trackerId) throw new CampaignEngineError("REWARD_TRACKER_REQUIRED");
@@ -519,6 +555,11 @@ export class CampaignEngine {
       itemUuid: reward.itemUuid ?? "",
       itemName: reward.itemName ?? "",
       quantity: reward.quantity ?? 1,
+      lootConfig: cloneData(reward.lootConfig ?? null),
+      itemRequest: cloneData(reward.itemRequest ?? null),
+      itemPreviewName: reward.itemPreviewName ?? "",
+      previewSummary: cloneData(reward.previewSummary ?? null),
+      mystifyMagicItems: reward.mystifyMagicItems === true,
       trackerId: reward.trackerId ?? "",
       delta: reward.delta ?? 0
     };

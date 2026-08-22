@@ -213,3 +213,40 @@ test("City Forge provider validation rejects incomplete state actions before exe
     payload: { operation: "setThreatActive", threatId: "" }
   }), { valid: false, code: "INVALID_PROVIDER_ACTION" });
 });
+
+test("provider registry exposes Loot Forge and Item Forge reward capabilities", () => {
+  const modules = new Map([
+    ["pf2e-loot-forge", {
+      active: true,
+      version: "0.3.5",
+      api: {
+        generateLoot() {},
+        createEmbeddedEditor() {},
+        addLootToActor() {}
+      }
+    }],
+    ["pf2e-item-forge", {
+      active: true,
+      version: "0.0.37-rc.1",
+      api: {
+        generate() {},
+        preview() {},
+        open() {},
+        getCapabilities() { return { embeddedEditor: true }; }
+      }
+    }]
+  ]);
+  const registry = new FoundryForgeProviderRegistry({ getModule: id => modules.get(id) ?? null });
+
+  const loot = registry.inspect("lootForge");
+  assert.equal(loot.ready, true);
+  assert.equal(loot.capabilities.generate, true);
+  assert.equal(loot.capabilities.embeddedEditor, true);
+  assert.equal(loot.capabilities.actorDelivery, true);
+
+  const item = registry.inspect("itemForge");
+  assert.equal(item.ready, true);
+  assert.equal(item.capabilities.generate, true);
+  assert.equal(item.capabilities.preview, true);
+  assert.equal(item.capabilities.embeddedEditor, true);
+});

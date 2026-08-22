@@ -1431,6 +1431,66 @@
   }
 }
 
+.campaign-forge .cf-provider-reward-config{
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+  padding: .55rem;
+  border: 1px solid var(--cf-border);
+  border-radius: .4rem;
+  background: var(--cf-panel-soft);
+}
+
+.campaign-forge .cf-provider-reward-summary{
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  min-width: 0;
+}
+
+.campaign-forge .cf-provider-reward-summary > i{
+  margin-top: .15rem;
+  flex: 0 0 auto;
+}
+
+.campaign-forge .cf-provider-reward-summary > div{
+  display: flex;
+  flex-direction: column;
+  gap: .1rem;
+  min-width: 0;
+}
+
+.campaign-forge .cf-provider-reward-summary small{
+  color: var(--cf-muted);
+  overflow-wrap: anywhere;
+}
+
+.campaign-forge .cf-provider-reward-hint{
+  color: var(--cf-muted);
+  line-height: 1.35;
+}
+
+.campaign-forge.cf-provider-reward-dialog .window-content{
+  padding: .5rem;
+  overflow: auto;
+}
+
+.campaign-forge .cf-provider-reward-host{
+  width: 100%;
+  min-height: 620px;
+  overflow: auto;
+}
+
+.campaign-forge .cf-provider-dialog-actions{
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: .4rem;
+  padding: .5rem 0 0;
+  background: var(--cf-bg);
+}
+
 /* Advanced transition conditions */
 .campaign-forge .cf-rule-conditions-section{
   display: flex;
@@ -1526,7 +1586,7 @@
   }
 }
 
-.cf-reward-warning{
+.campaign-forge .cf-reward-warning{
   margin: .15rem 0 0;
   padding: .45rem .55rem;
   display: flex;
@@ -1539,7 +1599,7 @@
   line-height: 1.35;
 }
 
-.cf-reward-warning > i{
+.campaign-forge .cf-reward-warning > i{
   margin-top: .12rem;
   flex: 0 0 auto;
 }

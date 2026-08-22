@@ -959,6 +959,36 @@
                               </div>
                               <label><span>{{localize "CAMPAIGN_FORGE.Rewards.Quantity"}}</span><input type="number" min="1" step="1" value="{{quantity}}" data-cf-reward-quantity="{{index}}"></label>
                             {{/if}}
+                            {{#if isLootForge}}
+                              <div class="cf-provider-reward-config">
+                                <div class="cf-provider-reward-summary">
+                                  <i class="fa-solid fa-box-open"></i>
+                                  <div><strong>{{localize "CAMPAIGN_FORGE.Rewards.LootForge"}}</strong><small>{{providerConfigSummary}}</small>{{#if providerPreviewSummary}}<small>{{providerPreviewSummary}}</small>{{/if}}</div>
+                                </div>
+                                <small class="cf-provider-reward-hint">{{localize "CAMPAIGN_FORGE.Rewards.ProviderConfigHint"}}</small>
+                                {{#if providerAvailable}}
+                                  <button type="button" data-action="configureLootForgeReward" data-reward-index="{{index}}"><i class="fa-solid fa-sliders"></i> {{localize "CAMPAIGN_FORGE.Rewards.ConfigureLootForge"}}</button>
+                                {{else}}
+                                  <p class="cf-reward-warning"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "CAMPAIGN_FORGE.Rewards.LootForgeUnavailable"}}</p>
+                                {{/if}}
+                                <label class="cf-checkbox-row"><input type="checkbox" data-cf-reward-mystify="{{index}}" {{#if mystifyMagicItems}}checked{{/if}}><span>{{localize "CAMPAIGN_FORGE.Rewards.MystifyMagicItems"}}</span></label>
+                              </div>
+                            {{/if}}
+                            {{#if isItemForge}}
+                              <div class="cf-provider-reward-config">
+                                <div class="cf-provider-reward-summary">
+                                  <i class="fa-solid fa-hammer"></i>
+                                  <div><strong>{{localize "CAMPAIGN_FORGE.Rewards.ItemForge"}}</strong><small>{{providerConfigSummary}}</small>{{#if providerPreviewSummary}}<small>{{providerPreviewSummary}}</small>{{/if}}</div>
+                                </div>
+                                <small class="cf-provider-reward-hint">{{localize "CAMPAIGN_FORGE.Rewards.ProviderConfigHint"}}</small>
+                                {{#if providerAvailable}}
+                                  <button type="button" data-action="configureItemForgeReward" data-reward-index="{{index}}"><i class="fa-solid fa-sliders"></i> {{localize "CAMPAIGN_FORGE.Rewards.ConfigureItemForge"}}</button>
+                                {{else}}
+                                  <p class="cf-reward-warning"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "CAMPAIGN_FORGE.Rewards.ItemForgeUnavailable"}}</p>
+                                {{/if}}
+                                <label><span>{{localize "CAMPAIGN_FORGE.Rewards.Quantity"}}</span><input type="number" min="1" step="1" value="{{quantity}}" data-cf-reward-quantity="{{index}}"></label>
+                              </div>
+                            {{/if}}
                           {{/if}}
                         </article>
                       {{/each}}

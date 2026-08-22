@@ -34,7 +34,7 @@ function exposeApi() {
   if (!module) return;
 
   module.api = {
-    version: "0.7.0",
+    version: "0.7.1",
     open: openCampaignForge,
     getState: () => engine.getState(),
     getJournalEmbedSyntax: (entryId, mode = "card") => campaignEntryEmbedSyntax(entryId, mode),
@@ -184,7 +184,7 @@ Hooks.once("ready", async () => {
   engine = new CampaignEngine(new FoundryCampaignRepository(), {
     userId: () => game.user?.id ?? null,
     gameTime: () => game.time?.worldTime ?? null,
-    rewardExecutor: new FoundryRewardExecutor(),
+    rewardExecutor: new FoundryRewardExecutor({ providers }),
     providerExecutor: providers
   });
 

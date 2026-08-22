@@ -228,7 +228,47 @@ function rewardTargetLabel(actorUuid) {
 }
 
 function rewardNeedsFullPerPlayerWarning(reward) {
-  return reward?.actorUuid === REWARD_TARGET_ALL_PLAYERS && ["currency", "item"].includes(reward?.type);
+  return reward?.actorUuid === REWARD_TARGET_ALL_PLAYERS
+    && ["currency", "item", "lootForge", "itemForge"].includes(reward?.type);
+}
+
+function lootForgeConfigSummary(config = {}) {
+  const level = config?.level ?? 1;
+  const theme = config?.theme ?? "generic";
+  const environment = config?.environment ?? "generic";
+  return format("CAMPAIGN_FORGE.Rewards.LootForgeConfigSummary", { level, theme, environment });
+}
+
+function itemForgeRequestSummary(request = {}, previewName = "") {
+  if (previewName) return previewName;
+  const mode = request?.mode ?? "—";
+  const category = request?.category ?? "—";
+  let level = request?.level ?? "—";
+  if (level && typeof level === "object") {
+    const min = level.min ?? level.target ?? "?";
+    const max = level.max ?? level.target ?? min;
+    level = min === max ? String(min) : `${min}–${max}`;
+  }
+  return format("CAMPAIGN_FORGE.Rewards.ItemForgeConfigSummary", { mode, category, level });
+}
+
+function lootPreviewSummary(loot = {}) {
+  const itemCount = (loot?.pf2eItems?.length ?? 0) + (loot?.generatedItems?.length ?? 0);
+  const coins = ["pp", "gp", "sp", "cp"]
+    .filter(denom => Number(loot?.coins?.[denom] ?? 0) > 0)
+    .map(denom => `${Number(loot.coins[denom])} ${denom.toUpperCase()}`)
+    .join(", ");
+  return format("CAMPAIGN_FORGE.Rewards.LootForgePreviewSummary", {
+    items: itemCount,
+    coins: coins || localize("CAMPAIGN_FORGE.Rewards.NoCoins")
+  });
+}
+
+function itemPreviewSummary(preview = {}) {
+  const name = String(preview?.itemSource?.name ?? "").trim();
+  const level = preview?.itemSource?.system?.level?.value ?? preview?.metadata?.level ?? "—";
+  if (!name) return "";
+  return format("CAMPAIGN_FORGE.Rewards.ItemForgePreviewSummary", { name, level });
 }
 
 function rewardPreviewLabel(reward) {
@@ -245,6 +285,15 @@ function rewardPreviewLabel(reward) {
     label = format("CAMPAIGN_FORGE.Rewards.PreviewItem", {
       quantity: reward.quantity ?? 1,
       item: reward.itemName || reward.itemUuid || localize("CAMPAIGN_FORGE.Rewards.UnknownItem")
+    });
+  } else if (reward.type === "lootForge") {
+    label = format("CAMPAIGN_FORGE.Rewards.PreviewLootForge", {
+      summary: lootForgeConfigSummary(reward.lootConfig ?? {})
+    });
+  } else if (reward.type === "itemForge") {
+    label = format("CAMPAIGN_FORGE.Rewards.PreviewItemForge", {
+      quantity: reward.quantity ?? 1,
+      summary: itemForgeRequestSummary(reward.itemRequest ?? {}, reward.itemPreviewName ?? "")
     });
   } else if (reward.type === "tracker") {
     const delta = Number(reward.delta ?? 0);
@@ -510,6 +559,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       grantReward: this._actionGrantReward,
       skipReward: this._actionSkipReward,
       resetReward: this._actionResetReward,
+      configureLootForgeReward: this._actionConfigureLootForgeReward,
+      configureItemForgeReward: this._actionConfigureItemForgeReward,
       addTransitionRule: this._actionAddTransitionRule,
       editTransitionRule: this._actionEditTransitionRule,
       deleteTransitionRule: this._actionDeleteTransitionRule,
@@ -583,6 +634,10 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this._cityLinkDraft = null;
     this._npcEditorSession = null;
     this._npcEditorDialog = null;
+    this._lootRewardEditorSession = null;
+    this._lootRewardEditorDialog = null;
+    this._itemRewardEditorSession = null;
+    this._itemRewardEditorDialog = null;
   }
 
   async _prepareContext(options) {
@@ -1263,7 +1318,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
                 : localize("CAMPAIGN_FORGE.Rewards.AllPlayers"),
               selected: reward.actorUuid === REWARD_TARGET_ALL_PLAYERS
             }];
-            if (["currency", "item"].includes(reward.type)) {
+            if (["currency", "item", "lootForge", "itemForge"].includes(reward.type)) {
               actorTargets.push(...partyActors.map(actor => ({
                 id: actor.uuid,
                 label: actor.name
@@ -1290,7 +1345,12 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
               isXp: reward.type === "xp",
               isCurrency: reward.type === "currency",
               isItem: reward.type === "item",
+              isLootForge: reward.type === "lootForge",
+              isItemForge: reward.type === "itemForge",
               isTracker: reward.type === "tracker",
+              providerAvailable: reward.type === "lootForge"
+                ? Boolean(this.providers?.supports?.("lootForge", "embeddedEditor") && this.providers?.supports?.("lootForge", "actorDelivery"))
+                : (reward.type === "itemForge" ? Boolean(this.providers?.supports?.("itemForge", "generate") && this.providers?.supports?.("itemForge", "embeddedEditor")) : true),
               types: rewardTypeOptions(reward.type),
               actorTargets,
               trackerTargets: trackers.map(tracker => ({
@@ -1307,6 +1367,14 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
               },
               itemUuid: reward.itemUuid ?? "",
               itemName: liveItem?.name ?? reward.itemName ?? "",
+              lootConfig: reward.lootConfig ?? { level: 1, theme: "generic", environment: "generic" },
+              itemRequest: reward.itemRequest ?? {},
+              itemPreviewName: reward.itemPreviewName ?? "",
+              providerConfigSummary: reward.type === "lootForge"
+                ? lootForgeConfigSummary(reward.lootConfig ?? {})
+                : (reward.type === "itemForge" ? itemForgeRequestSummary(reward.itemRequest ?? {}, reward.itemPreviewName ?? "") : ""),
+              providerPreviewSummary: reward.previewSummary?.label ?? "",
+              mystifyMagicItems: reward.mystifyMagicItems === true,
               quantity: reward.quantity ?? 1,
               delta: reward.delta ?? 1,
               state: reward.state ?? "locked",
@@ -1741,7 +1809,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         const state = await this.engine.getState();
         const allActors = foundryActors();
         const actors = allActors.filter(actor => actor?.type === "character");
-        if (["xp", "currency", "item"].includes(reward.type)) reward.actorUuid ||= actors[0]?.uuid ?? REWARD_TARGET_ALL_PLAYERS;
+        if (["xp", "currency", "item", "lootForge", "itemForge"].includes(reward.type)) reward.actorUuid ||= actors[0]?.uuid ?? REWARD_TARGET_ALL_PLAYERS;
         if (reward.type === "xp") {
           const selectedActor = allActors.find(actor => actor?.uuid === reward.actorUuid);
           if (selectedActor?.type === "party") reward.actorUuid = REWARD_TARGET_ALL_PLAYERS;
@@ -1749,6 +1817,17 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         }
         if (reward.type === "currency") reward.coins ??= { pp: 0, gp: 0, sp: 0, cp: 0 };
         if (reward.type === "item") reward.quantity = Math.max(1, Number(reward.quantity || 1));
+        if (reward.type === "lootForge") {
+          reward.lootConfig ??= { level: 1, theme: "generic", environment: "generic" };
+          reward.mystifyMagicItems = reward.mystifyMagicItems === true;
+          reward.previewSummary ??= null;
+        }
+        if (reward.type === "itemForge") {
+          reward.itemRequest ??= {};
+          reward.itemPreviewName ??= "";
+          reward.previewSummary ??= null;
+          reward.quantity = Math.max(1, Number(reward.quantity || 1));
+        }
         if (reward.type === "tracker") {
           reward.trackerId ||= state.trackers[0]?.id ?? "";
           reward.delta = Number(reward.delta || 1);
@@ -1802,6 +1881,13 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         const index = Number(event.currentTarget.dataset.cfRewardQuantity);
         const reward = this._rewardEditor?.draft?.rewards?.[index];
         if (reward) reward.quantity = Number(event.currentTarget.value);
+      });
+    });
+    root.querySelectorAll("[data-cf-reward-mystify]").forEach(input => {
+      input.addEventListener("change", event => {
+        const index = Number(event.currentTarget.dataset.cfRewardMystify);
+        const reward = this._rewardEditor?.draft?.rewards?.[index];
+        if (reward) reward.mystifyMagicItems = Boolean(event.currentTarget.checked);
       });
     });
     root.querySelectorAll("[data-cf-reward-item-drop]").forEach(dropZone => {
@@ -2340,6 +2426,11 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       itemUuid: "",
       itemName: "",
       quantity: 1,
+      lootConfig: { level: 1, theme: "generic", environment: "generic" },
+      itemRequest: {},
+      itemPreviewName: "",
+      previewSummary: null,
+      mystifyMagicItems: false,
       trackerId: "",
       delta: 1
     });
@@ -2352,6 +2443,175 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!Number.isInteger(index) || index < 0 || index >= this._rewardEditor.draft.rewards.length) return;
     this._rewardEditor.draft.rewards.splice(index, 1);
     return this.render();
+  }
+
+  static async _actionConfigureLootForgeReward(event, target) {
+    const index = Number(target.dataset.rewardIndex);
+    const reward = this._rewardEditor?.draft?.rewards?.[index];
+    if (!reward || reward.type !== "lootForge") return;
+
+    try {
+      const session = this.providers?.createLootRewardEditor?.({
+        initialConfig: JSON.parse(JSON.stringify(reward.lootConfig ?? { level: 1, theme: "generic", environment: "generic" })),
+        persistSourceSelection: false,
+        onGenerate: async state => {
+          reward.lootConfig = JSON.parse(JSON.stringify(state?.config ?? reward.lootConfig ?? {}));
+          reward.previewSummary = { label: lootPreviewSummary(state?.loot ?? {}) };
+        }
+      });
+      if (!session) {
+        ui.notifications.warn(localize("CAMPAIGN_FORGE.Rewards.LootForgeUnavailable"));
+        return null;
+      }
+
+      try { await this._lootRewardEditorDialog?.close?.(); } catch {}
+      const dialog = new DialogV2({
+        id: "campaign-forge-loot-reward-editor",
+        classes: ["campaign-forge", "cf-provider-reward-dialog", "cf-loot-reward-dialog"],
+        window: {
+          title: localize("CAMPAIGN_FORGE.Rewards.ConfigureLootForgeTitle"),
+          icon: "fa-solid fa-box-open",
+          resizable: true
+        },
+        position: { width: 980, height: 820 },
+        modal: false,
+        content: '<div class="cf-provider-reward-host" data-cf-loot-reward-host></div>',
+        buttons: [{
+          action: "close",
+          label: localize("CAMPAIGN_FORGE.Actions.Close"),
+          icon: "fa-solid fa-xmark"
+        }]
+      });
+
+      this._lootRewardEditorSession = session;
+      this._lootRewardEditorDialog = dialog;
+      const originalClose = dialog.close.bind(dialog);
+      dialog.close = async (...args) => {
+        if (this._lootRewardEditorSession === session) {
+          try {
+            session.syncFromForm?.();
+            reward.lootConfig = JSON.parse(JSON.stringify(session.getConfig?.() ?? reward.lootConfig ?? {}));
+            const loot = session.getLoot?.();
+            if (loot) reward.previewSummary = { label: lootPreviewSummary(loot) };
+          } catch {}
+          try { session.destroy?.(); } catch {}
+          this._lootRewardEditorSession = null;
+        }
+        if (this._lootRewardEditorDialog === dialog) this._lootRewardEditorDialog = null;
+        const result = await originalClose(...args);
+        if (this.rendered) await this.render();
+        return result;
+      };
+
+      dialog.render({ force: true });
+      globalThis.setTimeout?.(async () => {
+        const host = dialog.element?.querySelector?.("[data-cf-loot-reward-host]");
+        if (!host) return;
+        try {
+          await session.render(host);
+        } catch (error) {
+          this._handleError(error);
+        }
+      }, 0);
+      return dialog;
+    } catch (error) {
+      this._handleError(error);
+      return null;
+    }
+  }
+
+  static async _actionConfigureItemForgeReward(event, target) {
+    const index = Number(target.dataset.rewardIndex);
+    const reward = this._rewardEditor?.draft?.rewards?.[index];
+    if (!reward || reward.type !== "itemForge") return;
+
+    try {
+      const editor = await this.providers?.createItemRewardEditor?.({
+        request: JSON.parse(JSON.stringify(reward.itemRequest ?? {})),
+        onChange: request => {
+          reward.itemRequest = JSON.parse(JSON.stringify(request ?? {}));
+          reward.itemPreviewName = "";
+          reward.previewSummary = null;
+        },
+        onPreview: preview => {
+          reward.itemRequest = JSON.parse(JSON.stringify(editor.getRequest?.() ?? reward.itemRequest ?? {}));
+          reward.itemPreviewName = String(preview?.itemSource?.name ?? "");
+          reward.previewSummary = { label: itemPreviewSummary(preview) };
+        }
+      });
+      if (!editor) {
+        ui.notifications.warn(localize("CAMPAIGN_FORGE.Rewards.ItemForgeUnavailable"));
+        return null;
+      }
+
+      try { await this._itemRewardEditorDialog?.close?.(); } catch {}
+      const dialog = new DialogV2({
+        id: "campaign-forge-item-reward-editor",
+        classes: ["campaign-forge", "cf-provider-reward-dialog", "cf-item-reward-dialog"],
+        window: {
+          title: localize("CAMPAIGN_FORGE.Rewards.ConfigureItemForgeTitle"),
+          icon: "fa-solid fa-hammer",
+          resizable: true
+        },
+        position: { width: 980, height: 820 },
+        modal: false,
+        content: `
+          <div class="cf-provider-reward-host" data-cf-item-reward-host></div>
+          <div class="cf-provider-dialog-actions">
+            <button type="button" data-cf-item-preview><i class="fa-solid fa-eye"></i> ${escapeHTML(localize("CAMPAIGN_FORGE.Rewards.GenerateItemPreview"))}</button>
+            <button type="button" data-cf-item-reroll><i class="fa-solid fa-rotate"></i> ${escapeHTML(localize("CAMPAIGN_FORGE.Rewards.RerollItemPreview"))}</button>
+          </div>`,
+        buttons: [{
+          action: "close",
+          label: localize("CAMPAIGN_FORGE.Actions.Close"),
+          icon: "fa-solid fa-xmark"
+        }]
+      });
+
+      this._itemRewardEditorSession = editor;
+      this._itemRewardEditorDialog = dialog;
+      const originalClose = dialog.close.bind(dialog);
+      dialog.close = async (...args) => {
+        if (this._itemRewardEditorSession === editor) {
+          try {
+            reward.itemRequest = JSON.parse(JSON.stringify(editor.getRequest?.() ?? reward.itemRequest ?? {}));
+            const preview = editor.getPreview?.();
+            if (preview?.itemSource) {
+              reward.itemPreviewName = String(preview.itemSource.name ?? "");
+              reward.previewSummary = { label: itemPreviewSummary(preview) };
+            }
+          } catch {}
+          try { await editor.close?.({ force: true }); } catch {}
+          this._itemRewardEditorSession = null;
+        }
+        if (this._itemRewardEditorDialog === dialog) this._itemRewardEditorDialog = null;
+        const result = await originalClose(...args);
+        if (this.rendered) await this.render();
+        return result;
+      };
+
+      dialog.render({ force: true });
+      globalThis.setTimeout?.(async () => {
+        const host = dialog.element?.querySelector?.("[data-cf-item-reward-host]");
+        if (!host) return;
+        try {
+          await editor.render({ force: true });
+          if (editor.element?.parentElement !== host) host.append(editor.element);
+          dialog.element?.querySelector?.("[data-cf-item-preview]")?.addEventListener("click", async () => {
+            try { await editor.generatePreview(); } catch (error) { console.warn(`${MODULE_ID} | Item Forge preview failed`, error); }
+          });
+          dialog.element?.querySelector?.("[data-cf-item-reroll]")?.addEventListener("click", async () => {
+            try { await editor.reroll(); } catch (error) { console.warn(`${MODULE_ID} | Item Forge reroll failed`, error); }
+          });
+        } catch (error) {
+          this._handleError(error);
+        }
+      }, 0);
+      return dialog;
+    } catch (error) {
+      this._handleError(error);
+      return null;
+    }
   }
 
   static async _actionGrantReward(event, target) {
@@ -2600,7 +2860,11 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         position: { width: 900, height: 760 },
         modal: false,
         content: '<div class="cf-npc-forge-host" data-cf-npc-forge-host></div>',
-        buttons: []
+        buttons: [{
+          action: "close",
+          label: localize("CAMPAIGN_FORGE.Actions.Close"),
+          icon: "fa-solid fa-xmark"
+        }]
       });
       this._npcEditorSession = session;
       this._npcEditorDialog = dialog;
