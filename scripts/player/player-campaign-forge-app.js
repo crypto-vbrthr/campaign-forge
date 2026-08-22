@@ -155,7 +155,7 @@ export class PlayerCampaignForgeApp extends HandlebarsApplicationMixin(Applicati
       } else if (pin.targetType === "group") {
         const group = state.groups.find(item => item.id === pin.targetId);
         if (!group) continue;
-        const progress = publicGroupProgress(fullState, group.id);
+        const progress = publicGroupProgress(state, group.id);
         pinViews.push({
           id: pin.id,
           icon: group.kind === "chapter" ? "fa-solid fa-bookmark" : "fa-solid fa-folder",

@@ -100,3 +100,10 @@ test("public module API does not hand full campaign state or transition previews
   assert.match(main, /getState:\s*async \(\) => \{[\s\S]*game\.user\?\.isGM \? state : buildPlayerProjection\(state\)/);
   assert.match(main, /previewEntryStatusTransition:[\s\S]*requireGM\(\)/);
 });
+
+
+test("GM player-view preview calculates group progress from the published projection", () => {
+  const source = fs.readFileSync(new URL("../scripts/player/player-campaign-forge-app.js", import.meta.url), "utf8");
+  assert.match(source, /publicGroupProgress\(state, group\.id\)/);
+  assert.doesNotMatch(source, /publicGroupProgress\(fullState, group\.id\)/);
+});

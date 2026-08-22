@@ -758,6 +758,19 @@
         "missingRewardItem": "Linked reward Item was not found",
         "providerUnavailable": "Referenced Forge is currently inactive"
       }
+    },
+    "Security": {
+      "Title": "Persistence & Security",
+      "Description": "The complete GM state is stored in a protected Foundry document. Players receive only their own permission-filtered projection.",
+      "Protected": "Protected document storage active",
+      "NotProtected": "Protected document storage is not active",
+      "StatusDetails": "Storage format v{version} · {projections} player projections",
+      "VaultName": "Campaign Forge · Protected Data",
+      "PlayerProjectionName": "Campaign Forge · Player Data",
+      "MigrationComplete": "Campaign Forge migrated the campaign state to protected document storage.",
+      "VaultMissing": "The protected Campaign Forge data store could not be found. For safety, no empty replacement is created. Restore a backup or inspect the internal data store.",
+      "StorageInitFailed": "The protected Campaign Forge data store could not be initialized. See the console for details.",
+      "VaultDeleted": "The protected Campaign Forge data store was deleted. Changes are not safely available until it is restored."
     }
   },
   "CAMPAIGN_FORGE.Integrations.Npc.ActionFailed": "NPC Forge action failed. See the console for details."

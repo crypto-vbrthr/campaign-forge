@@ -1717,6 +1717,24 @@
             </div>
           </section>
 
+          {{#if storageStatus}}
+            <section class="cf-security-settings">
+              <div class="cf-subsection-heading">
+                <div>
+                  <h3>{{localize "CAMPAIGN_FORGE.Security.Title"}}</h3>
+                  <p>{{localize "CAMPAIGN_FORGE.Security.Description"}}</p>
+                </div>
+              </div>
+              <div class="cf-security-status {{#if storageStatus.protected}}is-protected{{else}}has-warning{{/if}}">
+                <span><i class="fa-solid {{#if storageStatus.protected}}fa-shield-halved{{else}}fa-triangle-exclamation{{/if}}"></i></span>
+                <div>
+                  <strong>{{#if storageStatus.protected}}{{localize "CAMPAIGN_FORGE.Security.Protected"}}{{else}}{{localize "CAMPAIGN_FORGE.Security.NotProtected"}}{{/if}}</strong>
+                  <small>{{localize "CAMPAIGN_FORGE.Security.StatusDetails" version=storageStatus.storageVersion projections=storageStatus.projectionCount}}</small>
+                </div>
+              </div>
+            </section>
+          {{/if}}
+
           <section class="cf-hardening-settings">
             <div class="cf-subsection-heading">
               <div>

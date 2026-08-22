@@ -1,4 +1,48 @@
-# Campaign Forge v0.9.1
+# Campaign Forge v1.0.0
+
+Campaign Forge is a campaign-management and campaign-memory module for Foundry VTT. It tracks quests, knowledge, events, long-running plot threads, sessions, reputation and other numeric campaign values, important NPCs, Journal references, rule-driven consequences, and rewards. A dedicated read-only Player View exposes only information explicitly published by the GM.
+
+The module also acts as an optional integration hub for the Forge suite. City Forge, NPC Forge, Creature Forge, Loot Forge, Item Forge, and Weather Forge remain independent providers; Campaign Forge references or orchestrates their public functionality without taking ownership of their specialist data.
+
+
+## Part of the Forge Suite
+
+Campaign Forge is part of the **Forge Suite**, a growing collection of Foundry VTT modules and add-ons built for the busy Game Master. The suite is designed to reduce preparation and bookkeeping, make common GM tasks easier, and add useful tools that help make running and playing campaigns smoother and more enjoyable.
+
+An overview of the Forge Suite, its modules, add-ons, and shared documentation is available here:
+
+**Forge Suite:** https://github.com/crypto-vbrthr/pf2e-forge-suite
+
+## v1.0.0 Stable Release
+
+- Promoted the tested `1.0.0-rc.1` codebase to the first stable Campaign Forge release with no feature or state-schema changes.
+- Public API v1 is now marked **stable** and its documented method/contract meanings are frozen for the 1.x line.
+- Campaign state remains Schema v2 and protected persistence remains Storage Contract v1; no migration is required from `1.0.0-rc.1`.
+- Optional City Forge, NPC Forge, Creature Forge, Loot Forge, Item Forge, and Weather Forge integrations remain capability-detected and non-mandatory.
+- Final release validation covers protected persistence, Player View privacy, Journal integration, rewards, transition rules, provider integrations, localization, CSS isolation, backup/restore, and large-campaign behavior.
+
+## v1.0.0-rc.1 Release Candidate & Final Review
+
+- Completed the pre-1.0 architecture, persistence, security, integration, localization, and large-campaign review.
+- Added Public API v1 release-candidate metadata, capability discovery, a versioned contract registry, and the `campaignForge.ready` discovery hook.
+- Restricted raw provider API access and storage diagnostics in the Campaign Forge public API to GMs. Player-facing state access remains projection-only.
+- Corrected outdated README storage/security notes left behind by the v0.9.2 protected-persistence migration.
+- Corrected GM Player View preview group-progress calculation to use the published projection rather than hidden canonical descendants.
+- Added RC manifest/version consistency and release-documentation regression coverage.
+- No campaign-data migration is required from v0.9.2; protected storage remains Storage Contract v1 and campaign state remains Schema v2.
+- Final automated regression suite: **114 tests**.
+
+## v0.9.2 Protected Persistence & Security Hardening
+
+- The complete GM campaign state now lives in an internal ownership-protected JournalEntry instead of a world setting readable through `ClientSettings`.
+- Existing worlds migrate automatically on the first GM load. The old `campaignData` world-setting payload is scrubbed only after the protected document store and player projections exist.
+- Every non-GM Foundry user receives a separate safe projection document containing only published Campaign Forge information. Journal and Actor references are included only when that specific user already has Observer access to the referenced Foundry document.
+- The player repository never falls back to the legacy world setting, and non-GM writes are rejected at the repository boundary.
+- Internal Campaign Forge storage documents are hidden from the Journal directory for a clean workspace. This is only UI polish; Foundry document ownership is the real security boundary.
+- Settings now reports protected-storage status and the number of maintained player projections.
+- Missing protected storage after migration fails closed rather than silently creating a replacement and risking data loss.
+- Added regression coverage for migration, legacy-setting scrubbing, per-user projection filtering, fail-closed recovery behavior, and non-GM write rejection.
+
 
 ## v0.9.1 Search Focus Hotfix
 
@@ -19,9 +63,6 @@
 - Optimized campaign-tree and descendant traversal with indexed parent lookups, improving behavior for large chapter/group structures.
 - Added regression coverage for concurrent mutations, state repair/audit, guarded imports, large group progress, filters, diagnostics, backups, and UX hardening. Full regression suite: **103 tests**.
 
-### Player-view storage note
-
-The player-facing application and public API expose only the filtered Player View projection. The canonical Campaign Forge state is currently persisted in a **non-configurable world-scoped Foundry setting**. World-scoped settings are synchronized at World scope and should not be treated as a cryptographic or adversarial secrecy boundary against a user deliberately inspecting client-side data. A move of GM-secret canonical storage to an ownership-protected Foundry document is therefore tracked as a pre-release architecture hardening item rather than being folded into this migration-heavy release.
 
 ## v0.8.0 Player View
 
@@ -131,14 +172,15 @@ Campaign Forge is a GM-facing Foundry VTT module for tracking campaign structure
 - Journal-originated status changes use the same reward flow as changes made in Campaign Forge.
 - Reward changes are included in the active session log and share transaction IDs with the triggering status transition.
 
-## Storage
+## Storage and security
 
-Campaign data is stored in a non-configurable world setting. UI collapse state and display preferences are client-scoped. Overview pins, Actor links, and transition targets store references rather than copies of Campaign Forge content.
+The canonical GM campaign state is stored in an internal ownership-protected `JournalEntry`. The legacy `campaignData` world-setting payload is retained only as a scrubbed migration marker after a successful upgrade. Each non-GM user receives a separate ownership-filtered projection document containing only published player data and only document UUIDs that user may observe.
 
-## Next planned blocks
+UI collapse state and display preferences remain client-scoped. Overview pins, Actor links, Journal links, and transition targets store references rather than copies of the referenced Foundry or Forge-owned documents.
 
-Pre-release canonical-storage hardening, further large-campaign/performance review, and additional provider actions only where another Forge exposes a stable public contract.
+## Stable release status
 
+Campaign Forge 1.0.0 is the first stable release. Public API v1 and the listed contract-version meanings are frozen for the 1.x line; additive, backward-compatible capabilities may still be introduced. Optional Forge providers remain optional, and missing integrations must never prevent core campaign management from loading.
 
 ## Journal integration
 

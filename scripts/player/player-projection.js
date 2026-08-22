@@ -139,3 +139,71 @@ export function buildPlayerProjection(state) {
 export function playerEntryTypeDefinition(type) {
   return ENTRY_TYPES[type] ?? ENTRY_TYPES.note;
 }
+
+function canObserveForUser(document, user) {
+  if (!document || !user) return false;
+  try {
+    if (typeof document.testUserPermission === "function") return document.testUserPermission(user, "OBSERVER");
+    if (typeof document.parent?.testUserPermission === "function") return document.parent.testUserPermission(user, "OBSERVER");
+  } catch { /* noop */ }
+  return false;
+}
+
+/**
+ * Build a projection tailored to one Foundry user. This keeps document UUIDs
+ * out of other users' projection documents when they do not have permission to
+ * open those documents.
+ */
+export async function buildPlayerProjectionForUser(state, user, { resolveDocument = async () => null } = {}) {
+  const projection = buildPlayerProjection(state);
+
+  for (const entry of projection.entries ?? []) {
+    const allowed = [];
+    for (const link of entry.journalLinks ?? []) {
+      const document = await resolveDocument(link.uuid);
+      if (canObserveForUser(document, user)) allowed.push(link);
+    }
+    entry.journalLinks = allowed;
+  }
+
+  for (const keyPlayer of projection.keyPlayers ?? []) {
+    const actor = await resolveDocument(keyPlayer.actorUuid);
+    if (!canObserveForUser(actor, user)) keyPlayer.actorUuid = "";
+  }
+
+  return projection;
+}
+
+/**
+ * Convert an already-safe player projection back into the canonical-shaped
+ * subset expected by CampaignEngine.normalizeState. This is intentionally a
+ * one-way safety adapter: omitted GM-only fields remain absent/empty.
+ */
+export function inflatePlayerProjection(projection) {
+  const source = cloneData(projection ?? {});
+  return {
+    schemaVersion: 2,
+    groups: (source.groups ?? []).map(group => ({ ...group, playerVisible: true })),
+    entries: (source.entries ?? []).map(entry => ({ ...entry, visible: true })),
+    trackers: (source.trackers ?? []).map(tracker => ({
+      ...tracker,
+      playerVisible: true,
+      playerDescription: tracker.description ?? "",
+      description: ""
+    })),
+    keyPlayers: (source.keyPlayers ?? []).map(keyPlayer => ({
+      ...keyPlayer,
+      playerVisible: true,
+      playerNote: keyPlayer.note ?? "",
+      note: ""
+    })),
+    overviewPins: (source.overviewPins ?? []).map(pin => ({ ...pin, playerVisible: true })),
+    sessions: [],
+    meta: {
+      nextSessionNumber: 1,
+      revision: 0,
+      createdAt: new Date(0).toISOString(),
+      updatedAt: new Date(0).toISOString()
+    }
+  };
+}

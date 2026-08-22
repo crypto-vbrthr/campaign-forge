@@ -1326,7 +1326,9 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     })).filter(x => x.count > 0);
 
     let dataHealth = null;
+    let storageStatus = null;
     if (this._activeTab === "settings") {
+      storageStatus = this.engine?.repository?.getStatus?.() ?? null;
       const providerSignature = integrationStatuses.map(status => `${status.id}:${status.active}:${status.version ?? ""}`).join("|");
       const cacheKey = `${state.meta?.updatedAt ?? ""}:${state.meta?.revision ?? 0}:${providerSignature}`;
       if (!this._dataHealthCache || this._dataHealthCache.key !== cacheKey) {
@@ -1362,6 +1364,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       campaignRows,
       campaignFilter,
       dataHealth,
+      storageStatus,
       sessions,
       sessionHistory,
       trackers,
@@ -1387,7 +1390,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         showJournalButton: game.settings.get(MODULE_ID, SETTINGS.SHOW_JOURNAL_BUTTON),
         showStructuralChanges: game.settings.get(MODULE_ID, SETTINGS.SHOW_STRUCTURAL_CHANGES)
       },
-      version: game.modules.get(MODULE_ID)?.version ?? "0.9.1",
+      version: game.modules.get(MODULE_ID)?.version ?? "1.0.0",
       labels: {
         title: localize("CAMPAIGN_FORGE.Title"),
         noActiveSession: localize("CAMPAIGN_FORGE.Session.NoneActive")
@@ -4062,7 +4065,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       const payload = {
         format: "campaign-forge-backup",
         formatVersion: 1,
-        moduleVersion: game.modules.get(MODULE_ID)?.version ?? "0.9.1",
+        moduleVersion: game.modules.get(MODULE_ID)?.version ?? "1.0.0",
         exportedAt: new Date().toISOString(),
         state
       };

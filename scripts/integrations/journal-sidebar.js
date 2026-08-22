@@ -1,4 +1,4 @@
-import { MODULE_ID, SETTINGS } from "../core/constants.js";
+import { MODULE_ID, SETTINGS, STORAGE } from "../core/constants.js";
 
 let journalIntegrationRegistered = false;
 
@@ -9,11 +9,29 @@ function rootElement(html) {
   return null;
 }
 
-export function injectJournalButton(app, html, openCampaignForge) {
-  if (!game.settings.get(MODULE_ID, SETTINGS.SHOW_JOURNAL_BUTTON)) return;
 
+function hideInternalStorageDocuments(root) {
+  if (!root) return;
+  const ids = new Set();
+  const docs = game.journal?.contents ?? (typeof game.journal?.values === "function" ? Array.from(game.journal.values()) : []);
+  for (const document of docs) {
+    const meta = document?.getFlag?.(MODULE_ID, STORAGE.FLAG_META)
+      ?? document?.flags?.[MODULE_ID]?.[STORAGE.FLAG_META];
+    if (meta?.internal === true) ids.add(String(document.id));
+  }
+  if (!ids.size) return;
+  for (const row of root.querySelectorAll("[data-entry-id], [data-document-id]")) {
+    const id = String(row.dataset.entryId ?? row.dataset.documentId ?? "");
+    if (ids.has(id)) row.hidden = true;
+  }
+}
+
+export function injectJournalButton(app, html, openCampaignForge) {
   const root = rootElement(html) ?? rootElement(app?.element);
-  if (!root || root.querySelector("[data-campaign-forge-journal-button]")) return;
+  if (!root) return;
+  hideInternalStorageDocuments(root);
+  if (!game.settings.get(MODULE_ID, SETTINGS.SHOW_JOURNAL_BUTTON)) return;
+  if (root.querySelector("[data-campaign-forge-journal-button]")) return;
 
   const button = document.createElement("button");
   button.type = "button";

@@ -758,6 +758,19 @@
         "missingRewardItem": "Als Belohnung verknüpfter Gegenstand wurde nicht gefunden",
         "providerUnavailable": "Zugehörige Forge ist derzeit nicht aktiv"
       }
+    },
+    "Security": {
+      "Title": "Persistenz & Sicherheit",
+      "Description": "Der vollständige SL-Datenbestand wird in einem geschützten Foundry-Dokument gespeichert. Spieler erhalten nur eine eigene, berechtigungsgefilterte Projektion.",
+      "Protected": "Geschützter Dokumentenspeicher aktiv",
+      "NotProtected": "Geschützter Dokumentenspeicher nicht aktiv",
+      "StatusDetails": "Speicherformat v{version} · {projections} Spielerprojektionen",
+      "VaultName": "Campaign Forge · Geschützte Daten",
+      "PlayerProjectionName": "Campaign Forge · Spielerdaten",
+      "MigrationComplete": "Campaign Forge hat den Kampagnendatenbestand in den geschützten Dokumentenspeicher migriert.",
+      "VaultMissing": "Der geschützte Campaign-Forge-Datenspeicher wurde nicht gefunden. Aus Sicherheitsgründen wird kein neuer leerer Speicher angelegt. Bitte eine Sicherung wiederherstellen oder den internen Datenspeicher prüfen.",
+      "StorageInitFailed": "Der geschützte Campaign-Forge-Datenspeicher konnte nicht initialisiert werden. Details stehen in der Konsole.",
+      "VaultDeleted": "Der geschützte Campaign-Forge-Datenspeicher wurde gelöscht. Änderungen sind bis zur Wiederherstellung nicht sicher möglich."
     }
   },
   "CAMPAIGN_FORGE.Integrations.Npc.ActionFailed": "NPC-Forge-Aktion fehlgeschlagen. Details stehen in der Konsole."

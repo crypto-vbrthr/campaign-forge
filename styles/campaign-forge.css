@@ -2451,3 +2451,38 @@
   justify-content: center;
   padding: .55rem 0 .15rem;
 }
+
+.campaign-forge .cf-security-settings {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border-light-primary, rgba(255, 255, 255, 0.14));
+  border-radius: 8px;
+}
+
+.campaign-forge .cf-security-status {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 6px;
+  background: rgba(120, 120, 120, 0.08);
+}
+
+.campaign-forge .cf-security-status > span {
+  font-size: 1.25rem;
+}
+
+.campaign-forge .cf-security-status > div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.campaign-forge .cf-security-status.is-protected > span {
+  color: var(--color-level-success, #5fa86b);
+}
+
+.campaign-forge .cf-security-status.has-warning > span {
+  color: var(--color-level-warning, #c99a45);
+}

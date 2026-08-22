@@ -4,7 +4,19 @@ export const SETTINGS = Object.freeze({
   DATA: "campaignData",
   COLLAPSED_GROUPS: "collapsedGroups",
   SHOW_JOURNAL_BUTTON: "showJournalButton",
-  SHOW_STRUCTURAL_CHANGES: "showStructuralChanges"
+  SHOW_STRUCTURAL_CHANGES: "showStructuralChanges",
+  STORAGE_VERSION: "storageVersion",
+  VAULT_ID: "vaultId",
+  PROJECTION_IDS: "projectionIds"
+});
+
+
+export const STORAGE = Object.freeze({
+  VERSION: 1,
+  KIND_VAULT: "vault",
+  KIND_PLAYER: "playerProjection",
+  FLAG_META: "storage",
+  FLAG_STATE: "state"
 });
 
 export const SORT_STEP = 1000;

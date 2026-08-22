@@ -1,3 +1,31 @@
+## 1.0.0 - Stable Release
+
+- Promoted the validated `1.0.0-rc.1` codebase to the first stable release without changing Campaign State Schema v2 or Protected Storage Contract v1.
+- Marked Public API v1 as stable and froze the documented API/contract meanings for the 1.x line.
+- Updated package metadata, README, API contract, and release regression checks for stable status.
+- No campaign-data migration is required from `1.0.0-rc.1`.
+
+## 1.0.0-rc.1 - Release Candidate & Final Review
+
+- Completed the final pre-1.0 review across Campaign Engine, protected persistence, Player View privacy, Journal integration, optional Forge providers, rewards, localization, CSS isolation, backups, and large-campaign behavior.
+- Added Public API v1 release-candidate metadata: `apiVersion`, `stability`, `schemaVersion`, versioned `contracts`, capability discovery, and a `campaignForge.ready` hook that is emitted only after protected storage initializes successfully.
+- Raw optional-provider API access and protected-storage diagnostics through Campaign Forge's public API are now GM-only.
+- Corrected stale README text that still described the pre-v0.9.2 world-setting persistence model.
+- Added RC manifest/version/documentation regression checks.
+- Campaign state remains Schema v2 and protected persistence remains Storage Contract v1; upgrading from v0.9.2 does not require another data migration.
+
+## 0.9.2 - Protected Persistence & Security Hardening
+
+- Moved the canonical GM campaign state out of the client-readable world setting and into an ownership-protected internal JournalEntry.
+- Added an automatic one-time migration from the legacy `campaignData` setting. The legacy setting is scrubbed only after the protected vault and player projections have been created successfully.
+- Added one permission-filtered internal player-projection JournalEntry per non-GM user. These projections contain only published Campaign Forge data and only include Journal/Actor UUIDs the specific user can observe.
+- Player repositories fail closed and never fall back to the legacy world setting. Player-side mutations are rejected defensively even if called outside the normal UI/API guard.
+- Added automatic projection refresh after Campaign Forge saves and after relevant Foundry ownership/user changes. Stale projection documents are removed when users are deleted.
+- The protected vault defaults to no player ownership; non-GM ownership grants are stripped during initialization. Missing vaults after migration fail closed instead of silently creating an empty replacement.
+- Internal storage documents are hidden from the Journal directory UI; this is UX-only and not the security boundary. Document ownership remains the actual access control.
+- Added a Settings persistence/security status panel and public GM storage diagnostics/refresh helpers.
+- Added migration, projection filtering, fail-closed storage, and non-GM write regression coverage. Full regression suite: **108 tests**.
+
 ## 0.9.1 - Search Focus Hotfix
 
 - Fixed campaign-tree live search losing keyboard focus after the debounced results rerender.

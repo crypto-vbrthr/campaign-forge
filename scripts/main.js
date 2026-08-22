@@ -1,6 +1,6 @@
-import { MODULE_ID, SETTINGS } from "./core/constants.js";
+import { MODULE_ID } from "./core/constants.js";
 import { registerSettings } from "./core/settings.js";
-import { FoundryCampaignRepository } from "./data/foundry-repository.js";
+import { CampaignStorageError, FoundryCampaignRepository } from "./data/foundry-repository.js";
 import { CampaignEngine } from "./engine/campaign-engine.js";
 import { CampaignForgeApp } from "./app/campaign-forge-app.js";
 import { PlayerCampaignForgeApp } from "./player/player-campaign-forge-app.js";
@@ -14,6 +14,8 @@ let engine = null;
 let app = null;
 let playerApp = null;
 let providers = null;
+let repository = null;
+let projectionRefreshTimer = null;
 
 function requireGM() {
   if (!game.user?.isGM) {
@@ -40,7 +42,30 @@ function exposeApi() {
   if (!module) return;
 
   module.api = {
-    version: "0.9.1",
+    version: module.version ?? "1.0.0",
+    apiVersion: 1,
+    stability: "stable",
+    schemaVersion: 2,
+    contracts: Object.freeze({
+      api: 1,
+      stateSchema: 2,
+      playerProjection: 1,
+      journalEmbed: 1,
+      protectedStorage: 1
+    }),
+    hooks: Object.freeze({
+      ready: "campaignForge.ready"
+    }),
+    getCapabilities: () => Object.freeze({
+      playerView: true,
+      protectedPersistence: true,
+      sessions: true,
+      transitionRules: true,
+      rewardRules: true,
+      journalEmbeds: true,
+      forgeProviders: true,
+      backups: true
+    }),
     open: openCampaignForge,
     openPlayerView: openPlayerCampaignForge,
     getState: async () => {
@@ -98,7 +123,20 @@ function exposeApi() {
     getIntegrationStatus: () => providers?.listStatus?.() ?? [],
     integrations: Object.freeze({
       getStatus: () => providers?.listStatus?.() ?? [],
-      getApi: providerId => providers?.getApi?.(providerId) ?? null
+      getApi: providerId => {
+        requireGM();
+        return providers?.getApi?.(providerId) ?? null;
+      }
+    }),
+    storage: Object.freeze({
+      getStatus: () => {
+        requireGM();
+        return repository?.getStatus?.() ?? null;
+      },
+      refreshPlayerProjections: async () => {
+        requireGM();
+        return repository?.refreshPlayerProjections?.();
+      }
     }),
     addJournalLink: (entryId, data) => {
       requireGM();
@@ -222,7 +260,20 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", async () => {
   providers = new FoundryForgeProviderRegistry();
-  engine = new CampaignEngine(new FoundryCampaignRepository(), {
+  repository = new FoundryCampaignRepository();
+  let storageReady = false;
+  try {
+    await repository.initialize();
+    storageReady = true;
+  } catch (error) {
+    console.error(`${MODULE_ID} | Protected storage initialization failed`, error);
+    const key = error instanceof CampaignStorageError && error.code === "VAULT_MISSING"
+      ? "CAMPAIGN_FORGE.Security.VaultMissing"
+      : "CAMPAIGN_FORGE.Security.StorageInitFailed";
+    ui.notifications?.error?.(game.i18n.localize(key), { permanent: true });
+  }
+
+  engine = new CampaignEngine(repository, {
     userId: () => game.user?.id ?? null,
     gameTime: () => game.time?.worldTime ?? null,
     rewardExecutor: new FoundryRewardExecutor({ providers }),
@@ -230,6 +281,11 @@ Hooks.once("ready", async () => {
   });
 
   exposeApi();
+  if (storageReady) Hooks.callAll("campaignForge.ready", game.modules.get(MODULE_ID)?.api ?? null);
+
+  if (game.user?.isGM && repository?.migratedThisRun) {
+    ui.notifications?.info?.(game.i18n.localize("CAMPAIGN_FORGE.Security.MigrationComplete"));
+  }
 
   // Defensive fallback for worlds where the Journal directory was rendered
   // before ready. The injector is idempotent, so this cannot create a duplicate.
@@ -238,12 +294,48 @@ Hooks.once("ready", async () => {
     if (journal) injectJournalButton(journal, journal.element, openCampaignForge);
   }
 
-  Hooks.on("updateSetting", setting => {
-    if (setting?.key !== `${MODULE_ID}.${SETTINGS.DATA}`) return;
-    if (game.user?.isGM && app?.rendered) app.render();
-    if (playerApp?.rendered) playerApp.render();
+  const rerenderStorageConsumer = document => {
+    if (!repository?.isStorageDocument?.(document)) return;
+    if (repository.isVaultDocument(document)) {
+      if (game.user?.isGM && app?.rendered) app.render();
+    } else if (repository.isProjectionDocument(document, game.user?.id)) {
+      if (playerApp?.rendered) playerApp.render();
+    }
     refreshJournalEmbeds().catch(error => console.warn(`${MODULE_ID} | Could not refresh Journal embeds`, error));
+  };
+
+  const scheduleProjectionRefresh = () => {
+    if (!game.user?.isGM || !repository?.refreshPlayerProjections) return;
+    clearTimeout(projectionRefreshTimer);
+    projectionRefreshTimer = setTimeout(() => {
+      repository.refreshPlayerProjections().catch(error =>
+        console.warn(`${MODULE_ID} | Could not refresh player projections`, error));
+    }, 100);
+  };
+
+  Hooks.on("updateJournalEntry", (document, changes) => {
+    if (repository?.isStorageDocument?.(document)) return rerenderStorageConsumer(document);
+    if (Object.prototype.hasOwnProperty.call(changes ?? {}, "ownership")) scheduleProjectionRefresh();
   });
+  Hooks.on("deleteJournalEntry", document => {
+    if (repository?.isVaultDocument?.(document) && game.user?.isGM) {
+      ui.notifications?.error?.(game.i18n.localize("CAMPAIGN_FORGE.Security.VaultDeleted"), { permanent: true });
+      return;
+    }
+    if (repository?.isProjectionDocument?.(document)) {
+      scheduleProjectionRefresh();
+      return;
+    }
+    if (!repository?.isStorageDocument?.(document)) scheduleProjectionRefresh();
+  });
+  Hooks.on("updateActor", (_document, changes) => {
+    if (Object.prototype.hasOwnProperty.call(changes ?? {}, "ownership")) scheduleProjectionRefresh();
+  });
+  Hooks.on("createUser", scheduleProjectionRefresh);
+  Hooks.on("updateUser", (_user, changes) => {
+    if (Object.prototype.hasOwnProperty.call(changes ?? {}, "role") || Object.prototype.hasOwnProperty.call(changes ?? {}, "active")) scheduleProjectionRefresh();
+  });
+  Hooks.on("deleteUser", scheduleProjectionRefresh);
 
   console.info(`${MODULE_ID} | Ready`);
 });
