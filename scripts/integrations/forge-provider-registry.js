@@ -58,6 +58,20 @@ const DEFINITIONS = Object.freeze({
       };
     }
   }),
+  chaseForge: Object.freeze({
+    moduleId: "pf2e-chase-forge",
+    labelKey: "CAMPAIGN_FORGE.Integrations.Providers.chaseForge",
+    capabilities(api) {
+      const bridge = api?.integrations?.campaignForge;
+      return {
+        references: Boolean(bridge?.listPrepared && bridge?.getContext),
+        open: Boolean(bridge?.open),
+        create: Boolean(bridge?.openNew),
+        start: Boolean(bridge?.start),
+        results: Boolean(bridge?.getLatestResult)
+      };
+    }
+  }),
   weatherForge: Object.freeze({
     moduleId: "pf2e-weather-forge",
     labelKey: "CAMPAIGN_FORGE.Integrations.Providers.weatherForge",
@@ -394,6 +408,46 @@ export class FoundryForgeProviderRegistry {
     const api = this.getApi("cityForge");
     if (!api?.ui?.openEditor) return null;
     return api.ui.openEditor(settlementId);
+  }
+
+  async listChaseTargets(options = {}) {
+    const bridge = this.getApi("chaseForge")?.integrations?.campaignForge;
+    if (!bridge?.listPrepared) return [];
+    return clone(await bridge.listPrepared(options));
+  }
+
+  async getChaseContext(kind, targetId) {
+    const bridge = this.getApi("chaseForge")?.integrations?.campaignForge;
+    if (!bridge?.getContext) return null;
+    return clone(await bridge.getContext(kind, targetId));
+  }
+
+  async openChase(kind, targetId) {
+    const bridge = this.getApi("chaseForge")?.integrations?.campaignForge;
+    if (!bridge?.open) return null;
+    return bridge.open(kind, targetId);
+  }
+
+  openNewChase(options = {}) {
+    const bridge = this.getApi("chaseForge")?.integrations?.campaignForge;
+    if (!bridge?.openNew) return null;
+    return bridge.openNew(options);
+  }
+
+  async startChase(kind, targetId, context = {}) {
+    const bridge = this.getApi("chaseForge")?.integrations?.campaignForge;
+    if (!bridge?.start) {
+      const error = new Error("Chase Forge start capability is unavailable");
+      error.code = "PROVIDER_CAPABILITY_UNAVAILABLE";
+      throw error;
+    }
+    return clone(await bridge.start(kind, targetId, { campaign: clone(context) }));
+  }
+
+  async getLatestChaseResult(kind, targetId, options = {}) {
+    const bridge = this.getApi("chaseForge")?.integrations?.campaignForge;
+    if (!bridge?.getLatestResult) return null;
+    return clone(await bridge.getLatestResult(kind, targetId, options));
   }
 
   openNpcForge(options = {}) {

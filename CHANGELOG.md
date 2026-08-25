@@ -1,3 +1,12 @@
+## 1.0.1 - Chase Forge Integration
+
+- Added optional `chaseForge` provider capability detection for PF2E Chase Forge Campaign Integration Contract v1.
+- Campaign entries can link prepared world Blueprints and read-only Chase Library entries without copying provider-owned data.
+- Added open, create-new, and direct-start controls for linked chases.
+- Direct starts pass campaign entry/link provenance to Chase Forge and open its GM Runner through the provider API.
+- Added live latest-result lookup and lifecycle-driven GM UI refresh without persisting duplicate ChaseResult data in Campaign state.
+- Added GM-only `campaign.integrations.chase` facade while keeping Public API v1 and Campaign State Schema v2 stable.
+
 ## 1.0.0 - Stable Release
 
 - Promoted the validated `1.0.0-rc.1` codebase to the first stable release without changing Campaign State Schema v2 or Protected Storage Contract v1.

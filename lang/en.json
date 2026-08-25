@@ -550,7 +550,8 @@
         "creatureForge": "Creature Forge",
         "lootForge": "Loot Forge",
         "itemForge": "Item Forge",
-        "weatherForge": "Weather Forge"
+        "weatherForge": "Weather Forge",
+        "chaseForge": "Chase Forge"
       },
       "Status": {
         "ready": "Ready",
@@ -660,7 +661,32 @@
         "SaveEventTypeFirst": "Save the entry type change to Event first. A weather snapshot can then be captured."
       },
       "ApiVersion": "API {version}",
-      "EditorContractVersion": "Editor contract {version}"
+      "EditorContractVersion": "Editor contract {version}",
+      "Chase": {
+        "Prepared": "Prepared chase",
+        "Link": "Link",
+        "New": "New chase in Chase Forge",
+        "Start": "Start chase",
+        "Unavailable": "Chase Forge is unavailable or does not expose the required integration.",
+        "NoPrepared": "No prepared chases are available yet.",
+        "WorldPrefix": "World chase",
+        "LibraryPrefix": "Library",
+        "LastResult": "Latest result",
+        "ReferenceKinds": {
+          "blueprint": "World chase",
+          "library": "Library chase"
+        },
+        "Outcomes": {
+          "quarryEscaped": "Quarry escaped",
+          "quarryCaught": "Quarry caught",
+          "goalReached": "Goal reached",
+          "timeExpired": "Time expired",
+          "raceWon": "Race won",
+          "raceLost": "Race lost",
+          "aborted": "Aborted",
+          "custom": "Custom"
+        }
+      }
     },
     "PlayerView": {
       "Tab": "Player View",

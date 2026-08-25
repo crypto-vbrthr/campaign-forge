@@ -1,8 +1,8 @@
-# Campaign Forge v1.0.0
+# Campaign Forge v1.0.1
 
 Campaign Forge is a campaign-management and campaign-memory module for Foundry VTT. It tracks quests, knowledge, events, long-running plot threads, sessions, reputation and other numeric campaign values, important NPCs, Journal references, rule-driven consequences, and rewards. A dedicated read-only Player View exposes only information explicitly published by the GM.
 
-The module also acts as an optional integration hub for the Forge suite. City Forge, NPC Forge, Creature Forge, Loot Forge, Item Forge, and Weather Forge remain independent providers; Campaign Forge references or orchestrates their public functionality without taking ownership of their specialist data.
+The module also acts as an optional integration hub for the Forge suite. City Forge, NPC Forge, Creature Forge, Loot Forge, Item Forge, Weather Forge, and Chase Forge remain independent providers; Campaign Forge references or orchestrates their public functionality without taking ownership of their specialist data.
 
 
 ## Part of the Forge Suite
@@ -12,6 +12,16 @@ Campaign Forge is part of the **Forge Suite**, a growing collection of Foundry V
 An overview of the Forge Suite, its modules, add-ons, and shared documentation is available here:
 
 **Forge Suite:** https://github.com/crypto-vbrthr/pf2e-forge-suite
+
+## v1.0.1 Chase Forge Integration
+
+- Added optional Chase Forge provider discovery without introducing a hard dependency.
+- Campaign entries can link prepared world Chase Blueprints and read-only Chase libraries while Campaign Forge stores only the external reference.
+- Linked chases can be opened in Chase Forge or started directly from the Campaign entry. Direct starts carry campaign entry/link provenance into the Chase Session.
+- Added a quick action to create a new chase in Chase Forge from the campaign-entry integration panel.
+- Campaign Forge reads the latest ChaseResult live from Chase Forge instead of copying chase-domain result data into Campaign state.
+- Chase lifecycle hooks refresh the open GM workspace when a Campaign-started chase changes state. Campaign progression is not changed automatically.
+- Public API remains stable v1 and Campaign State remains Schema v2. The new `campaign.integrations.chase` facade is additive and GM-only.
 
 ## v1.0.0 Stable Release
 

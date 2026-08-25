@@ -550,7 +550,8 @@
         "creatureForge": "Creature Forge",
         "lootForge": "Loot Forge",
         "itemForge": "Item Forge",
-        "weatherForge": "Weather Forge"
+        "weatherForge": "Weather Forge",
+        "chaseForge": "Chase Forge"
       },
       "Status": {
         "ready": "Bereit",
@@ -660,7 +661,32 @@
         "SaveEventTypeFirst": "Speichere zuerst die Änderung des Eintragstyps zu „Ereignis“. Danach kann ein Wetter-Snapshot erfasst werden."
       },
       "ApiVersion": "API {version}",
-      "EditorContractVersion": "Editor-Vertrag {version}"
+      "EditorContractVersion": "Editor-Vertrag {version}",
+      "Chase": {
+        "Prepared": "Vorbereitete Verfolgungsjagd",
+        "Link": "Verknüpfen",
+        "New": "Neue Verfolgungsjagd in Chase Forge",
+        "Start": "Verfolgungsjagd starten",
+        "Unavailable": "Chase Forge ist nicht verfügbar oder unterstützt die benötigte Integration nicht.",
+        "NoPrepared": "Noch keine vorbereiteten Verfolgungsjagden verfügbar.",
+        "WorldPrefix": "Eigene Chase",
+        "LibraryPrefix": "Bibliothek",
+        "LastResult": "Letztes Ergebnis",
+        "ReferenceKinds": {
+          "blueprint": "Eigene Chase",
+          "library": "Bibliotheks-Chase"
+        },
+        "Outcomes": {
+          "quarryEscaped": "Ziel entkommen",
+          "quarryCaught": "Ziel eingeholt",
+          "goalReached": "Ziel erreicht",
+          "timeExpired": "Zeit abgelaufen",
+          "raceWon": "Rennen gewonnen",
+          "raceLost": "Rennen verloren",
+          "aborted": "Abgebrochen",
+          "custom": "Benutzerdefiniert"
+        }
+      }
     },
     "PlayerView": {
       "Tab": "Spieleransicht",

@@ -453,12 +453,17 @@
                           <article class="cf-external-link-row">
                             <div class="cf-external-link-main">
                               <strong>{{displayLabel}}</strong>
-                              <small>{{providerLabel}} · {{kindLabel}}{{#if meta.settlementName}} · {{meta.settlementName}}{{/if}}</small>
+                              <small>{{providerLabel}} · {{kindLabel}}{{#if meta.settlementName}} · {{meta.settlementName}}{{/if}}{{#if lastResultLabel}} · {{lastResultLabel}}{{/if}}</small>
                             </div>
                             <div class="cf-journal-link-actions">
                               {{#if canOpen}}
-                                <button type="button" class="icon" data-action="openExternalLink" data-provider="{{provider}}" data-target-id="{{targetId}}" title="{{localize "CAMPAIGN_FORGE.Integrations.ExternalLinks.Open"}}">
+                                <button type="button" class="icon" data-action="openExternalLink" data-provider="{{provider}}" data-kind="{{kind}}" data-target-id="{{targetId}}" title="{{localize "CAMPAIGN_FORGE.Integrations.ExternalLinks.Open"}}">
                                   <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </button>
+                              {{/if}}
+                              {{#if canStart}}
+                                <button type="button" class="icon" data-action="startExternalChase" data-kind="{{kind}}" data-target-id="{{targetId}}" data-link-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Integrations.Chase.Start"}}">
+                                  <i class="fa-solid fa-play"></i>
                                 </button>
                               {{/if}}
                               <button type="button" class="icon" data-action="removeExternalLink" data-link-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Integrations.ExternalLinks.Remove"}}">
@@ -508,6 +513,40 @@
                     {{else}}
                       <small class="cf-external-links-empty">{{localize "CAMPAIGN_FORGE.Integrations.City.NotAvailableForLinks"}}</small>
                     {{/if}}
+
+                    <div class="cf-chase-link-builder">
+                      <div class="cf-integration-mini-heading">
+                        <span><i class="fa-solid fa-person-running"></i> {{localize "CAMPAIGN_FORGE.Integrations.Providers.chaseForge"}}</span>
+                        {{#if editor.chaseIntegration.canCreate}}
+                          <button type="button" class="icon" data-action="openNewChaseForge" title="{{localize "CAMPAIGN_FORGE.Integrations.Chase.New"}}"><i class="fa-solid fa-plus"></i></button>
+                        {{/if}}
+                      </div>
+                      {{#if editor.chaseIntegration.ready}}
+                        {{#if editor.chaseIntegration.hasTargets}}
+                          <div class="cf-chase-link-builder-grid">
+                            <label>
+                              <span>{{localize "CAMPAIGN_FORGE.Integrations.Chase.Prepared"}}</span>
+                              <select data-cf-chase-link-target>
+                                {{#each editor.chaseIntegration.targets}}
+                                  <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                                {{/each}}
+                              </select>
+                            </label>
+                            <button type="button" data-action="addChaseExternalLink">
+                              <i class="fa-solid fa-link"></i>
+                              {{localize "CAMPAIGN_FORGE.Integrations.Chase.Link"}}
+                            </button>
+                          </div>
+                        {{else}}
+                          <small class="cf-external-links-empty">{{localize "CAMPAIGN_FORGE.Integrations.Chase.NoPrepared"}}</small>
+                        {{/if}}
+                        {{#if editor.chaseIntegration.canCreate}}
+                          <button type="button" data-action="openNewChaseForge"><i class="fa-solid fa-person-running"></i> {{localize "CAMPAIGN_FORGE.Integrations.Chase.New"}}</button>
+                        {{/if}}
+                      {{else}}
+                        <small class="cf-external-links-empty">{{localize "CAMPAIGN_FORGE.Integrations.Chase.Unavailable"}}</small>
+                      {{/if}}
+                    </div>
 
                     <div class="cf-creature-link-builder">
                       <div class="cf-integration-mini-heading">

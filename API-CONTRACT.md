@@ -2,7 +2,7 @@
 
 ## Status
 
-Campaign Forge 1.0.0 exposes **Public API v1** as a stable contract.
+Campaign Forge 1.0.1 exposes **Public API v1** as a stable contract.
 Public API v1 method meanings and the listed contract-version meanings are frozen for the 1.x line. Additive, backward-compatible capabilities may still be introduced.
 
 ```js
@@ -21,7 +21,7 @@ The package release string is available as `campaign.version`.
 campaign.contracts
 ```
 
-1.0.0 exposes:
+1.0.1 exposes:
 
 ```js
 {
@@ -29,7 +29,8 @@ campaign.contracts
   stateSchema: 2,
   playerProjection: 1,
   journalEmbed: 1,
-  protectedStorage: 1
+  protectedStorage: 1,
+  chaseIntegration: 1
 }
 ```
 
@@ -84,6 +85,25 @@ campaign.integrations.getStatus();
 Raw provider APIs are intentionally exposed through `campaign.integrations.getApi(providerId)` only to GMs. Consumers that directly integrate with another Forge should normally use that Forge's own public API instead of routing through Campaign Forge.
 
 Optional providers are not hard dependencies and must be feature-detected.
+
+### Chase Forge facade (added in 1.0.1)
+
+When Chase Forge advertises Campaign Integration Contract v1, GMs may use the additive facade:
+
+```js
+await campaign.integrations.chase.listPrepared();
+await campaign.integrations.chase.getContext(kind, targetId);
+await campaign.integrations.chase.open(kind, targetId);
+await campaign.integrations.chase.openNew();
+await campaign.integrations.chase.start(kind, targetId, {
+  entryId,
+  entryTitle,
+  linkId
+});
+await campaign.integrations.chase.getLatestResult(kind, targetId, { entryId });
+```
+
+Campaign entries persist only the generic external-link reference (`provider`, `kind`, `targetId`, optional label/meta). Chase Blueprints, Library definitions, Sessions, and ChaseResults remain owned by Chase Forge. Starting a linked chase creates an independent Chase Session and records campaign provenance in Chase-owned session metadata. Campaign Forge does not automatically change entry status or campaign progression from a ChaseResult.
 
 ## Persistence contract
 

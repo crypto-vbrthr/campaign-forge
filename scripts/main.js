@@ -42,7 +42,7 @@ function exposeApi() {
   if (!module) return;
 
   module.api = {
-    version: module.version ?? "1.0.0",
+    version: module.version ?? "1.0.1",
     apiVersion: 1,
     stability: "stable",
     schemaVersion: 2,
@@ -51,7 +51,8 @@ function exposeApi() {
       stateSchema: 2,
       playerProjection: 1,
       journalEmbed: 1,
-      protectedStorage: 1
+      protectedStorage: 1,
+      chaseIntegration: 1
     }),
     hooks: Object.freeze({
       ready: "campaignForge.ready"
@@ -64,6 +65,8 @@ function exposeApi() {
       rewardRules: true,
       journalEmbeds: true,
       forgeProviders: true,
+      chaseForgeLinks: true,
+      chaseForgeDirectStart: true,
       backups: true
     }),
     open: openCampaignForge,
@@ -126,7 +129,33 @@ function exposeApi() {
       getApi: providerId => {
         requireGM();
         return providers?.getApi?.(providerId) ?? null;
-      }
+      },
+      chase: Object.freeze({
+        listPrepared: options => {
+          requireGM();
+          return providers?.listChaseTargets?.(options) ?? [];
+        },
+        getContext: (kind, targetId) => {
+          requireGM();
+          return providers?.getChaseContext?.(kind, targetId) ?? null;
+        },
+        open: (kind, targetId) => {
+          requireGM();
+          return providers?.openChase?.(kind, targetId) ?? null;
+        },
+        openNew: options => {
+          requireGM();
+          return providers?.openNewChase?.(options) ?? null;
+        },
+        start: (kind, targetId, context = {}) => {
+          requireGM();
+          return providers?.startChase?.(kind, targetId, context) ?? null;
+        },
+        getLatestResult: (kind, targetId, options = {}) => {
+          requireGM();
+          return providers?.getLatestChaseResult?.(kind, targetId, options) ?? null;
+        }
+      })
     }),
     storage: Object.freeze({
       getStatus: () => {
@@ -336,6 +365,19 @@ Hooks.once("ready", async () => {
     if (Object.prototype.hasOwnProperty.call(changes ?? {}, "role") || Object.prototype.hasOwnProperty.call(changes ?? {}, "active")) scheduleProjectionRefresh();
   });
   Hooks.on("deleteUser", scheduleProjectionRefresh);
+
+  for (const hookName of [
+    "pf2eChaseForge.sessionStarted",
+    "pf2eChaseForge.sessionPaused",
+    "pf2eChaseForge.sessionResumed",
+    "pf2eChaseForge.sessionCompleted",
+    "pf2eChaseForge.sessionAborted"
+  ]) {
+    Hooks.on(hookName, payload => {
+      if (payload?.campaign?.moduleId !== MODULE_ID) return;
+      if (game.user?.isGM && app?.rendered) app.render();
+    });
+  }
 
   console.info(`${MODULE_ID} | Ready`);
 });

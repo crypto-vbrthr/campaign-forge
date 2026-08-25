@@ -900,6 +900,9 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       setJournalPrimary: this._actionSetJournalPrimary,
       openPrimaryJournal: this._actionOpenPrimaryJournal,
       addCityExternalLink: this._actionAddCityExternalLink,
+      addChaseExternalLink: this._actionAddChaseExternalLink,
+      startExternalChase: this._actionStartExternalChase,
+      openNewChaseForge: this._actionOpenNewChaseForge,
       removeExternalLink: this._actionRemoveExternalLink,
       openExternalLink: this._actionOpenExternalLink,
       createKeyPlayerWithNpcForge: this._actionCreateKeyPlayerWithNpcForge,
@@ -944,6 +947,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this._rewardEditor = null;
     this._focusKey = null;
     this._cityLinkDraft = null;
+    this._chaseLinkDraft = null;
     this._npcEditorSession = null;
     this._npcEditorDialog = null;
     this._creatureEditor = null;
@@ -1433,25 +1437,45 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         let liveLabel = link.label || link.meta?.settlementName || link.targetId;
         let missing = false;
         let actorImg = null;
+        let lastResult = null;
         if (link.provider === "creatureForge" && link.kind === "actor") {
           const actor = await resolveActor(link.targetId);
           liveLabel = actor?.name ?? liveLabel;
           actorImg = actor?.img ?? null;
           missing = !actor;
         }
+        if (link.provider === "chaseForge") {
+          try {
+            const chase = await this.providers?.getChaseContext?.(link.kind, link.targetId);
+            liveLabel = chase?.label ?? liveLabel;
+            missing = !chase;
+            if (chase && this.providers?.supports?.("chaseForge", "results")) {
+              lastResult = await this.providers.getLatestChaseResult(link.kind, link.targetId, { entryId: source?.id ?? null });
+            }
+          } catch {
+            missing = true;
+          }
+        }
+        const kindLabel = link.provider === "cityForge"
+          ? localize(`CAMPAIGN_FORGE.Integrations.City.ReferenceKinds.${link.kind}`)
+          : (link.provider === "creatureForge" && link.kind === "actor"
+            ? localize("CAMPAIGN_FORGE.Integrations.Creature.ActorReference")
+            : (link.provider === "chaseForge"
+              ? localize(`CAMPAIGN_FORGE.Integrations.Chase.ReferenceKinds.${link.kind}`)
+              : link.kind));
         return {
           ...link,
           providerLabel: localize(`CAMPAIGN_FORGE.Integrations.Providers.${link.provider}`),
-          kindLabel: link.provider === "cityForge"
-            ? localize(`CAMPAIGN_FORGE.Integrations.City.ReferenceKinds.${link.kind}`)
-            : (link.provider === "creatureForge" && link.kind === "actor"
-              ? localize("CAMPAIGN_FORGE.Integrations.Creature.ActorReference")
-              : link.kind),
+          kindLabel,
           displayLabel: liveLabel,
           actorImg,
           missing,
-          canOpen: (link.provider === "cityForge" && Boolean(this.providers?.supports?.("cityForge", "open")))
+          lastResult,
+          lastResultLabel: lastResult ? `${localize("CAMPAIGN_FORGE.Integrations.Chase.LastResult")}: ${localize(`CAMPAIGN_FORGE.Integrations.Chase.Outcomes.${lastResult.outcome}`)}` : "",
+          canOpen: !missing && ((link.provider === "cityForge" && Boolean(this.providers?.supports?.("cityForge", "open")))
             || (link.provider === "creatureForge" && link.kind === "actor")
+            || (link.provider === "chaseForge" && Boolean(this.providers?.supports?.("chaseForge", "open")))),
+          canStart: !missing && link.provider === "chaseForge" && Boolean(this.providers?.supports?.("chaseForge", "start"))
         };
       }));
       const creatureLinks = externalLinks.filter(link => link.provider === "creatureForge" && link.kind === "actor");
@@ -1511,6 +1535,30 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         };
       }
 
+      let chaseIntegration = { ready: false, canCreate: false, canStart: false, targets: [] };
+      const chaseStatus = this.providers?.inspect?.("chaseForge") ?? null;
+      if (source && chaseStatus?.ready && chaseStatus.capabilities?.references) {
+        const targets = await this.providers.listChaseTargets();
+        if (!this._chaseLinkDraft || this._chaseLinkDraft.entryId !== source.id) {
+          this._chaseLinkDraft = { entryId: source.id, kind: targets[0]?.kind ?? "blueprint", targetId: targets[0]?.id ?? "" };
+        }
+        if (!targets.some(target => target.kind === this._chaseLinkDraft.kind && target.id === this._chaseLinkDraft.targetId)) {
+          this._chaseLinkDraft.kind = targets[0]?.kind ?? "blueprint";
+          this._chaseLinkDraft.targetId = targets[0]?.id ?? "";
+        }
+        chaseIntegration = {
+          ready: true,
+          canCreate: Boolean(chaseStatus.capabilities?.create),
+          canStart: Boolean(chaseStatus.capabilities?.start),
+          hasTargets: targets.length > 0,
+          targets: targets.map(target => ({
+            value: `${target.kind}|${target.id}`,
+            label: `${target.readOnly ? localize("CAMPAIGN_FORGE.Integrations.Chase.LibraryPrefix") : localize("CAMPAIGN_FORGE.Integrations.Chase.WorldPrefix")} · ${target.label}`,
+            selected: target.kind === this._chaseLinkDraft.kind && target.id === this._chaseLinkDraft.targetId
+          }))
+        };
+      }
+
       return {
         kind: "entry",
         id: source?.id ?? "",
@@ -1546,6 +1594,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         generalExternalLinks,
         hasGeneralExternalLinks: generalExternalLinks.length > 0,
         cityIntegration,
+        chaseIntegration,
         creatureIntegration: {
           ready: Boolean(source && this.providers?.supports?.("creatureForge", "embeddedEditor")),
           canOpen: Boolean(this.providers?.supports?.("creatureForge", "open")),
@@ -2337,6 +2386,16 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     root.querySelectorAll("[data-cf-city-link-target]").forEach(select => {
       select.addEventListener("change", event => {
         if (this._cityLinkDraft) this._cityLinkDraft.subTargetId = event.currentTarget.value;
+      });
+    });
+
+    root.querySelectorAll("[data-cf-chase-link-target]").forEach(select => {
+      select.addEventListener("change", event => {
+        if (!this._chaseLinkDraft) return;
+        const value = String(event.currentTarget.value ?? "");
+        const split = value.indexOf("|");
+        this._chaseLinkDraft.kind = split >= 0 ? value.slice(0, split) : "blueprint";
+        this._chaseLinkDraft.targetId = split >= 0 ? value.slice(split + 1) : value;
       });
     });
 
@@ -3383,6 +3442,56 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     }
   }
 
+  static async _actionAddChaseExternalLink() {
+    if (this._editor?.kind !== "entry" || !this._editor.id || !this._chaseLinkDraft?.targetId) return;
+    try {
+      const chase = await this.providers?.getChaseContext?.(this._chaseLinkDraft.kind, this._chaseLinkDraft.targetId);
+      if (!chase) throw new CampaignEngineError("EXTERNAL_LINK_TARGET_REQUIRED");
+      await this.engine.addExternalLink(this._editor.id, {
+        provider: "chaseForge",
+        kind: chase.kind,
+        targetId: chase.id,
+        label: chase.label,
+        meta: {
+          chaseType: chase.chaseType ?? null,
+          readOnly: Boolean(chase.readOnly),
+          source: chase.source ?? null
+        }
+      });
+      await this.render();
+    } catch (error) {
+      this._handleError(error);
+    }
+  }
+
+  static async _actionStartExternalChase(event, target) {
+    if (this._editor?.kind !== "entry" || !this._editor.id) return null;
+    try {
+      const source = (await this.engine.getState()).entries.find(entry => entry.id === this._editor.id) ?? null;
+      const result = await this.providers?.startChase?.(target.dataset.kind ?? "blueprint", target.dataset.targetId, {
+        entryId: this._editor.id,
+        entryTitle: source?.title ?? "",
+        linkId: target.dataset.linkId ?? null
+      });
+      if (!result) ui.notifications.warn(localize("CAMPAIGN_FORGE.Integrations.Chase.Unavailable"));
+      return result;
+    } catch (error) {
+      this._handleError(error);
+      return null;
+    }
+  }
+
+  static _actionOpenNewChaseForge() {
+    try {
+      const result = this.providers?.openNewChase?.({ source: "campaign-forge", entryId: this._editor?.id ?? null });
+      if (!result) ui.notifications.warn(localize("CAMPAIGN_FORGE.Integrations.Chase.Unavailable"));
+      return result;
+    } catch (error) {
+      this._handleError(error);
+      return null;
+    }
+  }
+
   static async _actionRemoveExternalLink(event, target) {
     if (this._editor?.kind !== "entry" || !this._editor.id) return;
     try {
@@ -3401,6 +3510,9 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       } else if (provider === "creatureForge") {
         const actor = await this.providers?.openCreatureActor?.(target.dataset.targetId);
         if (!actor) ui.notifications.warn(localize("CAMPAIGN_FORGE.Integrations.Creature.ActorMissing"));
+      } else if (provider === "chaseForge") {
+        const result = await this.providers?.openChase?.(target.dataset.kind ?? "blueprint", target.dataset.targetId);
+        if (!result) ui.notifications.warn(localize("CAMPAIGN_FORGE.Integrations.Chase.Unavailable"));
       }
     } catch (error) {
       this._handleError(error);

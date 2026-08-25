@@ -250,3 +250,55 @@ test("provider registry exposes Loot Forge and Item Forge reward capabilities", 
   assert.equal(item.capabilities.preview, true);
   assert.equal(item.capabilities.embeddedEditor, true);
 });
+
+test("Chase Forge provider exposes prepared references, opening, direct start, and result lookup", async () => {
+  const calls = [];
+  const chaseBridge = {
+    async listPrepared() {
+      calls.push(["list"]);
+      return [
+        { kind: "blueprint", id: "world-1", label: "Rooftop Run", readOnly: false },
+        { kind: "library", id: "addon:night-run", label: "Night Run", readOnly: true }
+      ];
+    },
+    async getContext(kind, targetId) {
+      calls.push(["context", kind, targetId]);
+      return { kind, id: targetId, label: targetId === "world-1" ? "Rooftop Run" : "Night Run" };
+    },
+    async open(kind, targetId) { calls.push(["open", kind, targetId]); return { opened: targetId }; },
+    async openNew(options) { calls.push(["new", options]); return { created: true }; },
+    async start(kind, targetId, options) { calls.push(["start", kind, targetId, options]); return { sessionId: "session-1" }; },
+    async getLatestResult(kind, targetId, options) { calls.push(["result", kind, targetId, options]); return { id: "result-1", outcome: "goalReached" }; }
+  };
+  const registry = new FoundryForgeProviderRegistry({
+    getModule: id => id === "pf2e-chase-forge"
+      ? { active: true, version: "0.1.0-dev.15", api: { integrations: { campaignForge: chaseBridge } } }
+      : null
+  });
+
+  const status = registry.inspect("chaseForge");
+  assert.equal(status.ready, true);
+  assert.deepEqual(status.capabilities, { references: true, open: true, create: true, start: true, results: true });
+  const targets = await registry.listChaseTargets();
+  assert.equal(targets.length, 2);
+  assert.equal((await registry.getChaseContext("blueprint", "world-1")).label, "Rooftop Run");
+  await registry.openChase("library", "addon:night-run");
+  await registry.openNewChase({ entryId: "quest-1" });
+  const started = await registry.startChase("blueprint", "world-1", { entryId: "quest-1", linkId: "link-1" });
+  assert.equal(started.sessionId, "session-1");
+  assert.deepEqual(calls.find(call => call[0] === "start")[3], { campaign: { entryId: "quest-1", linkId: "link-1" } });
+  const result = await registry.getLatestChaseResult("blueprint", "world-1", { entryId: "quest-1" });
+  assert.equal(result.outcome, "goalReached");
+});
+
+test("Chase Forge remains optional and unavailable capabilities fail cleanly", async () => {
+  const registry = new FoundryForgeProviderRegistry({ getModule: () => null });
+  const status = registry.inspect("chaseForge");
+  assert.equal(status.installed, false);
+  assert.equal(status.ready, false);
+  assert.deepEqual(await registry.listChaseTargets(), []);
+  assert.equal(await registry.getChaseContext("blueprint", "missing"), null);
+  assert.equal(await registry.openChase("blueprint", "missing"), null);
+  assert.equal(registry.openNewChase(), null);
+  await assert.rejects(() => registry.startChase("blueprint", "missing"), error => error.code === "PROVIDER_CAPABILITY_UNAVAILABLE");
+});

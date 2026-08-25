@@ -2486,3 +2486,34 @@
 .campaign-forge .cf-security-status.has-warning > span {
   color: var(--color-level-warning, #c99a45);
 }
+
+/* Chase Forge prepared-chase links */
+.campaign-forge .cf-chase-link-builder{
+  padding: .55rem;
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+  border: 1px solid var(--cf-border);
+  border-radius: .4rem;
+  background: var(--cf-panel-soft);
+}
+
+.campaign-forge .cf-chase-link-builder-grid{
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .45rem;
+  align-items: end;
+}
+
+.campaign-forge .cf-chase-link-builder-grid label{
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .18rem;
+}
+
+@media (max-width: 760px){
+  .campaign-forge .cf-chase-link-builder-grid{
+    grid-template-columns: 1fr;
+  }
+}
