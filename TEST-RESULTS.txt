@@ -1,44 +1,6 @@
-Campaign Forge 1.0.1 – Verification Summary
-===========================================
+Campaign Forge 1.0.3.1
 
-Automated tests
----------------
-Command: npm test
-Result: PASS
-Tests: 123
-Passed: 123
-Failed: 0
-Skipped: 0
-
-JavaScript syntax verification
-------------------------------
-Command: node --check for every .js file in the package
-Result: PASS
-Files checked: 31
-
-JSON / localization verification
---------------------------------
-Result: PASS
-JSON files parsed: 4
-Localization leaf-key parity: 684 / 684
-
-Chase Forge Integration v1
---------------------------
-PASS: Chase Forge is an optional provider named chaseForge
-PASS: prepared world Blueprints and read-only Library chases can be selected and linked
-PASS: Campaign entries persist references only; Chase domain data remains Chase Forge-owned
-PASS: linked Chases can be opened or directly started from Campaign Forge
-PASS: Campaign entry/link provenance is passed into Chase Sessions
-PASS: latest ChaseResult is read live from Chase Forge rather than copied into Campaign state
-PASS: Chase lifecycle hooks refresh Campaign UI only; Campaign progression is not auto-mutated
-PASS: existing Campaign Public API remains v1 stable and Campaign State Schema remains v2
-
-Cross-package smoke
--------------------
-PASS: Campaign Forge 1.0.1 <-> Chase Forge 0.1.0-dev.15
-Verified actual Campaign provider registry + actual Chase public API, prepared-target discovery,
-direct Session start, Campaign provenance, completion, and live result lookup.
-
-Public API: v1 stable
-Campaign State Schema: v2
-Chase Integration Contract: v1
+- Automated tests: 124/124 passed
+- JavaScript syntax check: passed
+- DE/EN localization key structure: synchronized
+- Chase integration UI regression: running Chase uses fa-person-running; linked Chase Forge blueprint/library entry keeps external-link icon

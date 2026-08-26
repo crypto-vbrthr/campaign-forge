@@ -685,7 +685,20 @@
           "raceLost": "Race lost",
           "aborted": "Aborted",
           "custom": "Custom"
-        }
+        },
+        "LastRun": "Latest run",
+        "Statuses": {
+          "draft": "Prepared",
+          "active": "Running",
+          "paused": "Paused",
+          "completed": "Completed",
+          "aborted": "Aborted"
+        },
+        "OpenRunning": "Open running chase",
+        "Resume": "Resume paused chase",
+        "StartNew": "Start an additional new chase",
+        "NewRunConfirmTitle": "Start a new chase?",
+        "NewRunConfirmText": "A chase for “{name}” is already running or paused. Start an additional new session anyway?"
       }
     },
     "PlayerView": {

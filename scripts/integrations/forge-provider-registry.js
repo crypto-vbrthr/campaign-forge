@@ -68,7 +68,9 @@ const DEFINITIONS = Object.freeze({
         open: Boolean(bridge?.open),
         create: Boolean(bridge?.openNew),
         start: Boolean(bridge?.start),
-        results: Boolean(bridge?.getLatestResult)
+        results: Boolean(bridge?.getLatestResult),
+        activity: Boolean(bridge?.getLatestRun),
+        continuation: Number(bridge?.contractVersion ?? 1) >= 2
       };
     }
   }),
@@ -434,20 +436,26 @@ export class FoundryForgeProviderRegistry {
     return bridge.openNew(options);
   }
 
-  async startChase(kind, targetId, context = {}) {
+  async startChase(kind, targetId, context = {}, options = {}) {
     const bridge = this.getApi("chaseForge")?.integrations?.campaignForge;
     if (!bridge?.start) {
       const error = new Error("Chase Forge start capability is unavailable");
       error.code = "PROVIDER_CAPABILITY_UNAVAILABLE";
       throw error;
     }
-    return clone(await bridge.start(kind, targetId, { campaign: clone(context) }));
+    return clone(await bridge.start(kind, targetId, { campaign: clone(context), ...clone(options) }));
   }
 
   async getLatestChaseResult(kind, targetId, options = {}) {
     const bridge = this.getApi("chaseForge")?.integrations?.campaignForge;
     if (!bridge?.getLatestResult) return null;
     return clone(await bridge.getLatestResult(kind, targetId, options));
+  }
+
+  async getLatestChaseRun(kind, targetId, options = {}) {
+    const bridge = this.getApi("chaseForge")?.integrations?.campaignForge;
+    if (!bridge?.getLatestRun) return null;
+    return clone(await bridge.getLatestRun(kind, targetId, options));
   }
 
   openNpcForge(options = {}) {

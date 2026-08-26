@@ -11,9 +11,18 @@ test("Campaign entry editor exposes Chase Forge prepared-link, new, open, and st
   assert.match(template, /data-action="addChaseExternalLink"/);
   assert.match(template, /data-action="openNewChaseForge"/);
   assert.match(template, /data-action="startExternalChase"/);
+  assert.match(template, /data-action="startNewExternalChase"/);
+  assert.match(template, /chasePrimaryTitle/);
   assert.match(appSource, /providers\?\.getChaseContext/);
   assert.match(appSource, /providers\?\.startChase/);
+  assert.match(appSource, /forceNew: true/);
+  assert.match(appSource, /canContinueChase/);
+  assert.match(appSource, /chasePrimaryIcon[\s\S]*fa-person-running/);
   assert.match(appSource, /provider === "chaseForge"/);
+  assert.match(appSource, /providers\.getLatestChaseRun/);
+  assert.match(appSource, /linkId: link\.id/);
+  assert.match(appSource, /Integrations\.Chase\.Statuses/);
+  assert.match(appSource, /Could not read Chase Forge runtime status/);
 });
 
 test("Campaign public API keeps stable v1 while adding a GM-gated Chase integration facade", () => {
@@ -21,6 +30,7 @@ test("Campaign public API keeps stable v1 while adding a GM-gated Chase integrat
   assert.match(mainSource, /chaseIntegration: 1/);
   assert.match(mainSource, /chase: Object\.freeze/);
   assert.match(mainSource, /listPrepared: options => \{\s*requireGM\(\)/s);
-  assert.match(mainSource, /start: \(kind, targetId, context = \{\}\) => \{\s*requireGM\(\)/s);
+  assert.match(mainSource, /start: \(kind, targetId, context = \{\}, options = \{\}\) => \{\s*requireGM\(\)/s);
+  assert.match(mainSource, /getLatestRun: \(kind, targetId, options = \{\}\) => \{\s*requireGM\(\)/s);
   assert.match(mainSource, /pf2eChaseForge\.sessionCompleted/);
 });

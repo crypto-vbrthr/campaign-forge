@@ -902,6 +902,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       addCityExternalLink: this._actionAddCityExternalLink,
       addChaseExternalLink: this._actionAddChaseExternalLink,
       startExternalChase: this._actionStartExternalChase,
+      startNewExternalChase: this._actionStartNewExternalChase,
       openNewChaseForge: this._actionOpenNewChaseForge,
       removeExternalLink: this._actionRemoveExternalLink,
       openExternalLink: this._actionOpenExternalLink,
@@ -1438,6 +1439,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         let missing = false;
         let actorImg = null;
         let lastResult = null;
+        let lastRun = null;
         if (link.provider === "creatureForge" && link.kind === "actor") {
           const actor = await resolveActor(link.targetId);
           liveLabel = actor?.name ?? liveLabel;
@@ -1445,15 +1447,31 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           missing = !actor;
         }
         if (link.provider === "chaseForge") {
+          let chase = null;
           try {
-            const chase = await this.providers?.getChaseContext?.(link.kind, link.targetId);
+            chase = await this.providers?.getChaseContext?.(link.kind, link.targetId);
             liveLabel = chase?.label ?? liveLabel;
             missing = !chase;
-            if (chase && this.providers?.supports?.("chaseForge", "results")) {
-              lastResult = await this.providers.getLatestChaseResult(link.kind, link.targetId, { entryId: source?.id ?? null });
-            }
           } catch {
             missing = true;
+          }
+          if (chase) {
+            try {
+              if (this.providers?.supports?.("chaseForge", "activity")) {
+                lastRun = await this.providers.getLatestChaseRun(link.kind, link.targetId, {
+                  entryId: source?.id ?? null,
+                  linkId: link.id
+                });
+                lastResult = lastRun?.result ?? null;
+              } else if (this.providers?.supports?.("chaseForge", "results")) {
+                lastResult = await this.providers.getLatestChaseResult(link.kind, link.targetId, {
+                  entryId: source?.id ?? null,
+                  linkId: link.id
+                });
+              }
+            } catch (error) {
+              console.warn(`${MODULE_ID} | Could not read Chase Forge runtime status for '${link.targetId}'.`, error);
+            }
           }
         }
         const kindLabel = link.provider === "cityForge"
@@ -1471,11 +1489,27 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           actorImg,
           missing,
           lastResult,
-          lastResultLabel: lastResult ? `${localize("CAMPAIGN_FORGE.Integrations.Chase.LastResult")}: ${localize(`CAMPAIGN_FORGE.Integrations.Chase.Outcomes.${lastResult.outcome}`)}` : "",
+          lastRun,
+          lastResultLabel: lastRun
+            ? `${localize("CAMPAIGN_FORGE.Integrations.Chase.LastRun")}: ${lastRun.outcome
+              ? localize(`CAMPAIGN_FORGE.Integrations.Chase.Outcomes.${lastRun.outcome}`)
+              : localize(`CAMPAIGN_FORGE.Integrations.Chase.Statuses.${lastRun.status}`)}`
+            : (lastResult ? `${localize("CAMPAIGN_FORGE.Integrations.Chase.LastResult")}: ${localize(`CAMPAIGN_FORGE.Integrations.Chase.Outcomes.${lastResult.outcome}`)}` : ""),
           canOpen: !missing && ((link.provider === "cityForge" && Boolean(this.providers?.supports?.("cityForge", "open")))
             || (link.provider === "creatureForge" && link.kind === "actor")
             || (link.provider === "chaseForge" && Boolean(this.providers?.supports?.("chaseForge", "open")))),
-          canStart: !missing && link.provider === "chaseForge" && Boolean(this.providers?.supports?.("chaseForge", "start"))
+          canStart: !missing && link.provider === "chaseForge" && Boolean(this.providers?.supports?.("chaseForge", "start")),
+          canContinueChase: !missing
+            && link.provider === "chaseForge"
+            && Boolean(this.providers?.supports?.("chaseForge", "start"))
+            && Boolean(this.providers?.supports?.("chaseForge", "continuation"))
+            && Boolean(lastRun && !lastRun.terminal && new Set(["draft", "active", "paused"]).has(lastRun.status)),
+          chasePrimaryTitle: link.provider === "chaseForge" && lastRun && !lastRun.terminal && this.providers?.supports?.("chaseForge", "continuation")
+            ? localize(lastRun.status === "active" ? "CAMPAIGN_FORGE.Integrations.Chase.OpenRunning" : "CAMPAIGN_FORGE.Integrations.Chase.Resume")
+            : localize("CAMPAIGN_FORGE.Integrations.Chase.Start"),
+          chasePrimaryIcon: link.provider === "chaseForge" && lastRun?.status === "active" && !lastRun.terminal && this.providers?.supports?.("chaseForge", "continuation")
+            ? "fa-person-running"
+            : "fa-play"
         };
       }));
       const creatureLinks = externalLinks.filter(link => link.provider === "creatureForge" && link.kind === "actor");
@@ -3473,6 +3507,31 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         entryTitle: source?.title ?? "",
         linkId: target.dataset.linkId ?? null
       });
+      if (!result) ui.notifications.warn(localize("CAMPAIGN_FORGE.Integrations.Chase.Unavailable"));
+      return result;
+    } catch (error) {
+      this._handleError(error);
+      return null;
+    }
+  }
+
+  static async _actionStartNewExternalChase(event, target) {
+    if (this._editor?.kind !== "entry" || !this._editor.id) return null;
+    try {
+      const source = (await this.engine.getState()).entries.find(entry => entry.id === this._editor.id) ?? null;
+      const name = target.dataset.linkLabel || source?.title || localize("CAMPAIGN_FORGE.Integrations.Providers.chaseForge");
+      const confirmed = await DialogV2.confirm({
+        window: { title: localize("CAMPAIGN_FORGE.Integrations.Chase.NewRunConfirmTitle") },
+        content: `<p>${escapeHTML(format("CAMPAIGN_FORGE.Integrations.Chase.NewRunConfirmText", { name }))}</p>`,
+        modal: true,
+        rejectClose: false
+      });
+      if (!confirmed) return null;
+      const result = await this.providers?.startChase?.(target.dataset.kind ?? "blueprint", target.dataset.targetId, {
+        entryId: this._editor.id,
+        entryTitle: source?.title ?? "",
+        linkId: target.dataset.linkId ?? null
+      }, { forceNew: true });
       if (!result) ui.notifications.warn(localize("CAMPAIGN_FORGE.Integrations.Chase.Unavailable"));
       return result;
     } catch (error) {

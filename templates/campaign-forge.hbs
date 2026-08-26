@@ -462,8 +462,13 @@
                                 </button>
                               {{/if}}
                               {{#if canStart}}
-                                <button type="button" class="icon" data-action="startExternalChase" data-kind="{{kind}}" data-target-id="{{targetId}}" data-link-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Integrations.Chase.Start"}}">
-                                  <i class="fa-solid fa-play"></i>
+                                <button type="button" class="icon" data-action="startExternalChase" data-kind="{{kind}}" data-target-id="{{targetId}}" data-link-id="{{id}}" title="{{chasePrimaryTitle}}" aria-label="{{chasePrimaryTitle}}">
+                                  <i class="fa-solid {{chasePrimaryIcon}}"></i>
+                                </button>
+                              {{/if}}
+                              {{#if canContinueChase}}
+                                <button type="button" class="icon" data-action="startNewExternalChase" data-kind="{{kind}}" data-target-id="{{targetId}}" data-link-id="{{id}}" data-link-label="{{displayLabel}}" title="{{localize "CAMPAIGN_FORGE.Integrations.Chase.StartNew"}}" aria-label="{{localize "CAMPAIGN_FORGE.Integrations.Chase.StartNew"}}">
+                                  <i class="fa-solid fa-plus"></i>
                                 </button>
                               {{/if}}
                               <button type="button" class="icon" data-action="removeExternalLink" data-link-id="{{id}}" title="{{localize "CAMPAIGN_FORGE.Integrations.ExternalLinks.Remove"}}">

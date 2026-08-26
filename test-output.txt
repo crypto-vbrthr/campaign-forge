@@ -1,0 +1,766 @@
+
+> campaign-forge@1.0.3.1 test
+> node --test
+
+TAP version 13
+# Subtest: Campaign entry editor exposes Chase Forge prepared-link, new, open, and start controls
+ok 1 - Campaign entry editor exposes Chase Forge prepared-link, new, open, and start controls
+  ---
+  duration_ms: 1.769171
+  type: 'test'
+  ...
+# Subtest: Campaign public API keeps stable v1 while adding a GM-gated Chase integration facade
+ok 2 - Campaign public API keeps stable v1 while adding a GM-gated Chase integration facade
+  ---
+  duration_ms: 0.362783
+  type: 'test'
+  ...
+# campaign-forge | Weather Forge current context failed; using stored weather fallback Error: context unavailable
+#     at Object.getCurrentWeatherContext (file:///mnt/data/cf_iconfix/tests/context-fixes.test.js:23:53)
+#     at FoundryForgeProviderRegistry.getCurrentWeatherSnapshot (file:///mnt/data/cf_iconfix/scripts/integrations/forge-provider-registry.js:558:33)
+#     at TestContext.<anonymous> (file:///mnt/data/cf_iconfix/tests/context-fixes.test.js:35:35)
+#     at Test.runInAsyncScope (node:async_hooks:214:14)
+#     at Test.run (node:internal/test_runner/test:1047:25)
+#     at Test.start (node:internal/test_runner/test:944:17)
+#     at startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+# Subtest: Weather Forge session snapshot falls back to getWeather when context read fails
+ok 3 - Weather Forge session snapshot falls back to getWeather when context read fails
+  ---
+  duration_ms: 3.537358
+  type: 'test'
+  ...
+# Subtest: completed sessions can be deleted but active sessions cannot
+ok 4 - completed sessions can be deleted but active sessions cannot
+  ---
+  duration_ms: 3.993924
+  type: 'test'
+  ...
+# Subtest: deleting a session repairs key-player last appearance references
+ok 5 - deleting a session repairs key-player last appearance references
+  ---
+  duration_ms: 2.92277
+  type: 'test'
+  ...
+# Subtest: campaign editor labels entry checkboxes and completed sessions expose deletion control
+ok 6 - campaign editor labels entry checkboxes and completed sessions expose deletion control
+  ---
+  duration_ms: 1.296187
+  type: 'test'
+  ...
+# Subtest: Weather Forge snapshot can read persisted weather when the provider setting is not registered
+ok 7 - Weather Forge snapshot can read persisted weather when the provider setting is not registered
+  ---
+  duration_ms: 0.696787
+  type: 'test'
+  ...
+# Subtest: entry active/visible labels are prepared as text and forced visible by module-scoped CSS
+ok 8 - entry active/visible labels are prepared as text and forced visible by module-scoped CSS
+  ---
+  duration_ms: 2.490586
+  type: 'test'
+  ...
+# Subtest: active session is shown only in the live session card, not duplicated in session history
+ok 9 - active session is shown only in the live session card, not duplicated in session history
+  ---
+  duration_ms: 1.069322
+  type: 'test'
+  ...
+# Subtest: entry active/visible checkbox layout pins each label beside its checkbox
+ok 10 - entry active/visible checkbox layout pins each label beside its checkbox
+  ---
+  duration_ms: 0.443311
+  type: 'test'
+  ...
+# Subtest: active session renders its live changes before the closed-session history
+ok 11 - active session renders its live changes before the closed-session history
+  ---
+  duration_ms: 1.575184
+  type: 'test'
+  ...
+# Subtest: Event weather panel appears immediately when the entry type is changed to Event
+ok 12 - Event weather panel appears immediately when the entry type is changed to Event
+  ---
+  duration_ms: 2.900458
+  type: 'test'
+  ...
+# Subtest: saving a new Event reopens its editor so weather capture is immediately available
+ok 13 - saving a new Event reopens its editor so weather capture is immediately available
+  ---
+  duration_ms: 1.386554
+  type: 'test'
+  ...
+# Subtest: weather visibility rule does not hide the Creature Forge link builder
+ok 14 - weather visibility rule does not hide the Creature Forge link builder
+  ---
+  duration_ms: 0.623771
+  type: 'test'
+  ...
+# Subtest: sessions preserve a historical Weather Forge snapshot
+ok 15 - sessions preserve a historical Weather Forge snapshot
+  ---
+  duration_ms: 2.270433
+  type: 'test'
+  ...
+# Subtest: Event entries can capture and clear weather snapshots and log those changes
+ok 16 - Event entries can capture and clear weather snapshots and log those changes
+  ---
+  duration_ms: 2.158376
+  type: 'test'
+  ...
+# Subtest: Weather snapshots are restricted to Event entries
+ok 17 - Weather snapshots are restricted to Event entries
+  ---
+  duration_ms: 0.708006
+  type: 'test'
+  ...
+# Subtest: Creature Forge capability detection includes embedded creation and Actor creation
+ok 18 - Creature Forge capability detection includes embedded creation and Actor creation
+  ---
+  duration_ms: 0.463435
+  type: 'test'
+  ...
+# Subtest: Weather Forge current context is normalized into a stable Campaign snapshot
+ok 19 - Weather Forge current context is normalized into a stable Campaign snapshot
+  ---
+  duration_ms: 0.513742
+  type: 'test'
+  ...
+# Subtest: Campaign UI exposes Creature Forge linking and Event weather capture controls
+ok 20 - Campaign UI exposes Creature Forge linking and Event weather capture controls
+  ---
+  duration_ms: 1.92157
+  type: 'test'
+  ...
+# Subtest: Creature Forge ApplicationV2 host keeps the embedded editor height constrained
+ok 21 - Creature Forge ApplicationV2 host keeps the embedded editor height constrained
+  ---
+  duration_ms: 0.606495
+  type: 'test'
+  ...
+# Subtest: linked Creature Forge Actors render inside the Creature Forge section
+ok 22 - linked Creature Forge Actors render inside the Creature Forge section
+  ---
+  duration_ms: 1.938304
+  type: 'test'
+  ...
+# Subtest: Creature Forge links are not duplicated in the generic external-link list
+ok 23 - Creature Forge links are not duplicated in the generic external-link list
+  ---
+  duration_ms: 1.638089
+  type: 'test'
+  ...
+# Subtest: Campaign Forge critical UI rules are module-scoped
+ok 24 - Campaign Forge critical UI rules are module-scoped
+  ---
+  duration_ms: 0.913687
+  type: 'test'
+  ...
+# Subtest: Campaign Forge DialogV2 configurations never use an empty buttons array
+ok 25 - Campaign Forge DialogV2 configurations never use an empty buttons array
+  ---
+  duration_ms: 3.206954
+  type: 'test'
+  ...
+# Subtest: provider editor dialogs expose a localized close action
+ok 26 - provider editor dialogs expose a localized close action
+  ---
+  duration_ms: 2.894257
+  type: 'test'
+  ...
+# Subtest: creates chapters, groups, and entries with valid defaults
+ok 27 - creates chapters, groups, and entries with valid defaults
+  ---
+  duration_ms: 3.934957
+  type: 'test'
+  ...
+# Subtest: explicit sessions only record changes while active
+ok 28 - explicit sessions only record changes while active
+  ---
+  duration_ms: 3.673547
+  type: 'test'
+  ...
+# Subtest: session numbers increment monotonically
+ok 29 - session numbers increment monotonically
+  ---
+  duration_ms: 0.775876
+  type: 'test'
+  ...
+# Subtest: cannot start two sessions at once
+ok 30 - cannot start two sessions at once
+  ---
+  duration_ms: 1.553017
+  type: 'test'
+  ...
+# Subtest: entry status is validated against its type
+ok 31 - entry status is validated against its type
+  ---
+  duration_ms: 1.313851
+  type: 'test'
+  ...
+# Subtest: entries can move between groups and are re-sorted
+ok 32 - entries can move between groups and are re-sorted
+  ---
+  duration_ms: 14.496684
+  type: 'test'
+  ...
+# Subtest: non-empty groups cannot be deleted
+ok 33 - non-empty groups cannot be deleted
+  ---
+  duration_ms: 0.861439
+  type: 'test'
+  ...
+# Subtest: trackers clamp to optional min and max and log during sessions
+ok 34 - trackers clamp to optional min and max and log during sessions
+  ---
+  duration_ms: 1.406249
+  type: 'test'
+  ...
+# Subtest: chapters cannot be nested and group cycles are rejected
+ok 35 - chapters cannot be nested and group cycles are rejected
+  ---
+  duration_ms: 1.391506
+  type: 'test'
+  ...
+# Subtest: tracker ranges are validated and values are clamped on create/update
+ok 36 - tracker ranges are validated and values are clamped on create/update
+  ---
+  duration_ms: 1.443891
+  type: 'test'
+  ...
+# Subtest: manual session changes can be added, edited, and removed while a session is active
+ok 37 - manual session changes can be added, edited, and removed while a session is active
+  ---
+  duration_ms: 1.531618
+  type: 'test'
+  ...
+# Subtest: manual session changes require an active session and a valid kind
+ok 38 - manual session changes require an active session and a valid kind
+  ---
+  duration_ms: 0.553402
+  type: 'test'
+  ...
+# Subtest: overview pins can reference entries, groups, and trackers without duplicates
+ok 39 - overview pins can reference entries, groups, and trackers without duplicates
+  ---
+  duration_ms: 1.906169
+  type: 'test'
+  ...
+# Subtest: overview pins can be reordered and unpinned
+ok 40 - overview pins can be reordered and unpinned
+  ---
+  duration_ms: 2.435609
+  type: 'test'
+  ...
+# Subtest: deleting a target also removes its overview pin
+ok 41 - deleting a target also removes its overview pin
+  ---
+  duration_ms: 0.811907
+  type: 'test'
+  ...
+# Subtest: group progress includes nested entries and recognizes type-specific reached states
+ok 42 - group progress includes nested entries and recognizes type-specific reached states
+  ---
+  duration_ms: 2.771097
+  type: 'test'
+  ...
+# Subtest: key players can link actors, reputation values, and campaign entries
+ok 43 - key players can link actors, reputation values, and campaign entries
+  ---
+  duration_ms: 1.32572
+  type: 'test'
+  ...
+# Subtest: an actor can only be registered once as a key player
+ok 44 - an actor can only be registered once as a key player
+  ---
+  duration_ms: 0.531119
+  type: 'test'
+  ...
+# Subtest: key player appearances are tied to explicit sessions and logged once per session
+ok 45 - key player appearances are tied to explicit sessions and logged once per session
+  ---
+  duration_ms: 1.288122
+  type: 'test'
+  ...
+# Subtest: key players can be pinned, reordered, and cleaned up with deleted references
+ok 46 - key players can be pinned, reordered, and cleaned up with deleted references
+  ---
+  duration_ms: 3.413141
+  type: 'test'
+  ...
+# Subtest: transition rules can change status, activity, visibility, and trackers in one transaction
+ok 47 - transition rules can change status, activity, visibility, and trackers in one transaction
+  ---
+  duration_ms: 4.234143
+  type: 'test'
+  ...
+# Subtest: status consequences can trigger further transition rules
+ok 48 - status consequences can trigger further transition rules
+  ---
+  duration_ms: 2.073529
+  type: 'test'
+  ...
+# Subtest: transition cycles are detected before data is changed
+ok 49 - transition cycles are detected before data is changed
+  ---
+  duration_ms: 3.155488
+  type: 'test'
+  ...
+# Subtest: transition rules are validated, editable, removable, and cleaned when targets are deleted
+ok 50 - transition rules are validated, editable, removable, and cleaned when targets are deleted
+  ---
+  duration_ms: 2.203564
+  type: 'test'
+  ...
+# Subtest: entries can manage multiple Journal references with one primary link
+ok 51 - entries can manage multiple Journal references with one primary link
+  ---
+  duration_ms: 1.376073
+  type: 'test'
+  ...
+# Subtest: duplicate and invalid Journal links are rejected
+ok 52 - duplicate and invalid Journal links are rejected
+  ---
+  duration_ms: 0.540647
+  type: 'test'
+  ...
+# Subtest: removing a primary Journal link promotes the next reference
+ok 53 - removing a primary Journal link promotes the next reference
+  ---
+  duration_ms: 0.658081
+  type: 'test'
+  ...
+# Subtest: Journal reference changes are recorded as structural session changes
+ok 54 - Journal reference changes are recorded as structural session changes
+  ---
+  duration_ms: 0.632811
+  type: 'test'
+  ...
+# Subtest: status changes originating from Journals use the normal transition transaction
+ok 55 - status changes originating from Journals use the normal transition transaction
+  ---
+  duration_ms: 2.258323
+  type: 'test'
+  ...
+# Subtest: reward rules become pending on their status trigger without granting automatically
+ok 56 - reward rules become pending on their status trigger without granting automatically
+  ---
+  duration_ms: 7.322821
+  type: 'test'
+  ...
+# Subtest: due external rewards can be granted with duplicate protection
+ok 57 - due external rewards can be granted with duplicate protection
+  ---
+  duration_ms: 2.54125
+  type: 'test'
+  ...
+# Subtest: tracker rewards are applied internally and share the transition transaction
+ok 58 - tracker rewards are applied internally and share the transition transaction
+  ---
+  duration_ms: 2.346314
+  type: 'test'
+  ...
+# Subtest: failed rewards remain retryable and can later be granted
+ok 59 - failed rewards remain retryable and can later be granted
+  ---
+  duration_ms: 1.159624
+  type: 'test'
+  ...
+# Subtest: resetting a skipped reward re-arms it for the next matching trigger
+ok 60 - resetting a skipped reward re-arms it for the next matching trigger
+  ---
+  duration_ms: 2.55884
+  type: 'test'
+  ...
+# Subtest: resetting an already granted reward deliberately allows it to be granted on a later trigger
+ok 61 - resetting an already granted reward deliberately allows it to be granted on a later trigger
+  ---
+  duration_ms: 1.605878
+  type: 'test'
+  ...
+# Subtest: deleting a tracker cleans tracker rewards that reference it
+ok 62 - deleting a tracker cleans tracker rewards that reference it
+  ---
+  duration_ms: 0.847153
+  type: 'test'
+  ...
+# Subtest: one reward rule can contain and process multiple rewards
+ok 63 - one reward rule can contain and process multiple rewards
+  ---
+  duration_ms: 1.724169
+  type: 'test'
+  ...
+# Subtest: a locked reward cannot be skipped before its trigger becomes due
+ok 64 - a locked reward cannot be skipped before its trigger becomes due
+  ---
+  duration_ms: 0.603126
+  type: 'test'
+  ...
+# Subtest: transition rules with ALL conditions only execute when every condition is met
+ok 65 - transition rules with ALL conditions only execute when every condition is met
+  ---
+  duration_ms: 2.309829
+  type: 'test'
+  ...
+# Subtest: a failed ALL condition blocks only the rule consequences, not the requested root status change
+ok 66 - a failed ALL condition blocks only the rule consequences, not the requested root status change
+  ---
+  duration_ms: 1.724905
+  type: 'test'
+  ...
+# Subtest: ANY condition mode executes when at least one condition is satisfied
+ok 67 - ANY condition mode executes when at least one condition is satisfied
+  ---
+  duration_ms: 1.306211
+  type: 'test'
+  ...
+# Subtest: entry status conditions support equality, inequality, and ordered comparisons
+ok 68 - entry status conditions support equality, inequality, and ordered comparisons
+  ---
+  duration_ms: 1.251298
+  type: 'test'
+  ...
+# Subtest: group progress conditions can use reached-entry counts and percentages
+ok 69 - group progress conditions can use reached-entry counts and percentages
+  ---
+  duration_ms: 2.019108
+  type: 'test'
+  ...
+# Subtest: entry active and visibility conditions are evaluated independently
+ok 70 - entry active and visibility conditions are evaluated independently
+  ---
+  duration_ms: 3.130192
+  type: 'test'
+  ...
+# Subtest: deleting a condition target disables affected transition rules instead of broadening them silently
+ok 71 - deleting a condition target disables affected transition rules instead of broadening them silently
+  ---
+  duration_ms: 5.701928
+  type: 'test'
+  ...
+# Subtest: conditions are evaluated for transition rules reached through chained automatic status changes
+ok 72 - conditions are evaluated for transition rules reached through chained automatic status changes
+  ---
+  duration_ms: 3.720111
+  type: 'test'
+  ...
+# Subtest: client-side mutations are serialized so overlapping edits do not overwrite each other
+ok 73 - client-side mutations are serialized so overlapping edits do not overwrite each other
+  ---
+  duration_ms: 24.774884
+  type: 'test'
+  ...
+# Subtest: normalization repairs safe orphan references and disables invalid transition rules
+ok 74 - normalization repairs safe orphan references and disables invalid transition rules
+  ---
+  duration_ms: 0.6001
+  type: 'test'
+  ...
+# Subtest: integrity auditor and guarded import reject duplicate IDs
+ok 75 - integrity auditor and guarded import reject duplicate IDs
+  ---
+  duration_ms: 1.419438
+  type: 'test'
+  ...
+# Subtest: group progress remains correct for large campaign branches
+ok 76 - group progress remains correct for large campaign branches
+  ---
+  duration_ms: 7.9422
+  type: 'test'
+  ...
+# Subtest: hardening UX exposes campaign filters, data health and guarded backups
+ok 77 - hardening UX exposes campaign filters, data health and guarded backups
+  ---
+  duration_ms: 2.268034
+  type: 'test'
+  ...
+# Subtest: campaign live search preserves focus and caret across debounced rerenders
+ok 78 - campaign live search preserves focus and caret across debounced rerenders
+  ---
+  duration_ms: 1.291561
+  type: 'test'
+  ...
+# Subtest: external Forge references can be added, updated, removed, and are session logged
+ok 79 - external Forge references can be added, updated, removed, and are session logged
+  ---
+  duration_ms: 8.04931
+  type: 'test'
+  ...
+# Subtest: provider transition actions appear in preview without executing
+ok 80 - provider transition actions appear in preview without executing
+  ---
+  duration_ms: 2.24832
+  type: 'test'
+  ...
+# Subtest: provider transition actions execute once and share the session transaction
+ok 81 - provider transition actions execute once and share the session transaction
+  ---
+  duration_ms: 2.261601
+  type: 'test'
+  ...
+# Subtest: provider registry reports optional module readiness and capabilities
+ok 82 - provider registry reports optional module readiness and capabilities
+  ---
+  duration_ms: 0.503954
+  type: 'test'
+  ...
+# Subtest: City Forge provider actions compile to the public state-patch contract
+ok 83 - City Forge provider actions compile to the public state-patch contract
+  ---
+  duration_ms: 0.921767
+  type: 'test'
+  ...
+# Subtest: City Forge provider validation rejects incomplete state actions before execution
+ok 84 - City Forge provider validation rejects incomplete state actions before execution
+  ---
+  duration_ms: 0.254782
+  type: 'test'
+  ...
+# Subtest: provider registry exposes Loot Forge and Item Forge reward capabilities
+ok 85 - provider registry exposes Loot Forge and Item Forge reward capabilities
+  ---
+  duration_ms: 0.521174
+  type: 'test'
+  ...
+# Subtest: Chase Forge provider exposes prepared references, opening, direct start, and result lookup
+ok 86 - Chase Forge provider exposes prepared references, opening, direct start, and result lookup
+  ---
+  duration_ms: 2.607202
+  type: 'test'
+  ...
+# Subtest: Chase Forge remains optional and unavailable capabilities fail cleanly
+ok 87 - Chase Forge remains optional and unavailable capabilities fail cleanly
+  ---
+  duration_ms: 0.631686
+  type: 'test'
+  ...
+# Subtest: Chase Forge Contract v1 remains compatible when additive run-status support is absent
+ok 88 - Chase Forge Contract v1 remains compatible when additive run-status support is absent
+  ---
+  duration_ms: 0.795654
+  type: 'test'
+  ...
+# Subtest: main Campaign Forge workspace defaults to the reviewed larger desktop size
+ok 89 - main Campaign Forge workspace defaults to the reviewed larger desktop size
+  ---
+  duration_ms: 2.359147
+  type: 'test'
+  ...
+# Subtest: City Forge transition actions are dry-run preflighted and batched per settlement
+ok 90 - City Forge transition actions are dry-run preflighted and batched per settlement
+  ---
+  duration_ms: 1.625774
+  type: 'test'
+  ...
+# Subtest: Campaign Engine uses provider batch execution once while preserving one log row per consequence
+ok 91 - Campaign Engine uses provider batch execution once while preserving one log row per consequence
+  ---
+  duration_ms: 4.210355
+  type: 'test'
+  ...
+# Subtest: provider diagnostics expose public API and embedded-editor contract versions when advertised
+ok 92 - provider diagnostics expose public API and embedded-editor contract versions when advertised
+  ---
+  duration_ms: 0.275683
+  type: 'test'
+  ...
+# Subtest: German and English application localization remain structurally identical
+ok 93 - German and English application localization remain structurally identical
+  ---
+  duration_ms: 3.796929
+  type: 'test'
+  ...
+# Subtest: integration foundation keeps Forge modules optional and never writes foreign Weather Forge settings
+ok 94 - integration foundation keeps Forge modules optional and never writes foreign Weather Forge settings
+  ---
+  duration_ms: 0.375677
+  type: 'test'
+  ...
+# Subtest: NPC Forge embedded host uses a dedicated ApplicationV2 and the public editor lifecycle
+ok 95 - NPC Forge embedded host uses a dedicated ApplicationV2 and the public editor lifecycle
+  ---
+  duration_ms: 1.70107
+  type: 'test'
+  ...
+# Subtest: NPC Forge embedded ApplicationV2 provides a height-constrained scroll layout
+ok 96 - NPC Forge embedded ApplicationV2 provides a height-constrained scroll layout
+  ---
+  duration_ms: 0.851685
+  type: 'test'
+  ...
+# Subtest: new player-publication fields migrate conservatively as private
+ok 97 - new player-publication fields migrate conservatively as private
+  ---
+  duration_ms: 2.556404
+  type: 'test'
+  ...
+# Subtest: player projection excludes GM-only campaign data and secret notes
+ok 98 - player projection excludes GM-only campaign data and secret notes
+  ---
+  duration_ms: 1.937511
+  type: 'test'
+  ...
+# Subtest: public group progress never reveals hidden entries through its denominator
+ok 99 - public group progress never reveals hidden entries through its denominator
+  ---
+  duration_ms: 0.726268
+  type: 'test'
+  ...
+# Subtest: player overview pins require both pin publication and public target
+ok 100 - player overview pins require both pin publication and public target
+  ---
+  duration_ms: 0.796723
+  type: 'test'
+  ...
+# Subtest: GM publication controls persist on groups, trackers, key players, and overview pins
+ok 101 - GM publication controls persist on groups, trackers, key players, and overview pins
+  ---
+  duration_ms: 4.807862
+  type: 'test'
+  ...
+# Subtest: public module API does not hand full campaign state or transition previews to players
+ok 102 - public module API does not hand full campaign state or transition previews to players
+  ---
+  duration_ms: 0.608166
+  type: 'test'
+  ...
+# Subtest: GM player-view preview calculates group progress from the published projection
+ok 103 - GM player-view preview calculates group progress from the published projection
+  ---
+  duration_ms: 0.418801
+  type: 'test'
+  ...
+# Subtest: legacy world-setting state migrates into a protected GM vault and is scrubbed
+ok 104 - legacy world-setting state migrates into a protected GM vault and is scrubbed
+  ---
+  duration_ms: 9.421019
+  type: 'test'
+  ...
+# Subtest: player repository reads only its protected projection and cannot save canonical state
+ok 105 - player repository reads only its protected projection and cannot save canonical state
+  ---
+  duration_ms: 3.856356
+  type: 'test'
+  ...
+# Subtest: missing protected vault fails closed after migration instead of rebuilding from player data
+ok 106 - missing protected vault fails closed after migration instead of rebuilding from player data
+  ---
+  duration_ms: 0.554352
+  type: 'test'
+  ...
+# Subtest: security block no longer uses the world setting as canonical persistence
+ok 107 - security block no longer uses the world setting as canonical persistence
+  ---
+  duration_ms: 0.524902
+  type: 'test'
+  ...
+# Subtest: legacy release-candidate package check follows the stable release
+ok 108 - legacy release-candidate package check follows the stable release
+  ---
+  duration_ms: 1.805826
+  type: 'test'
+  ...
+# Subtest: legacy release-candidate documentation check follows protected stable persistence
+ok 109 - legacy release-candidate documentation check follows protected stable persistence
+  ---
+  duration_ms: 0.721638
+  type: 'test'
+  ...
+# Subtest: raw provider and storage internals remain GM-gated after stable promotion
+ok 110 - raw provider and storage internals remain GM-gated after stable promotion
+  ---
+  duration_ms: 0.194017
+  type: 'test'
+  ...
+# Subtest: Campaign Forge still exposes the ready discovery hook after stable promotion
+ok 111 - Campaign Forge still exposes the ready discovery hook after stable promotion
+  ---
+  duration_ms: 0.102524
+  type: 'test'
+  ...
+# Subtest: all literal Campaign Forge localization keys remain present in both stable locales
+ok 112 - all literal Campaign Forge localization keys remain present in both stable locales
+  ---
+  duration_ms: 6.83074
+  type: 'test'
+  ...
+# Subtest: Loot Forge rewards generate once and deliver the full loot bundle to every player
+ok 113 - Loot Forge rewards generate once and deliver the full loot bundle to every player
+  ---
+  duration_ms: 3.007176
+  type: 'test'
+  ...
+# Subtest: Item Forge rewards generate one item and deliver the configured quantity to team inventory
+ok 114 - Item Forge rewards generate one item and deliver the configured quantity to team inventory
+  ---
+  duration_ms: 0.69199
+  type: 'test'
+  ...
+# Subtest: Campaign reward rules accept Loot Forge and Item Forge provider definitions
+ok 115 - Campaign reward rules accept Loot Forge and Item Forge provider definitions
+  ---
+  duration_ms: 7.36101
+  type: 'test'
+  ...
+# Subtest: all-players XP grants the full XP amount to every player character
+ok 116 - all-players XP grants the full XP amount to every player character
+  ---
+  duration_ms: 1.648378
+  type: 'test'
+  ...
+# Subtest: all-players currency grants the full coin bundle to every player character
+ok 117 - all-players currency grants the full coin bundle to every player character
+  ---
+  duration_ms: 1.316014
+  type: 'test'
+  ...
+# Subtest: all-players item rewards grant the full quantity to every player character
+ok 118 - all-players item rewards grant the full quantity to every player character
+  ---
+  duration_ms: 0.976138
+  type: 'test'
+  ...
+# Subtest: currency and item rewards can target a PF2e party Actor as team inventory
+ok 119 - currency and item rewards can target a PF2e party Actor as team inventory
+  ---
+  duration_ms: 0.644379
+  type: 'test'
+  ...
+# Subtest: stable package and public API versions stay aligned
+ok 120 - stable package and public API versions stay aligned
+  ---
+  duration_ms: 1.689478
+  type: 'test'
+  ...
+# Subtest: stable documentation reflects protected persistence
+ok 121 - stable documentation reflects protected persistence
+  ---
+  duration_ms: 0.244566
+  type: 'test'
+  ...
+# Subtest: raw provider and storage internals are GM-gated in the public API
+ok 122 - raw provider and storage internals are GM-gated in the public API
+  ---
+  duration_ms: 0.140533
+  type: 'test'
+  ...
+# Subtest: Campaign Forge exposes a ready discovery hook for suite consumers
+ok 123 - Campaign Forge exposes a ready discovery hook for suite consumers
+  ---
+  duration_ms: 0.090893
+  type: 'test'
+  ...
+# Subtest: all literal Campaign Forge localization keys used by scripts/templates exist in both locales
+ok 124 - all literal Campaign Forge localization keys used by scripts/templates exist in both locales
+  ---
+  duration_ms: 6.497254
+  type: 'test'
+  ...
+1..124
+# tests 124
+# suites 0
+# pass 124
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 477.402779

@@ -685,7 +685,20 @@
           "raceLost": "Rennen verloren",
           "aborted": "Abgebrochen",
           "custom": "Benutzerdefiniert"
-        }
+        },
+        "LastRun": "Letzter Lauf",
+        "Statuses": {
+          "draft": "Vorbereitet",
+          "active": "Läuft",
+          "paused": "Pausiert",
+          "completed": "Beendet",
+          "aborted": "Abgebrochen"
+        },
+        "OpenRunning": "Laufende Verfolgungsjagd öffnen",
+        "Resume": "Pausierte Verfolgungsjagd fortsetzen",
+        "StartNew": "Zusätzliche neue Verfolgungsjagd starten",
+        "NewRunConfirmTitle": "Neue Verfolgungsjagd starten?",
+        "NewRunConfirmText": "Für „{name}“ läuft bereits eine Verfolgungsjagd oder sie ist pausiert. Soll wirklich eine zusätzliche neue Session gestartet werden?"
       }
     },
     "PlayerView": {

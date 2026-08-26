@@ -1,3 +1,25 @@
+## 1.0.3.1 - Chase Action Icon Clarity
+
+- Uses a dedicated running-person icon for opening an already-running Chase session from a Campaign entry.
+- Keeps the external-link icon for opening the linked Chase Forge blueprint/library entry itself, making the two actions visually distinct.
+- No API, schema, persistence, or Chase Forge version change is required.
+
+## 1.0.3 - Chase Resume & Duplicate-Start Protection
+
+- Detects Chase Forge Campaign Integration Contract v2 and treats the primary action on a linked non-terminal Chase as open/resume instead of starting a duplicate Session.
+- Shows an open icon for already-running Chases and a resume action for paused Chases.
+- Adds a separate explicit “start additional new chase” control when a current linked run exists.
+- Starting an additional Session requires confirmation and forwards `forceNew: true` to Chase Forge.
+- Retains Contract v1 fallback behavior for older Chase Forge builds and does not alter Campaign State Schema v2.
+
+## 1.0.2 - Chase Runtime & Lifecycle Hardening
+
+- Added additive Chase Forge run-status detection and `campaign.integrations.chase.getLatestRun()` while keeping Public API v1 and Chase Integration Contract v1 stable.
+- Campaign entry links now display live run state for active/paused attempts and explicit aborted outcomes when supported by Chase Forge dev.16+.
+- Passes the current external-link id into result/run lookup, preventing stale result display after a Chase link is removed and recreated.
+- Retains result-only fallback behavior for older Chase Forge providers that expose Contract v1 without the additive run-status method.
+- No Campaign State Schema or persistence migration is required.
+
 ## 1.0.1 - Chase Forge Integration
 
 - Added optional `chaseForge` provider capability detection for PF2E Chase Forge Campaign Integration Contract v1.

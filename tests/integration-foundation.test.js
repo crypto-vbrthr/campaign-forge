@@ -254,6 +254,7 @@ test("provider registry exposes Loot Forge and Item Forge reward capabilities", 
 test("Chase Forge provider exposes prepared references, opening, direct start, and result lookup", async () => {
   const calls = [];
   const chaseBridge = {
+    contractVersion: 2,
     async listPrepared() {
       calls.push(["list"]);
       return [
@@ -268,17 +269,18 @@ test("Chase Forge provider exposes prepared references, opening, direct start, a
     async open(kind, targetId) { calls.push(["open", kind, targetId]); return { opened: targetId }; },
     async openNew(options) { calls.push(["new", options]); return { created: true }; },
     async start(kind, targetId, options) { calls.push(["start", kind, targetId, options]); return { sessionId: "session-1" }; },
-    async getLatestResult(kind, targetId, options) { calls.push(["result", kind, targetId, options]); return { id: "result-1", outcome: "goalReached" }; }
+    async getLatestResult(kind, targetId, options) { calls.push(["result", kind, targetId, options]); return { id: "result-1", outcome: "goalReached" }; },
+    async getLatestRun(kind, targetId, options) { calls.push(["run", kind, targetId, options]); return { sessionId: "session-1", status: "completed", outcome: "goalReached" }; }
   };
   const registry = new FoundryForgeProviderRegistry({
     getModule: id => id === "pf2e-chase-forge"
-      ? { active: true, version: "0.1.0-dev.15", api: { integrations: { campaignForge: chaseBridge } } }
+      ? { active: true, version: "0.1.0-dev.16", api: { integrations: { campaignForge: chaseBridge } } }
       : null
   });
 
   const status = registry.inspect("chaseForge");
   assert.equal(status.ready, true);
-  assert.deepEqual(status.capabilities, { references: true, open: true, create: true, start: true, results: true });
+  assert.deepEqual(status.capabilities, { references: true, open: true, create: true, start: true, results: true, activity: true, continuation: true });
   const targets = await registry.listChaseTargets();
   assert.equal(targets.length, 2);
   assert.equal((await registry.getChaseContext("blueprint", "world-1")).label, "Rooftop Run");
@@ -287,8 +289,13 @@ test("Chase Forge provider exposes prepared references, opening, direct start, a
   const started = await registry.startChase("blueprint", "world-1", { entryId: "quest-1", linkId: "link-1" });
   assert.equal(started.sessionId, "session-1");
   assert.deepEqual(calls.find(call => call[0] === "start")[3], { campaign: { entryId: "quest-1", linkId: "link-1" } });
-  const result = await registry.getLatestChaseResult("blueprint", "world-1", { entryId: "quest-1" });
+  await registry.startChase("blueprint", "world-1", { entryId: "quest-1", linkId: "link-1" }, { forceNew: true });
+  assert.equal(calls.filter(call => call[0] === "start")[1][3].forceNew, true);
+  const result = await registry.getLatestChaseResult("blueprint", "world-1", { entryId: "quest-1", linkId: "link-1" });
   assert.equal(result.outcome, "goalReached");
+  const run = await registry.getLatestChaseRun("blueprint", "world-1", { entryId: "quest-1", linkId: "link-1" });
+  assert.equal(run.status, "completed");
+  assert.deepEqual(calls.find(call => call[0] === "run")[3], { entryId: "quest-1", linkId: "link-1" });
 });
 
 test("Chase Forge remains optional and unavailable capabilities fail cleanly", async () => {
@@ -301,4 +308,27 @@ test("Chase Forge remains optional and unavailable capabilities fail cleanly", a
   assert.equal(await registry.openChase("blueprint", "missing"), null);
   assert.equal(registry.openNewChase(), null);
   await assert.rejects(() => registry.startChase("blueprint", "missing"), error => error.code === "PROVIDER_CAPABILITY_UNAVAILABLE");
+});
+
+test("Chase Forge Contract v1 remains compatible when additive run-status support is absent", async () => {
+  const bridge = {
+    async listPrepared() { return [{ kind: "blueprint", id: "legacy-1", label: "Legacy Chase", readOnly: false }]; },
+    async getContext(kind, targetId) { return { kind, id: targetId, label: "Legacy Chase" }; },
+    async open() { return true; },
+    async openNew() { return true; },
+    async start() { return { sessionId: "legacy-session" }; },
+    async getLatestResult() { return { id: "legacy-result", outcome: "goalReached" }; }
+  };
+  const registry = new FoundryForgeProviderRegistry({
+    getModule: id => id === "pf2e-chase-forge"
+      ? { active: true, version: "0.1.0-dev.15", api: { integrations: { campaignForge: bridge } } }
+      : null
+  });
+  const status = registry.inspect("chaseForge");
+  assert.equal(status.ready, true);
+  assert.equal(status.capabilities.results, true);
+  assert.equal(status.capabilities.activity, false);
+  assert.equal(status.capabilities.continuation, false);
+  assert.equal(await registry.getLatestChaseRun("blueprint", "legacy-1", { entryId: "quest-1", linkId: "link-1" }), null);
+  assert.equal((await registry.getLatestChaseResult("blueprint", "legacy-1", { entryId: "quest-1", linkId: "link-1" })).outcome, "goalReached");
 });

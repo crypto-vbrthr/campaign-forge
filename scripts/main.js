@@ -42,7 +42,7 @@ function exposeApi() {
   if (!module) return;
 
   module.api = {
-    version: module.version ?? "1.0.1",
+    version: module.version ?? "1.0.3.1",
     apiVersion: 1,
     stability: "stable",
     schemaVersion: 2,
@@ -67,6 +67,7 @@ function exposeApi() {
       forgeProviders: true,
       chaseForgeLinks: true,
       chaseForgeDirectStart: true,
+      chaseForgeRunStatus: true,
       backups: true
     }),
     open: openCampaignForge,
@@ -147,13 +148,17 @@ function exposeApi() {
           requireGM();
           return providers?.openNewChase?.(options) ?? null;
         },
-        start: (kind, targetId, context = {}) => {
+        start: (kind, targetId, context = {}, options = {}) => {
           requireGM();
-          return providers?.startChase?.(kind, targetId, context) ?? null;
+          return providers?.startChase?.(kind, targetId, context, options) ?? null;
         },
         getLatestResult: (kind, targetId, options = {}) => {
           requireGM();
           return providers?.getLatestChaseResult?.(kind, targetId, options) ?? null;
+        },
+        getLatestRun: (kind, targetId, options = {}) => {
+          requireGM();
+          return providers?.getLatestChaseRun?.(kind, targetId, options) ?? null;
         }
       })
     }),

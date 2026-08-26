@@ -1,4 +1,4 @@
-# Campaign Forge v1.0.1
+# Campaign Forge v1.0.3.1
 
 Campaign Forge is a campaign-management and campaign-memory module for Foundry VTT. It tracks quests, knowledge, events, long-running plot threads, sessions, reputation and other numeric campaign values, important NPCs, Journal references, rule-driven consequences, and rewards. A dedicated read-only Player View exposes only information explicitly published by the GM.
 
@@ -12,6 +12,21 @@ Campaign Forge is part of the **Forge Suite**, a growing collection of Foundry V
 An overview of the Forge Suite, its modules, add-ons, and shared documentation is available here:
 
 **Forge Suite:** https://github.com/crypto-vbrthr/pf2e-forge-suite
+
+## v1.0.3.1 Chase Resume & Duplicate-Start Protection
+
+- With Chase Forge Campaign Integration Contract v2, the primary action on a linked running Chase opens the existing GM Runner instead of creating another Session.
+- Paused linked Chases are resumed through the same primary action.
+- A separate plus action can deliberately start an additional new Session; Campaign Forge asks for confirmation before forwarding `forceNew: true`.
+- Completed or aborted attempts remain terminal, so the next normal start creates a fresh Session.
+- Older Contract v1 Chase Forge builds keep their previous start behavior. Campaign State remains Schema v2.
+
+## v1.0.2 Chase Runtime & Lifecycle Hardening
+
+- Uses Chase Forge's additive live run-status capability when available, so linked campaign entries can show running, paused, completed, or aborted attempts instead of only the most recent completed result.
+- Result/run lookup now includes the Campaign external-link id. Removing and recreating a link to the same Chase therefore does not resurrect a stale result from the old link.
+- Keeps the existing provider boundary intact: Campaign Forge stores only external references and reads Session/Result state live from Chase Forge.
+- Public API remains stable v1 and State Schema remains v2; `campaign.integrations.chase.getLatestRun()` is additive and GM-only.
 
 ## v1.0.1 Chase Forge Integration
 
