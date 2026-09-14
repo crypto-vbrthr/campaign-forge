@@ -1,6 +1,0 @@
-Campaign Forge 1.0.3.1
-
-- Automated tests: 124/124 passed
-- JavaScript syntax check: passed
-- DE/EN localization key structure: synchronized
-- Chase integration UI regression: running Chase uses fa-person-running; linked Chase Forge blueprint/library entry keeps external-link icon

@@ -27,6 +27,8 @@ Suggestions and feature requests are equally welcome. Even small ideas can lead 
 **Open an issue here:** https://github.com/crypto-vbrthr/campaign-forge/issues
 
 
+## v1.1.0 Release Candidate 2
+
 ## v1.0.3.1 Chase Resume & Duplicate-Start Protection
 
 - With Chase Forge Campaign Integration Contract v2, the primary action on a linked running Chase opens the existing GM Runner instead of creating another Session.
