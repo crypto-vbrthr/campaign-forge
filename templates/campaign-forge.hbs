@@ -757,10 +757,24 @@
                               </div>
 
                               {{#if isEntryStatus}}
+                                <details class="cf-entry-target-filter" data-cf-entry-target-filter="{{targetFilter.key}}" {{#if targetFilter.open}}open{{/if}}>
+                                  <summary><i class="fa-solid fa-filter"></i> {{localize "CAMPAIGN_FORGE.Transitions.FilterTargetList"}}</summary>
+                                  <div class="cf-entry-target-filter-controls">
+                                    <input type="search" value="{{targetFilter.query}}" data-cf-entry-target-filter-query="{{targetFilter.key}}" placeholder="{{localize "CAMPAIGN_FORGE.Transitions.FilterTargetSearch"}}">
+                                    <select data-cf-entry-target-filter-type="{{targetFilter.key}}" aria-label="{{localize "CAMPAIGN_FORGE.Filters.Type"}}">
+                                      {{#each targetFilter.typeOptions}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                    </select>
+                                    <select data-cf-entry-target-filter-scope="{{targetFilter.key}}" aria-label="{{localize "CAMPAIGN_FORGE.Filters.ScopeLabel"}}">
+                                      {{#each targetFilter.scopeOptions}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                    </select>
+                                    <button type="button" class="icon" data-cf-entry-target-filter-clear="{{targetFilter.key}}" title="{{localize "CAMPAIGN_FORGE.Filters.Clear"}}"><i class="fa-solid fa-xmark"></i></button>
+                                  </div>
+                                  <small data-cf-entry-target-filter-count="{{targetFilter.key}}"></small>
+                                </details>
                                 <label>
                                   <span>{{localize "CAMPAIGN_FORGE.Transitions.TargetEntry"}}</span>
-                                  <select data-cf-rule-condition-target="{{index}}">
-                                    {{#each entryTargets}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                  <select data-cf-rule-condition-target="{{index}}" data-cf-entry-target-select="{{targetFilter.key}}">
+                                    {{#each entryTargets}}<option value="{{id}}" data-entry-type="{{type}}" data-entry-active="{{active}}" data-entry-visible="{{visible}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
                                   </select>
                                 </label>
                                 <div class="cf-rule-condition-comparison">
@@ -774,10 +788,24 @@
                               {{/if}}
 
                               {{#if isEntryBoolean}}
+                                <details class="cf-entry-target-filter" data-cf-entry-target-filter="{{targetFilter.key}}" {{#if targetFilter.open}}open{{/if}}>
+                                  <summary><i class="fa-solid fa-filter"></i> {{localize "CAMPAIGN_FORGE.Transitions.FilterTargetList"}}</summary>
+                                  <div class="cf-entry-target-filter-controls">
+                                    <input type="search" value="{{targetFilter.query}}" data-cf-entry-target-filter-query="{{targetFilter.key}}" placeholder="{{localize "CAMPAIGN_FORGE.Transitions.FilterTargetSearch"}}">
+                                    <select data-cf-entry-target-filter-type="{{targetFilter.key}}" aria-label="{{localize "CAMPAIGN_FORGE.Filters.Type"}}">
+                                      {{#each targetFilter.typeOptions}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                    </select>
+                                    <select data-cf-entry-target-filter-scope="{{targetFilter.key}}" aria-label="{{localize "CAMPAIGN_FORGE.Filters.ScopeLabel"}}">
+                                      {{#each targetFilter.scopeOptions}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                    </select>
+                                    <button type="button" class="icon" data-cf-entry-target-filter-clear="{{targetFilter.key}}" title="{{localize "CAMPAIGN_FORGE.Filters.Clear"}}"><i class="fa-solid fa-xmark"></i></button>
+                                  </div>
+                                  <small data-cf-entry-target-filter-count="{{targetFilter.key}}"></small>
+                                </details>
                                 <label>
                                   <span>{{localize "CAMPAIGN_FORGE.Transitions.TargetEntry"}}</span>
-                                  <select data-cf-rule-condition-target="{{index}}">
-                                    {{#each entryTargets}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                  <select data-cf-rule-condition-target="{{index}}" data-cf-entry-target-select="{{targetFilter.key}}">
+                                    {{#each entryTargets}}<option value="{{id}}" data-entry-type="{{type}}" data-entry-active="{{active}}" data-entry-visible="{{visible}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
                                   </select>
                                 </label>
                                 <label>
@@ -942,11 +970,25 @@
                               <input type="number" step="any" value="{{delta}}" data-cf-rule-action-delta="{{index}}">
                             </label>
                           {{else}}
+                            <details class="cf-entry-target-filter" data-cf-entry-target-filter="{{targetFilter.key}}" {{#if targetFilter.open}}open{{/if}}>
+                              <summary><i class="fa-solid fa-filter"></i> {{localize "CAMPAIGN_FORGE.Transitions.FilterTargetList"}}</summary>
+                              <div class="cf-entry-target-filter-controls">
+                                <input type="search" value="{{targetFilter.query}}" data-cf-entry-target-filter-query="{{targetFilter.key}}" placeholder="{{localize "CAMPAIGN_FORGE.Transitions.FilterTargetSearch"}}">
+                                <select data-cf-entry-target-filter-type="{{targetFilter.key}}" aria-label="{{localize "CAMPAIGN_FORGE.Filters.Type"}}">
+                                  {{#each targetFilter.typeOptions}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                </select>
+                                <select data-cf-entry-target-filter-scope="{{targetFilter.key}}" aria-label="{{localize "CAMPAIGN_FORGE.Filters.ScopeLabel"}}">
+                                  {{#each targetFilter.scopeOptions}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+                                </select>
+                                <button type="button" class="icon" data-cf-entry-target-filter-clear="{{targetFilter.key}}" title="{{localize "CAMPAIGN_FORGE.Filters.Clear"}}"><i class="fa-solid fa-xmark"></i></button>
+                              </div>
+                              <small data-cf-entry-target-filter-count="{{targetFilter.key}}"></small>
+                            </details>
                             <label>
                               <span>{{localize "CAMPAIGN_FORGE.Transitions.TargetEntry"}}</span>
-                              <select data-cf-rule-action-target="{{index}}">
+                              <select data-cf-rule-action-target="{{index}}" data-cf-entry-target-select="{{targetFilter.key}}">
                                 {{#each entryTargets}}
-                                  <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                                  <option value="{{id}}" data-entry-type="{{type}}" data-entry-active="{{active}}" data-entry-visible="{{visible}}" {{#if selected}}selected{{/if}}>{{label}}</option>
                                 {{/each}}
                               </select>
                             </label>

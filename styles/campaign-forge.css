@@ -2517,3 +2517,46 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Optional filters for large transition target lists */
+.campaign-forge .cf-entry-target-filter{
+  border: 1px dashed var(--cf-border);
+  border-radius: .35rem;
+  background: color-mix(in srgb, var(--cf-panel-soft) 72%, transparent);
+}
+
+.campaign-forge .cf-entry-target-filter > summary{
+  cursor: pointer;
+  padding: .35rem .45rem;
+  color: var(--cf-muted);
+  user-select: none;
+}
+
+.campaign-forge .cf-entry-target-filter[open] > summary{
+  border-bottom: 1px solid var(--cf-border);
+}
+
+.campaign-forge .cf-entry-target-filter-controls{
+  display: grid;
+  grid-template-columns: minmax(150px, 1.35fr) minmax(120px, .8fr) minmax(130px, .9fr) auto;
+  gap: .35rem;
+  padding: .4rem;
+  align-items: center;
+}
+
+.campaign-forge .cf-entry-target-filter-controls input,
+.campaign-forge .cf-entry-target-filter-controls select{
+  min-width: 0;
+}
+
+.campaign-forge .cf-entry-target-filter > small{
+  display: block;
+  padding: 0 .45rem .4rem;
+  color: var(--cf-muted);
+}
+
+@media (max-width: 900px){
+  .campaign-forge .cf-entry-target-filter-controls{
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -1,4 +1,4 @@
-# Campaign Forge v1.0.3.1
+# Campaign Forge v1.1.1
 
 Campaign Forge is a campaign-management and campaign-memory module for Foundry VTT. It tracks quests, knowledge, events, long-running plot threads, sessions, reputation and other numeric campaign values, important NPCs, Journal references, rule-driven consequences, and rewards. A dedicated read-only Player View exposes only information explicitly published by the GM.
 

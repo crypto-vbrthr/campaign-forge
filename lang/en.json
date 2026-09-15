@@ -406,7 +406,10 @@
       "ConditionPreviewBoolean": "“{title}”: {field} is {actual}; requires {expected}",
       "ConditionPreviewNumeric": "“{title}”: currently {actual}; condition {operator} {expected}",
       "ConditionPreviewGroup": "“{title}”: currently {actual} ({reached}/{total}); condition {operator} {expected}",
-      "PreviewProviderAction": "{provider}: {operation} on “{target}”"
+      "PreviewProviderAction": "{provider}: {operation} on “{target}”",
+      "FilterTargetList": "Filter target list",
+      "FilterTargetSearch": "Search entries …",
+      "TargetFilterCount": "Showing {shown} of {total} entries"
     },
     "TransitionActions": {
       "setEntryStatus": "Set entry status",

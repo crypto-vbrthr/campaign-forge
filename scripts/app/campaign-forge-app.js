@@ -403,6 +403,30 @@ function groupMatchesCampaignQuery(group, query) {
   return normalizeSearch([group?.title, group?.description].join(" ")).includes(query);
 }
 
+function ruleEntryTargetFilterKey(kind, item, index) {
+  const id = String(item?.id ?? `${kind}-${index}`);
+  return `${kind}:${id}`;
+}
+
+function ruleEntryTargetTypeOptions(selected = "all") {
+  return [
+    { id: "all", label: localize("CAMPAIGN_FORGE.Filters.AllTypes"), selected: selected === "all" },
+    ...Object.entries(ENTRY_TYPES).map(([id, def]) => ({
+      id,
+      label: localize(def.label),
+      selected: selected === id
+    }))
+  ];
+}
+
+function ruleEntryTargetScopeOptions(selected = "all") {
+  return ["all", "active", "inactive", "player", "gm"].map(id => ({
+    id,
+    label: localize(`CAMPAIGN_FORGE.Filters.Scope.${id}`),
+    selected: selected === id
+  }));
+}
+
 function healthIssueLabel(issue) {
   const key = `CAMPAIGN_FORGE.Hardening.HealthIssues.${issue.code}`;
   const localized = localize(key);
@@ -958,6 +982,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this._itemRewardEditorSession = null;
     this._itemRewardEditorDialog = null;
     this._campaignFilter = { query: "", type: "all", scope: "all" };
+    this._entryTargetFilters = new Map();
     this._filterRenderTimer = null;
     this._campaignQueryFocus = null;
     this._dataHealthCache = null;
@@ -1702,9 +1727,18 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
             const isEntryBoolean = condition.type === "entryActive" || condition.type === "entryVisible";
             const isTracker = condition.type === "trackerValue";
             const isGroup = condition.type === "groupProgress";
+            const targetFilterKey = ruleEntryTargetFilterKey("condition", condition, index);
+            const targetFilterState = this._entryTargetFilters.get(targetFilterKey) ?? { query: "", type: "all", scope: "all", open: false };
             return {
               ...condition,
               index,
+              targetFilter: {
+                key: targetFilterKey,
+                query: targetFilterState.query ?? "",
+                open: targetFilterState.open === true,
+                typeOptions: ruleEntryTargetTypeOptions(targetFilterState.type ?? "all"),
+                scopeOptions: ruleEntryTargetScopeOptions(targetFilterState.scope ?? "all")
+              },
               isEntryStatus,
               isEntryBoolean,
               isEntryActive: condition.type === "entryActive",
@@ -1714,6 +1748,9 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
               types: transitionConditionTypeOptions(condition.type),
               entryTargets: sortedEntries.map(entry => ({
                 id: entry.id,
+                type: entry.type,
+                active: entry.active !== false,
+                visible: entry.visible !== false,
                 label: `${entry.title} · ${localize(ENTRY_TYPES[entry.type]?.label ?? entry.type)}`,
                 selected: entry.id === condition.targetId
               })),
@@ -1786,9 +1823,18 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
                 enabledValues: booleanOptions(action.payload.enabled !== false)
               };
             }
+            const targetFilterKey = ruleEntryTargetFilterKey("action", action, index);
+            const targetFilterState = this._entryTargetFilters.get(targetFilterKey) ?? { query: "", type: "all", scope: "all", open: false };
             return {
               ...action,
               index,
+              targetFilter: {
+                key: targetFilterKey,
+                query: targetFilterState.query ?? "",
+                open: targetFilterState.open === true,
+                typeOptions: ruleEntryTargetTypeOptions(targetFilterState.type ?? "all"),
+                scopeOptions: ruleEntryTargetScopeOptions(targetFilterState.scope ?? "all")
+              },
               isStatus: action.type === "setEntryStatus",
               isActive: action.type === "setEntryActive",
               isVisible: action.type === "setEntryVisible",
@@ -1798,6 +1844,9 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
               types: transitionActionTypeOptions(action.type),
               entryTargets: sortedEntries.map(entry => ({
                 id: entry.id,
+                type: entry.type,
+                active: entry.active !== false,
+                visible: entry.visible !== false,
                 label: `${entry.title} · ${localize(ENTRY_TYPES[entry.type]?.label ?? entry.type)}`,
                 selected: entry.id === action.targetId
               })),
@@ -2161,6 +2210,72 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const ruleConditionMode = root.querySelector('[data-cf-rule-field="conditionMode"]');
     if (ruleConditionMode) ruleConditionMode.addEventListener("change", event => {
       if (this._ruleEditor?.draft) this._ruleEditor.draft.conditionMode = event.currentTarget.value;
+    });
+
+    root.querySelectorAll("[data-cf-entry-target-filter]").forEach(details => {
+      const key = details.dataset.cfEntryTargetFilter;
+      if (!key) return;
+      details.addEventListener("toggle", () => {
+        const filter = this._entryTargetFilters.get(key) ?? { query: "", type: "all", scope: "all", open: false };
+        filter.open = details.open;
+        this._entryTargetFilters.set(key, filter);
+      });
+      this._applyEntryTargetFilter(root, key);
+    });
+
+    root.querySelectorAll("[data-cf-entry-target-filter-query]").forEach(input => {
+      input.addEventListener("input", event => {
+        const key = event.currentTarget.dataset.cfEntryTargetFilterQuery;
+        if (!key) return;
+        const filter = this._entryTargetFilters.get(key) ?? { query: "", type: "all", scope: "all", open: true };
+        filter.query = event.currentTarget.value ?? "";
+        filter.open = true;
+        this._entryTargetFilters.set(key, filter);
+        this._applyEntryTargetFilter(root, key);
+      });
+    });
+
+    root.querySelectorAll("[data-cf-entry-target-filter-type]").forEach(select => {
+      select.addEventListener("change", event => {
+        const key = event.currentTarget.dataset.cfEntryTargetFilterType;
+        if (!key) return;
+        const filter = this._entryTargetFilters.get(key) ?? { query: "", type: "all", scope: "all", open: true };
+        filter.type = event.currentTarget.value || "all";
+        filter.open = true;
+        this._entryTargetFilters.set(key, filter);
+        this._applyEntryTargetFilter(root, key);
+      });
+    });
+
+    root.querySelectorAll("[data-cf-entry-target-filter-scope]").forEach(select => {
+      select.addEventListener("change", event => {
+        const key = event.currentTarget.dataset.cfEntryTargetFilterScope;
+        if (!key) return;
+        const filter = this._entryTargetFilters.get(key) ?? { query: "", type: "all", scope: "all", open: true };
+        filter.scope = event.currentTarget.value || "all";
+        filter.open = true;
+        this._entryTargetFilters.set(key, filter);
+        this._applyEntryTargetFilter(root, key);
+      });
+    });
+
+    root.querySelectorAll("[data-cf-entry-target-filter-clear]").forEach(button => {
+      button.addEventListener("click", event => {
+        const key = event.currentTarget.dataset.cfEntryTargetFilterClear;
+        if (!key) return;
+        const filter = { query: "", type: "all", scope: "all", open: true };
+        this._entryTargetFilters.set(key, filter);
+        const details = [...root.querySelectorAll("[data-cf-entry-target-filter]")].find(node => node.dataset.cfEntryTargetFilter === key);
+        if (details) {
+          const query = details.querySelector("[data-cf-entry-target-filter-query]");
+          const type = details.querySelector("[data-cf-entry-target-filter-type]");
+          const scope = details.querySelector("[data-cf-entry-target-filter-scope]");
+          if (query) query.value = "";
+          if (type) type.value = "all";
+          if (scope) scope.value = "all";
+        }
+        this._applyEntryTargetFilter(root, key);
+      });
     });
 
     root.querySelectorAll("[data-cf-rule-condition-type]").forEach(select => {
@@ -2919,6 +3034,38 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     });
   }
 
+  _applyEntryTargetFilter(root, key) {
+    const filter = this._entryTargetFilters.get(key) ?? { query: "", type: "all", scope: "all", open: false };
+    const query = normalizeSearch(filter.query ?? "");
+    const type = ENTRY_TYPES[filter.type] ? filter.type : "all";
+    const scope = ["all", "active", "inactive", "player", "gm"].includes(filter.scope) ? filter.scope : "all";
+    const selects = [...root.querySelectorAll("[data-cf-entry-target-select]")].filter(select => select.dataset.cfEntryTargetSelect === key);
+    let shown = 0;
+    let total = 0;
+    for (const select of selects) {
+      for (const option of select.options) {
+        total += 1;
+        const entryType = option.dataset.entryType ?? "";
+        const active = option.dataset.entryActive !== "false";
+        const visible = option.dataset.entryVisible !== "false";
+        const typeMatch = type === "all" || entryType === type;
+        const scopeMatch = scope === "all"
+          || (scope === "active" && active)
+          || (scope === "inactive" && !active)
+          || (scope === "player" && visible)
+          || (scope === "gm" && !visible);
+        const queryMatch = !query || normalizeSearch(option.textContent).includes(query);
+        const matches = typeMatch && scopeMatch && queryMatch;
+        const keepVisible = option.selected || matches;
+        option.hidden = !keepVisible;
+        option.disabled = !keepVisible;
+        if (keepVisible) shown += 1;
+      }
+    }
+    const count = [...root.querySelectorAll("[data-cf-entry-target-filter-count]")].find(node => node.dataset.cfEntryTargetFilterCount === key);
+    if (count) count.textContent = format("CAMPAIGN_FORGE.Transitions.TargetFilterCount", { shown, total });
+  }
+
   async _requestStatusChange(entryId, status) {
     const plan = await this.engine.previewEntryStatusTransition(entryId, status);
     for (const action of plan.actions ?? []) {
@@ -3347,12 +3494,14 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   static _actionAddTransitionRule() {
     if (this._editor?.kind !== "rules") return;
+    this._entryTargetFilters.clear();
     this._ruleEditor = { entryId: this._editor.entryId, ruleId: null, draft: null };
     return this.render();
   }
 
   static async _actionEditTransitionRule(event, target) {
     if (this._editor?.kind !== "rules") return;
+    this._entryTargetFilters.clear();
     this._ruleEditor = {
       entryId: this._editor.entryId,
       ruleId: target.dataset.ruleId,
@@ -3375,6 +3524,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   static _actionCancelTransitionRule() {
+    this._entryTargetFilters.clear();
     this._ruleEditor = null;
     return this.render();
   }
@@ -3396,6 +3546,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
       } else {
         await this.engine.createTransitionRule(this._editor.entryId, payload);
       }
+      this._entryTargetFilters.clear();
       this._ruleEditor = null;
       await this.render();
     } catch (error) {
@@ -3422,6 +3573,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!this._ruleEditor?.draft?.conditions) return;
     const index = Number(target.dataset.conditionIndex);
     if (!Number.isInteger(index) || index < 0 || index >= this._ruleEditor.draft.conditions.length) return;
+    const removed = this._ruleEditor.draft.conditions[index];
+    this._entryTargetFilters.delete(ruleEntryTargetFilterKey("condition", removed, index));
     this._ruleEditor.draft.conditions.splice(index, 1);
     return this.render();
   }
@@ -3444,6 +3597,8 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!this._ruleEditor?.draft?.actions) return;
     const index = Number(target.dataset.actionIndex);
     if (!Number.isInteger(index) || index < 0 || index >= this._ruleEditor.draft.actions.length) return;
+    const removed = this._ruleEditor.draft.actions[index];
+    this._entryTargetFilters.delete(ruleEntryTargetFilterKey("action", removed, index));
     this._ruleEditor.draft.actions.splice(index, 1);
     return this.render();
   }

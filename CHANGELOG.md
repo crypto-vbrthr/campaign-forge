@@ -1,3 +1,11 @@
+## 1.1.1 - Transition Target Filtering
+
+- Adds an optional, collapsible filter panel for entry-target selectors in transition conditions and consequences.
+- Target lists can be filtered live by text, entry type, and scope (active/inactive/player-visible/GM-only) without modifying campaign data.
+- The current selected target remains available even when it falls outside the active filter, preventing existing rules from becoming ambiguous.
+- Filter state is UI-only and persists across rule-editor rerenders while the same rule is being edited.
+- Applies the same target filtering to entry-status, entry-active, and entry-visible conditions as well as the corresponding consequence actions.
+
 ## 1.0.3.1 - Chase Action Icon Clarity
 
 - Uses a dedicated running-person icon for opening an already-running Chase session from a Campaign entry.
