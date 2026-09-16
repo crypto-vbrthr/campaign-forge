@@ -1907,7 +1907,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         return {
           ...rule,
           entryId: source.id,
-          fromLabel: localize(STATUS_LABELS[rule.fromStatus] ?? rule.fromStatus),
+          fromLabel: transitionFromStatusLabel(rule.fromStatus),
           toLabel: localize(STATUS_LABELS[rule.toStatus] ?? rule.toStatus),
           rewardCount: rewards.length,
           counts,
@@ -1935,7 +1935,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           const statuses = ENTRY_TYPES[source.type].statuses;
           this._rewardEditor.draft = existing ? JSON.parse(JSON.stringify(existing)) : {
             enabled: true,
-            fromStatus: statuses[0],
+            fromStatus: TRANSITION_ANY_STATUS,
             toStatus: statuses[1] ?? statuses[0],
             rewards: []
           };
@@ -1955,7 +1955,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           id: existing?.id ?? "",
           isNew: !existing,
           enabled: draft.enabled !== false,
-          fromStatuses: statusOptions(source.type, draft.fromStatus),
+          fromStatuses: transitionFromStatusOptions(source.type, draft.fromStatus),
           toStatuses: statusOptions(source.type, draft.toStatus),
           rewards: await Promise.all((draft.rewards ?? []).map(async (reward, index) => {
             const liveItem = await resolveItem(reward.itemUuid);

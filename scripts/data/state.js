@@ -160,7 +160,7 @@ export function normalizeState(raw) {
       .map((rule, ruleIndex) => ({
         id: String(rule.id ?? `reward-rule-${entry.id}-${ruleIndex + 1}`),
         enabled: rule.enabled !== false,
-        fromStatus: String(rule.fromStatus ?? entry.status),
+        fromStatus: rule.fromStatus === TRANSITION_ANY_STATUS ? TRANSITION_ANY_STATUS : String(rule.fromStatus ?? entry.status),
         toStatus: String(rule.toStatus ?? entry.status),
         rewards: (Array.isArray(rule.rewards) ? rule.rewards : [])
           .filter(reward => reward && REWARD_TYPES[reward.type])

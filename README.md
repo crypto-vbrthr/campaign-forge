@@ -1,4 +1,4 @@
-# Campaign Forge v1.1.2
+# Campaign Forge v1.1.3
 
 Campaign Forge is a campaign-management and campaign-memory module for Foundry VTT. It tracks quests, knowledge, events, long-running plot threads, sessions, reputation and other numeric campaign values, important NPCs, Journal references, rule-driven consequences, and rewards. A dedicated read-only Player View exposes only information explicitly published by the GM.
 
@@ -203,7 +203,7 @@ Campaign Forge is a GM-facing Foundry VTT module for tracking campaign structure
 - GMs can change entry status directly from a Journal live block; the central transition engine, consequence preview, and session logging remain in effect.
 - Non-GM users receive read-only live blocks and entries marked hidden are not exposed through Journal embeds.
 - German and English localization for all application text.
-- New **Reward Rules** attach one or more rewards to an explicit entry status transition.
+- New **Reward Rules** attach one or more rewards to an entry status transition. The source status can be a specific state or **Any previous status**, allowing rewards to become due whenever the configured destination status is reached regardless of the path taken.
 - Supported built-in rewards: PF2e character XP, currency, existing Foundry Items, and Campaign Forge reputation/campaign values.
 - XP, currency, and Item rewards can target an individual character or all player characters; currency and Items can also target a PF2e Party Actor as team inventory. Items can be referenced from the world or a compendium by drag & drop.
 - Reward previews are shown together with transition consequences before the status change is applied.

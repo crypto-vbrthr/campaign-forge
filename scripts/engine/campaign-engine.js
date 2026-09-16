@@ -550,12 +550,17 @@ export class CampaignEngine {
 
   _validateRewardRule(state, entry, data = {}, existingRule = null) {
     const statuses = ENTRY_TYPES[entry.type].statuses;
-    const fromStatus = String(data.fromStatus ?? existingRule?.fromStatus ?? entry.status);
+    const rawFromStatus = data.fromStatus !== undefined ? data.fromStatus : (existingRule?.fromStatus ?? TRANSITION_ANY_STATUS);
+    const fromStatus = rawFromStatus == null || String(rawFromStatus).trim() === ""
+      ? TRANSITION_ANY_STATUS
+      : String(rawFromStatus);
     const toStatus = String(data.toStatus ?? existingRule?.toStatus ?? entry.status);
-    if (!statuses.includes(fromStatus) || !statuses.includes(toStatus)) {
+    if ((fromStatus !== TRANSITION_ANY_STATUS && !statuses.includes(fromStatus)) || !statuses.includes(toStatus)) {
       throw new CampaignEngineError("INVALID_REWARD_TRIGGER", { fromStatus, toStatus, type: entry.type });
     }
-    if (fromStatus === toStatus) throw new CampaignEngineError("REWARD_TRIGGER_SAME_STATUS", { status: fromStatus });
+    if (fromStatus !== TRANSITION_ANY_STATUS && fromStatus === toStatus) {
+      throw new CampaignEngineError("REWARD_TRIGGER_SAME_STATUS", { status: fromStatus });
+    }
     const rewards = this._normalizeRewards(state, data.rewards ?? existingRule?.rewards ?? [], existingRule?.rewards ?? []);
     return {
       id: String(existingRule?.id ?? data.id ?? this._newId()),
@@ -839,7 +844,9 @@ export class CampaignEngine {
       }
 
       const matchingRewardRules = (target.rewardRules ?? []).filter(rule =>
-        rule.enabled !== false && rule.fromStatus === previousStatus && rule.toStatus === nextStatus
+        rule.enabled !== false
+        && (rule.fromStatus === TRANSITION_ANY_STATUS || rule.fromStatus === previousStatus)
+        && rule.toStatus === nextStatus
       );
       for (const rewardRule of matchingRewardRules) {
         for (const reward of rewardRule.rewards ?? []) {
@@ -1198,7 +1205,7 @@ export class CampaignEngine {
           (rule.fromStatus === TRANSITION_ANY_STATUS || statuses.includes(rule.fromStatus)) && statuses.includes(rule.toStatus)
         );
         entry.rewardRules = (entry.rewardRules ?? []).filter(rule =>
-          statuses.includes(rule.fromStatus) && statuses.includes(rule.toStatus)
+          (rule.fromStatus === TRANSITION_ANY_STATUS || statuses.includes(rule.fromStatus)) && statuses.includes(rule.toStatus)
         );
         if (entry.type !== "event") entry.weatherSnapshot = null;
       }

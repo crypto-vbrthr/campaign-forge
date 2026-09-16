@@ -29,3 +29,10 @@ test("transition rule editor exposes an any-previous-status trigger", () => {
   assert.match(source, /transitionFromStatusOptions/);
   assert.match(template, /data-cf-rule-field="fromStatus"/);
 });
+
+
+test("reward rule editor also exposes an any-previous-status trigger", () => {
+  assert.match(source, /fromStatus: TRANSITION_ANY_STATUS,[\s\S]*rewards: \[\]/);
+  assert.match(source, /fromStatuses: transitionFromStatusOptions\(source\.type, draft\.fromStatus\)/);
+  assert.match(template, /data-cf-reward-field="fromStatus"/);
+});

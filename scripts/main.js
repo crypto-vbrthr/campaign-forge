@@ -42,7 +42,7 @@ function exposeApi() {
   if (!module) return;
 
   module.api = {
-    version: module.version ?? "1.1.2",
+    version: module.version ?? "1.1.3",
     apiVersion: 1,
     stability: "stable",
     schemaVersion: 2,

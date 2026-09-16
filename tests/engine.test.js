@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { CampaignEngine, CampaignEngineError } from "../scripts/engine/campaign-engine.js";
 import { MemoryRepository, deterministicOptions } from "./helpers.js";
 import { getGroupProgress } from "../scripts/data/state.js";
+import { TRANSITION_ANY_STATUS } from "../scripts/core/constants.js";
 
 function engineWithRepo(rewardExecutor = null) {
   const repository = new MemoryRepository();
@@ -671,6 +672,53 @@ test("reward rules become pending on their status trigger without granting autom
   assert.equal(stored.rewardRules[0].id, rule.id);
   assert.equal(stored.rewardRules[0].rewards[0].state, "pending");
   assert.equal(calls.length, 0);
+});
+
+test("reward rules can trigger on any previous status when only the destination matters", async () => {
+  const { engine } = engineWithRepo({ execute: async reward => ({ ok: true, amount: reward.amount }) });
+  const clue = await engine.createEntry({ title: "Flexible clue reward", type: "knowledge", status: "unknown" });
+  const rule = await engine.createRewardRule(clue.id, {
+    toStatus: "understood",
+    rewards: [{ type: "xp", actorUuid: "Actor.hero", amount: 40 }]
+  });
+
+  assert.equal(rule.fromStatus, TRANSITION_ANY_STATUS);
+
+  let preview = await engine.previewEntryStatusTransition(clue.id, "understood");
+  assert.equal(preview.rewardOffers.length, 1);
+  await engine.setEntryStatus(clue.id, "understood");
+
+  let state = await engine.getState();
+  let reward = state.entries.find(entry => entry.id === clue.id).rewardRules[0].rewards[0];
+  assert.equal(reward.state, "pending");
+
+  await engine.skipReward(clue.id, rule.id, reward.id);
+  await engine.resetReward(clue.id, rule.id, reward.id);
+  await engine.setEntryStatus(clue.id, "hinted");
+  preview = await engine.previewEntryStatusTransition(clue.id, "understood");
+  assert.equal(preview.rewardOffers.length, 1);
+  await engine.setEntryStatus(clue.id, "understood");
+
+  state = await engine.getState();
+  reward = state.entries.find(entry => entry.id === clue.id).rewardRules[0].rewards[0];
+  assert.equal(reward.state, "pending");
+});
+
+test("wildcard reward triggers survive entry type changes when their destination remains valid", async () => {
+  const { engine } = engineWithRepo();
+  const entry = await engine.createEntry({ title: "Flexible reward target", type: "quest", status: "active" });
+  await engine.createRewardRule(entry.id, {
+    fromStatus: TRANSITION_ANY_STATUS,
+    toStatus: "completed",
+    rewards: [{ type: "xp", actorUuid: "Actor.hero", amount: 10 }]
+  });
+
+  await engine.updateEntry(entry.id, { type: "note", status: "active" });
+  const state = await engine.getState();
+  const stored = state.entries.find(candidate => candidate.id === entry.id);
+  assert.equal(stored.rewardRules.length, 1);
+  assert.equal(stored.rewardRules[0].fromStatus, TRANSITION_ANY_STATUS);
+  assert.equal(stored.rewardRules[0].toStatus, "completed");
 });
 
 test("due external rewards can be granted with duplicate protection", async () => {

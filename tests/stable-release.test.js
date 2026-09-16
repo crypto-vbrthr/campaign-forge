@@ -11,9 +11,9 @@ const readme = fs.readFileSync(new URL("../README.md", import.meta.url), "utf8")
 const apiContract = fs.readFileSync(new URL("../API-CONTRACT.md", import.meta.url), "utf8");
 
 test("stable package and public API versions stay aligned", () => {
-  assert.equal(moduleJson.version, "1.1.2");
+  assert.equal(moduleJson.version, "1.1.3");
   assert.equal(packageJson.version, moduleJson.version);
-  assert.match(mainSource, /version: module\.version \?\? "1\.1\.2"/);
+  assert.match(mainSource, /version: module\.version \?\? "1\.1\.3"/);
   assert.match(mainSource, /apiVersion: 1/);
   assert.match(mainSource, /schemaVersion: 2/);
   assert.match(mainSource, /stability: "stable"/);
@@ -24,7 +24,7 @@ test("stable documentation reflects protected persistence", () => {
   assert.doesNotMatch(readme, /Campaign data is stored in a non-configurable world setting\./);
   assert.match(readme, /ownership-protected `JournalEntry`/);
   assert.match(apiContract, /Public API v1/);
-  assert.match(readme, /^# Campaign Forge v1\.1\.2/m);
+  assert.match(readme, /^# Campaign Forge v1\.1\.3/m);
   assert.match(readme, /## v1\.0\.0 Stable Release/);
   assert.match(apiContract, /Stable Contract/);
   assert.match(apiContract, /campaign\.stability === "stable"/);

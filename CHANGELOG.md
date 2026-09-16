@@ -1,3 +1,10 @@
+## 1.1.3 - Destination-Only Reward Triggers
+
+- Reward rules can now use **Any previous status** as their source status, matching the destination-only behavior already available for transition rules.
+- New reward rules default to **Any previous status**; existing reward rules keep their explicit source status unchanged.
+- Wildcard reward triggers remain valid when an entry type changes as long as the target status exists for the new type.
+- Reset rewards can be re-armed and will become due on the next matching transition into the configured target status regardless of the path taken to reach it.
+
 ## 1.1.2 - Destination-Only Transition Triggers
 
 - Transition rules can now use **Any previous status** as their source status. This makes the target status alone decisive, so a rule can react whenever an entry reaches a specific state regardless of the path taken to get there.
