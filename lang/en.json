@@ -409,7 +409,8 @@
       "PreviewProviderAction": "{provider}: {operation} on “{target}”",
       "FilterTargetList": "Filter target list",
       "FilterTargetSearch": "Search entries …",
-      "TargetFilterCount": "Showing {shown} of {total} entries"
+      "TargetFilterCount": "Showing {shown} of {total} entries",
+      "AnyPreviousStatus": "Any previous status"
     },
     "TransitionActions": {
       "setEntryStatus": "Set entry status",

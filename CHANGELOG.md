@@ -1,3 +1,9 @@
+## 1.1.2 - Destination-Only Transition Triggers
+
+- Transition rules can now use **Any previous status** as their source status. This makes the target status alone decisive, so a rule can react whenever an entry reaches a specific state regardless of the path taken to get there.
+- New transition rules default to **Any previous status**; existing rules keep their explicit source status unchanged.
+- Wildcard source-status rules remain valid when an entry type is changed, as long as the target status exists for the new type.
+
 ## 1.1.1 - Transition Target Filtering
 
 - Adds an optional, collapsible filter panel for entry-target selectors in transition conditions and consequences.

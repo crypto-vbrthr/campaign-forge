@@ -14,6 +14,7 @@ import {
   STATUS_CONDITION_OPERATORS,
   STATUS_LABELS,
   TRANSITION_ACTION_TYPES,
+  TRANSITION_ANY_STATUS,
   TRANSITION_CONDITION_MODES,
   TRANSITION_CONDITION_TYPES,
 } from "../core/constants.js";
@@ -75,6 +76,23 @@ function statusOptions(type, selected) {
     label: localize(STATUS_LABELS[id] ?? id),
     selected: id === selected
   }));
+}
+
+function transitionFromStatusOptions(type, selected) {
+  return [
+    {
+      id: TRANSITION_ANY_STATUS,
+      label: localize("CAMPAIGN_FORGE.Transitions.AnyPreviousStatus"),
+      selected: selected === TRANSITION_ANY_STATUS
+    },
+    ...statusOptions(type, selected)
+  ];
+}
+
+function transitionFromStatusLabel(status) {
+  return status === TRANSITION_ANY_STATUS
+    ? localize("CAMPAIGN_FORGE.Transitions.AnyPreviousStatus")
+    : localize(STATUS_LABELS[status] ?? status);
 }
 
 function sessionChangeKindOptions(selected = "note") {
@@ -1685,7 +1703,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
       const rules = (source.transitionRules ?? []).map(rule => ({
         ...rule,
-        fromLabel: localize(STATUS_LABELS[rule.fromStatus] ?? rule.fromStatus),
+        fromLabel: transitionFromStatusLabel(rule.fromStatus),
         toLabel: localize(STATUS_LABELS[rule.toStatus] ?? rule.toStatus),
         actionCount: (rule.actions ?? []).length,
         conditionCount: (rule.conditions ?? []).length,
@@ -1701,7 +1719,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           const statuses = ENTRY_TYPES[source.type].statuses;
           this._ruleEditor.draft = existing ? JSON.parse(JSON.stringify(existing)) : {
             enabled: true,
-            fromStatus: statuses[0],
+            fromStatus: TRANSITION_ANY_STATUS,
             toStatus: statuses[1] ?? statuses[0],
             conditionMode: "all",
             conditions: [],
@@ -1716,7 +1734,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
           id: existing?.id ?? "",
           isNew: !existing,
           enabled: draft.enabled !== false,
-          fromStatuses: statusOptions(source.type, draft.fromStatus),
+          fromStatuses: transitionFromStatusOptions(source.type, draft.fromStatus),
           toStatuses: statusOptions(source.type, draft.toStatus),
           conditionModes: transitionConditionModeOptions(draft.conditionMode ?? "all"),
           conditions: (draft.conditions ?? []).map((condition, index) => {
@@ -3087,7 +3105,7 @@ export class CampaignForgeApp extends HandlebarsApplicationMixin(ApplicationV2) 
         .map(reward => `<li><i class="fa-solid fa-gift"></i> ${escapeHTML(rewardPreviewLabel(reward))}</li>`)
         .join("");
       const conditionBlocks = (plan.conditionEvaluations ?? []).map(evaluation => {
-        const from = localize(STATUS_LABELS[evaluation.fromStatus] ?? evaluation.fromStatus);
+        const from = transitionFromStatusLabel(evaluation.fromStatus);
         const to = localize(STATUS_LABELS[evaluation.toStatus] ?? evaluation.toStatus);
         const mode = localize(TRANSITION_CONDITION_MODES[evaluation.conditionMode]?.label ?? TRANSITION_CONDITION_MODES.all.label);
         const items = (evaluation.conditions ?? []).map(condition => `

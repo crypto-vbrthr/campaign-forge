@@ -91,6 +91,8 @@ export const KEY_PLAYER_STATES = Object.freeze({
 
 
 
+export const TRANSITION_ANY_STATUS = "*";
+
 export const TRANSITION_CONDITION_MODES = Object.freeze({
   all: { label: "CAMPAIGN_FORGE.TransitionConditionModes.all" },
   any: { label: "CAMPAIGN_FORGE.TransitionConditionModes.any" }

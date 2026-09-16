@@ -1,4 +1,4 @@
-import { ENTRY_TYPES, GROUP_PROGRESS_METRICS, JOURNAL_LINK_ROLES, KEY_PLAYER_ROLES, KEY_PLAYER_STATES, NUMERIC_CONDITION_OPERATORS, OVERVIEW_REACHED_STATUSES, REWARD_STATES, REWARD_TYPES, SORT_STEP, STATUS_CONDITION_OPERATORS, TRANSITION_ACTION_TYPES, TRANSITION_CONDITION_MODES, TRANSITION_CONDITION_TYPES } from "../core/constants.js";
+import { ENTRY_TYPES, GROUP_PROGRESS_METRICS, JOURNAL_LINK_ROLES, KEY_PLAYER_ROLES, KEY_PLAYER_STATES, NUMERIC_CONDITION_OPERATORS, OVERVIEW_REACHED_STATUSES, REWARD_STATES, REWARD_TYPES, SORT_STEP, STATUS_CONDITION_OPERATORS, TRANSITION_ACTION_TYPES, TRANSITION_ANY_STATUS, TRANSITION_CONDITION_MODES, TRANSITION_CONDITION_TYPES } from "../core/constants.js";
 
 function nowIso() {
   return new Date().toISOString();
@@ -115,7 +115,7 @@ export function normalizeState(raw) {
       .map((rule, ruleIndex) => ({
         id: String(rule.id ?? `rule-${entry.id}-${ruleIndex + 1}`),
         enabled: rule.enabled !== false,
-        fromStatus: String(rule.fromStatus ?? entry.status),
+        fromStatus: rule.fromStatus === TRANSITION_ANY_STATUS ? TRANSITION_ANY_STATUS : String(rule.fromStatus ?? entry.status),
         toStatus: String(rule.toStatus ?? entry.status),
         conditionMode: TRANSITION_CONDITION_MODES[rule.conditionMode] ? rule.conditionMode : "all",
         conditions: (Array.isArray(rule.conditions) ? rule.conditions : [])

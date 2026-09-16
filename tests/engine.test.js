@@ -430,6 +430,32 @@ test("transition rules can change status, activity, visibility, and trackers in 
   assert.ok(session.changes.slice(1).every(change => change.source === "transition"));
 });
 
+test("transition rules can trigger on any previous status", async () => {
+  const { engine } = engineWithRepo();
+
+  const knowledge = await engine.createEntry({ title: "Clue", type: "knowledge", status: "unknown" });
+  const followup = await engine.createEntry({ title: "Follow-up", type: "quest", status: "inactive", active: false });
+
+  const rule = await engine.createTransitionRule(knowledge.id, {
+    fromStatus: "*",
+    toStatus: "understood",
+    actions: [{ type: "setEntryActive", targetId: followup.id, value: true }]
+  });
+  assert.equal(rule.fromStatus, "*");
+
+  await engine.setEntryStatus(knowledge.id, "understood");
+  let state = await engine.getState();
+  assert.equal(state.entries.find(entry => entry.id === followup.id).active, true);
+
+  await engine.setEntryStatus(followup.id, "inactive");
+  await engine.updateEntry(followup.id, { active: false });
+  await engine.setEntryStatus(knowledge.id, "unknown");
+  await engine.setEntryStatus(knowledge.id, "hinted");
+  await engine.setEntryStatus(knowledge.id, "understood");
+  state = await engine.getState();
+  assert.equal(state.entries.find(entry => entry.id === followup.id).active, true);
+});
+
 test("status consequences can trigger further transition rules", async () => {
   const { engine } = engineWithRepo();
 

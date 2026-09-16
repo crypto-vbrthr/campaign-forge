@@ -409,7 +409,8 @@
       "PreviewProviderAction": "{provider}: {operation} bei „{target}“",
       "FilterTargetList": "Ziel-Liste filtern",
       "FilterTargetSearch": "Eintrag suchen …",
-      "TargetFilterCount": "{shown} von {total} Einträgen angezeigt"
+      "TargetFilterCount": "{shown} von {total} Einträgen angezeigt",
+      "AnyPreviousStatus": "Beliebiger vorheriger Status"
     },
     "TransitionActions": {
       "setEntryStatus": "Status eines Eintrags setzen",

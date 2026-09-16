@@ -1,4 +1,4 @@
-# Campaign Forge v1.1.1
+# Campaign Forge v1.1.2
 
 Campaign Forge is a campaign-management and campaign-memory module for Foundry VTT. It tracks quests, knowledge, events, long-running plot threads, sessions, reputation and other numeric campaign values, important NPCs, Journal references, rule-driven consequences, and rewards. A dedicated read-only Player View exposes only information explicitly published by the GM.
 
@@ -242,3 +242,8 @@ Campaign Forge mounts NPC Forge through its public embedded-editor session in a 
 ### Creature references in campaign entries
 
 Creature Actor links are displayed in a dedicated **Creature Forge** area of the entry editor. Actors added by drag & drop and Actors created through the embedded Creature Forge are shown there immediately with their portrait, current name, open action, and remove action. The stored link remains a UUID reference; Campaign Forge does not duplicate creature data.
+
+
+### Transition trigger flexibility
+
+Transition rules may use **Any previous status** as the source trigger. In that mode, only the destination status matters, which is useful for entries such as knowledge that may reach the same final state through different intermediate states.

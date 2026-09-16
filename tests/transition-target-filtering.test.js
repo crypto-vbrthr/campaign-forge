@@ -22,3 +22,10 @@ test("transition target filters are ephemeral UI state", () => {
   assert.match(source, /this\._entryTargetFilters = new Map\(\)/);
   assert.doesNotMatch(source, /payload[^\n]*entryTargetFilters/);
 });
+
+
+test("transition rule editor exposes an any-previous-status trigger", () => {
+  assert.match(source, /TRANSITION_ANY_STATUS/);
+  assert.match(source, /transitionFromStatusOptions/);
+  assert.match(template, /data-cf-rule-field="fromStatus"/);
+});

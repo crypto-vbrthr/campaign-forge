@@ -13,6 +13,7 @@ import {
   SORT_STEP,
   STATUS_CONDITION_OPERATORS,
   TRANSITION_ACTION_TYPES,
+  TRANSITION_ANY_STATUS,
   TRANSITION_CONDITION_MODES,
   TRANSITION_CONDITION_TYPES
 } from "../core/constants.js";
@@ -416,12 +417,15 @@ export class CampaignEngine {
 
   _validateTransitionRule(state, entry, data = {}, existingRule = null) {
     const statuses = ENTRY_TYPES[entry.type].statuses;
-    const fromStatus = String(data.fromStatus ?? existingRule?.fromStatus ?? entry.status);
+    const rawFromStatus = data.fromStatus !== undefined ? data.fromStatus : (existingRule?.fromStatus ?? entry.status);
+    const fromStatus = rawFromStatus == null || String(rawFromStatus).trim() === ""
+      ? TRANSITION_ANY_STATUS
+      : String(rawFromStatus);
     const toStatus = String(data.toStatus ?? existingRule?.toStatus ?? entry.status);
-    if (!statuses.includes(fromStatus) || !statuses.includes(toStatus)) {
+    if ((fromStatus !== TRANSITION_ANY_STATUS && !statuses.includes(fromStatus)) || !statuses.includes(toStatus)) {
       throw new CampaignEngineError("INVALID_TRANSITION_TRIGGER", { fromStatus, toStatus, type: entry.type });
     }
-    if (fromStatus === toStatus) {
+    if (fromStatus !== TRANSITION_ANY_STATUS && fromStatus === toStatus) {
       throw new CampaignEngineError("TRANSITION_TRIGGER_SAME_STATUS", { status: fromStatus });
     }
 
@@ -738,7 +742,9 @@ export class CampaignEngine {
 
       transitionStack.push(transitionKey);
       const matchingRules = (target.transitionRules ?? []).filter(rule =>
-        rule.enabled !== false && rule.fromStatus === previousStatus && rule.toStatus === nextStatus
+        rule.enabled !== false
+        && (rule.fromStatus === TRANSITION_ANY_STATUS || rule.fromStatus === previousStatus)
+        && rule.toStatus === nextStatus
       );
       const evaluatedRules = matchingRules.map(rule => ({
         rule,
@@ -1189,7 +1195,7 @@ export class CampaignEngine {
         const statuses = ENTRY_TYPES[entry.type].statuses;
         if (!statuses.includes(patch.status) && !statuses.includes(entry.status)) entry.status = statuses[0];
         entry.transitionRules = (entry.transitionRules ?? []).filter(rule =>
-          statuses.includes(rule.fromStatus) && statuses.includes(rule.toStatus)
+          (rule.fromStatus === TRANSITION_ANY_STATUS || statuses.includes(rule.fromStatus)) && statuses.includes(rule.toStatus)
         );
         entry.rewardRules = (entry.rewardRules ?? []).filter(rule =>
           statuses.includes(rule.fromStatus) && statuses.includes(rule.toStatus)
